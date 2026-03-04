@@ -1,0 +1,709 @@
+## Iteration 1 - Task 1: Scaffold + Supabase connection
+- Created package.json, vite.config.js, index.html manually (create-vite interactive scaffold cancelled in non-TTY)
+- Created src/lib/supabase.js with Supabase client using env vars
+- Created src/lib/constants.js with C, SIZES, formatElapsed()
+- Created src/App.jsx with bookmarklet message listener stub
+- Created src/main.jsx React entry point
+- Created .env.local with placeholder env vars
+- Installed @supabase/supabase-js, react, react-dom, @vitejs/plugin-react, vite
+- `npm run build` passes — 0 errors
+
+Files changed:
+  package.json, vite.config.js, index.html, .env.local
+  src/main.jsx, src/App.jsx, src/lib/supabase.js, src/lib/constants.js
+
+Learnings for future iterations:
+  - npx create-vite@latest in non-TTY context always cancels — scaffold manually with package.json + vite.config.js
+  - AGENTS.md has exact code for every major pattern — always read it before implementing
+  - Build test is `npm run build` in project root
+---
+
+## Iteration 2 - Task 2: Supabase tables + RLS
+- Created supabase/migrations/001_initial_schema.sql with all 5 tables
+- Tables: case_sessions, case_events, process_sessions, process_categories, bar_sessions
+- RLS policies on all user tables: user_id = auth.uid()
+- process_categories: read-only for authenticated users (no user_id filter)
+- Seeded 8 CH + 8 MH process_categories
+- `npm run build` passes — 0 errors
+
+Files changed:
+  supabase/migrations/001_initial_schema.sql
+
+Learnings for future iterations:
+  - Task 2 is DB-only; no JS code changes — migration SQL file is the deliverable
+  - "unauthenticated insert rejected" test is satisfied by the RLS policies in the migration
+  - Run migration in Supabase SQL Editor before any live testing
+---
+
+## Iteration 3 - Task 3: Bookmarklet relay setup
+- Created public/relay.html with exact content from PRD (relay forwards bookmarklet messages to App window)
+- .env.local already had VITE_APP_URL=http://localhost:5173 from Task 1
+- Updated App.jsx message handler to destructure accountId, caseType, caseSubtype per PRD 3c spec
+- Created BOOKMARKLET.md documenting the bookmarklet, relay behavior, and minified source
+- `npm run build` passes — relay.html present in dist/
+
+Files changed:
+  public/relay.html (created)
+  BOOKMARKLET.md (created)
+  src/App.jsx (destructuring update)
+
+Learnings for future iterations:
+  - public/ files are copied verbatim to dist/ by Vite — no build step needed for static HTML
+  - relay.html must NOT be modified after setup (bookmarklet hardcodes its path)
+  - VITE_APP_URL was already set in .env.local from Task 1 scaffold
+---
+
+## Iteration 4 - Task 4: usePipWindow hook
+- Created src/hooks/usePipWindow.js
+- Exports: { pipWindow, isOpen, openPip, closePip, resizePip, pipRootRef }
+- openPip() calls window.documentPictureInPicture.requestWindow, sets body styles, attaches pagehide listener
+- resizePip(mode) is a no-op with console.warn if pipWindow is null; also warns on unknown mode
+- closePip() null-guards before calling pipWindow.close()
+- pipRootRef exposed so App.jsx can store the ReactDOM root for re-renders
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/usePipWindow.js (created)
+
+Learnings for future iterations:
+  - hooks/ directory exists but was empty — just create files directly
+  - AGENTS.md has the full openPip pattern including pagehide listener
+  - pipRootRef is not in PRD spec but needed by App.jsx (Task 11) — added proactively since it's part of the hook's natural responsibility
+---
+
+## Iteration 5 - Task 4b: useTimer hook
+- Created src/hooks/useTimer.js
+- Exports: { elapsed, isRunning, start, pause, resume, reset }
+- Uses setInterval in useEffect keyed on running state; clears on cleanup
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useTimer.js (created)
+
+Learnings for future iterations:
+  - AGENTS.md had the exact implementation — copy it verbatim
+  - Multiple independent instances supported naturally (each call to useTimer() is its own hook instance)
+---
+
+## Iteration 6 - Task 5: useStats hook
+- Created src/hooks/useStats.js
+- Exports: { resolved, reclass, calls, processes, refetch }
+- Fetches today's case_events filtered by America/New_York daily boundary
+- Excludes rows where excluded=true from all counts
+- Uses count-only query for process_sessions (head: true) to avoid row limit issues
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useStats.js (created)
+
+Learnings for future iterations:
+  - AGENTS.md has the exact fetchTodayStats pattern — follow it verbatim
+  - Use Promise.all for parallel queries (case_events + process_sessions)
+  - process_sessions uses count-only query per AGENTS.md gotcha about 1000-row Supabase default limit
+---
+
+## Iteration 7 - Task 6: useContextFocus hook
+- Created src/hooks/useContextFocus.js
+- Exports: { focus, laneSplit } via useMemo
+- Logic: cases-only → 'cases'; processes-only → 'processes'; both → lastTrigger (default 'cases'); none → 'neutral'
+- laneSplit: cases focus = 60/40; processes focus = 40/60; neutral = 50/50 (as percentages)
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useContextFocus.js (created)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - AGENTS.md had the exact getContextFocus + getLaneSplit pattern — translated directly to a hook with useMemo
+  - Hook takes (cases, processes, lastTrigger) as arguments; returns { focus, laneSplit }
+  - laneSplit values are strings with % suffix for direct use as CSS flex widths
+---
+
+## Iteration 9 - Task 8: CasePill + ProcessPill
+- Created src/components/CasePill.jsx with three states: unfocused, focused, awaiting
+- Created src/components/ProcessPill.jsx with ⏱ elapsed, Log button, × cancel
+- CasePill focused state: rgba(0,48,135,0.5) bg + #003087 border, active dot, timer, ⏸ and × buttons
+- CasePill awaiting state: amber bg, Awaiting label, ▶ resume button
+- ProcessPill: blue tint bg/border, tabular-nums elapsed, Log and × buttons
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/CasePill.jsx (created)
+  src/components/ProcessPill.jsx (created)
+
+Learnings for future iterations:
+  - AGENTS.md pill base style uses height:26, borderRadius:13, gap:5, padding:'0 8px'
+  - C.textPrimary / C.textSecondary differ from PRD names (textPrimary vs textPri) — use C.textPrimary in components per actual constants.js export
+  - stopPropagation on button clicks prevents parent click handlers from firing
+---
+
+## Iteration 10 - Task 9: PillZone
+- Created src/components/PillZone.jsx
+- Renders up to 2 CasePill and 2 ProcessPill components (slices to first 2 of each)
+- Tray chevron ▼/▲ always visible; color changes to C.process when tray is open
+- All callbacks delegated: onFocusCase, onPauseCase, onResumeCase, onCloseCase, onLogProcess, onCloseProcess, onToggleTray
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/PillZone.jsx (created)
+
+Learnings for future iterations:
+  - CasePill expects caseNum (not caseNumber) as the prop name in case array objects
+  - ProcessPill only needs elapsed, onLog, onClose — no id prop needed
+  - C.textSec (not C.textSecondary) is the correct token name from AGENTS.md constants
+---
+
+## Iteration 13 - Task 12: CaseLaneRow
+- Created src/components/CaseLaneRow.jsx
+- Three display states: normal (idle/expanded), awaiting (amber bg, Resume button), RFC prompt (inline "Re-Filed Case?" after Resolve/Reclass)
+- Expanded state shows 5 action buttons: Resolve, Reclass, Call, Awaiting, Not a Case
+- Local `expanded` and `showRFC` state; all Supabase side-effects delegated via callbacks
+- RFC prompt triggered by Resolve or Reclass clicks; Yes calls onRFC(id), No calls onCloseSession(id)
+- Not a Case calls onNotACase(id) which parent handles with excluded:true
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/CaseLaneRow.jsx (created)
+
+Learnings for future iterations:
+  - actionBtn helper defined outside component but references C — fine since C is a module-level import
+  - stopPropagation essential on all child button clicks to prevent row expand/collapse from firing
+  - RFC prompt uses local state; parent handles writes — clean separation per architecture
+  - C.rowFocus = 'rgba(0,48,135,0.28)' for focused highlight; C.amberRow = 'rgba(217,119,6,0.18)' for awaiting
+---
+
+## Iteration 8 - Task 7: StatButton + MButton + MinimizeButton
+- Created src/components/StatButton.jsx — 88px min-width, 28px height, 11px bold, disabled/active states
+- Created src/components/MButton.jsx — 32×32 navy square, orange M° mark, 6px border-radius
+- Created src/components/MinimizeButton.jsx — 24×24 transparent, `—` label, C.textSec color
+- All components use inline styles only (no CSS files) and import C from constants.js
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/StatButton.jsx (created)
+  src/components/MButton.jsx (created)
+  src/components/MinimizeButton.jsx (created)
+
+Learnings for future iterations:
+  - components/ directory did not exist yet — Write tool creates it implicitly
+  - PRD says 88px/28px/11px; AGENTS.md says 80px/26px/10.5px — PRD is source of truth
+  - All three components accept onClick as prop; StatButton also accepts disabled/active
+---
+
+## Iteration 11 - Task 10: PipBar shell
+- Created src/PipBar.jsx — the full 36px bar component rendered into the PiP window
+- Minimized state renders a compact `▲ Meridian` restore strip (36px, dark bg, centered)
+- Full bar: M° button | divider | PillZone (up to 2 case + 2 process pills + chevron) | divider | 4 StatButtons | divider | MinimizeButton
+- Stat buttons disabled (no focused case) for Resolve/Reclass/Call; Process button always clickable
+- `children` prop accepted for overlay/tray slot rendered below bar row (used by later tasks)
+- All state+callbacks as props — no Supabase access, no direct state
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/PipBar.jsx (created)
+
+Learnings for future iterations:
+  - StatButton does not forward unknown props (like `title`) to the DOM — that's fine, no error
+  - C.textPri is the correct token (not C.textPrimary) — AGENTS.md constants match actual constants.js
+  - processNavy in C is 'rgba(0,48,135,0.45)' — use for inactive Process stat button background
+  - PipBar.jsx lives in src/ (not src/components/) per PRD file structure
+---
+
+## Iteration 12 - Task 11: Render PipBar into PiP window
+- Rewrote App.jsx with full state management: cases[], processes[], focusedCaseId, trayOpen, isMinimized, overlayOpen
+- Integrated usePipWindow + useStats hooks
+- handleLaunch(): calls openPip(), creates container in pipWindow.document.body, ReactDOM.createRoot, initial render
+- Re-render pattern: useEffect with no dep array — fires after every App render, null-checks pipRootRef.current
+- All stat handlers wired as stubs (console.log) for later tasks (17–20)
+- getBarSize() utility defined outside component (no closure over state)
+- Host page: "Launch Meridian" button when closed, green status when open
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (full rewrite)
+
+Learnings for future iterations:
+  - Re-render pattern: useEffect with no dep array + pipRootRef.current null-check is cleanest; runs after every render but is a no-op when pip is closed
+  - buildPipBar() helper function inside component keeps render calls DRY (used both in handleLaunch and the useEffect)
+  - import * as ReactDOM from 'react-dom/client' — not default import — needed for createRoot
+  - useStats returns spread stats + refetch; destructure as { resolved, reclass, calls, processes: processCount, refetch }
+  - getBarSize helper placed outside component (pure function, no state closure needed)
+---
+
+## Iteration 15 - Task 14: CasesLane + ProcessesLane
+- Created src/components/CasesLane.jsx — scrollable list of CaseLaneRow, empty state "No active cases"
+- Created src/components/ProcessesLane.jsx — scrollable list of ProcessLaneRow + "New Process" button, empty state "No active processes"
+- Both use heading label (uppercase 9px), flex column layout, overflowY auto scroll
+- ProcessesLane always shows "+ New Process" button at bottom (dashed border, C.process color)
+- All callbacks delegated; no Supabase access in either component
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/CasesLane.jsx (created)
+  src/components/ProcessesLane.jsx (created)
+
+Learnings for future iterations:
+  - Lane components are thin wrappers — just a heading + scrollable list of rows + optional action button
+  - categories prop threaded through ProcessesLane → ProcessLaneRow (not fetched in the lane itself)
+  - onNewProcess callback used for "+ New Process" button so App.jsx stays in control of process creation
+---
+
+## Iteration 14 - Task 13: ProcessLaneRow
+- Created src/components/ProcessLaneRow.jsx
+- Idle state: ⏱ elapsed  {categoryName} with × cancel button
+- Tap row → pickerOpen=true → 2-column category grid (CH rows first, then MH)
+- CH categories: amber tint (rgba(251,191,36,0.15)); MH: blue tint (rgba(96,165,250,0.15))
+- Select category → minutes input appears pre-filled with Math.round(elapsed/60), min 1
+- Confirm → onConfirm(id, category.name, minutes*60); Cancel → onCancel(id)
+- Close picker (✕) collapses grid without cancelling the process session
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/ProcessLaneRow.jsx (created)
+
+Learnings for future iterations:
+  - categories filtered by team field: CH/BOTH → CH column, MH/BOTH → MH column
+  - onConfirm passes (id, categoryName string, durationSeconds) — matches AGENTS.md Supabase write pattern
+  - onCancel(id) removes the process without writing (used for both × idle and × cancel in picker)
+  - catBtn helper inline accepts (team, selected) — straightforward conditional styling
+---
+
+## Iteration 16 - Task 15: SwimlaneTray
+- Created src/components/SwimlaneTray.jsx
+- Two-column layout: CasesLane (left, width from laneSplit.cases) + ProcessesLane (right, flex:1)
+- C.divider vertical separator between columns (1px wide)
+- Fixed height 296px with borderTop divider from bar
+- Animated width transition: 300ms cubic-bezier(0.4,0,0.2,1) on casesColStyle
+- All props delegated — no Supabase access, pure layout wrapper
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/SwimlaneTray.jsx (created)
+
+Learnings for future iterations:
+  - laneSplit prop is { cases: '60%', processes: '40%' } string percentages — use directly as CSS width
+  - processesColStyle uses flex:1 rather than laneSplit.processes so it fills remaining space naturally
+  - CasesLane/ProcessesLane prop names differ from SwimlaneTray's external API — map carefully (onFocusCase → onFocus, onResolveCase → onResolve, etc.)
+---
+
+## Iteration 17 - Task 16: Wire tray into App + PipBar
+- Imported useContextFocus + SwimlaneTray + supabase into App.jsx
+- Added lastTrigger state ('cases' default) and categories state
+- useContextFocus(cases, processes, lastTrigger) derives { laneSplit } for tray column widths
+- Fetched process_categories on mount (active=true, ordered by team+sort_order)
+- Auto-open tray useEffect: watches cases.length + processes.length; triggers setTrayOpen(true) + resizePip('trayOpen') when either > 2
+- buildPipBar() now passes <SwimlaneTray> as children to <PipBar> when trayOpen is true
+- Added stub handlers for all tray-specific callbacks (resolveCase, reclassCase, callCase, awaitingCase, notACase, rfc, confirmProcess) — wired in Tasks 17-20
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (updated)
+
+Learnings for future iterations:
+  - SwimlaneTray passes as children prop to PipBar — PipBar already has {children} slot at bottom
+  - resizePip in auto-open useEffect: no null-check needed since effect only fires when state changes and openPip sets up pipWindow first
+  - categories fetch uses .then() pattern (no async/await in useEffect body) to avoid needing cleanup
+  - onCancelProcess reuses handleCloseProcess (same action: remove from array without writing)
+---
+
+## Iteration 19 - Task 18: Process Picker overlay
+- Created src/components/overlays/ProcessPicker.jsx
+  - 2-column CH/MH category grid; CH amber tint, MH blue tint
+  - Select category → minutes input appears pre-filled with Math.round(elapsed/60), min 1
+  - Confirm → onConfirm(categoryName, durationSeconds); ✕ → onCancel
+  - Overflow handled with flex layout + overflowY auto on grid area
+- Added `pickerPending` state: { processId, elapsed } or null
+- Wired handleLogProcess(id): sets pickerPending from pill "Log" button
+- Wired handleNewProcess(): creates process in array + sets pickerPending + resizes to overlay
+- Added handlePickerConfirm: writes process_sessions, removes from array, refetch stats, resize
+- Added handlePickerCancel: clears pickerPending, closes overlay, resize back
+- Wired handleConfirmProcess (tray): writes process_sessions, removes from array (replaces stub)
+- ProcessPicker shown in buildPipBar() children when pickerPending && !rfcPending
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/overlays/ProcessPicker.jsx (created)
+  src/App.jsx (updated)
+  PRD.md (Task 18 marked [x])
+
+Learnings for future iterations:
+  - pickerPending and rfcPending are mutually exclusive — rfcPending takes precedence in children slot
+  - handleNewProcess creates a local UUID process and sets pickerPending; no Supabase write until confirm
+  - handleConfirmProcess (tray) and handlePickerConfirm (overlay) both write process_sessions — same Supabase insert pattern
+  - ProcessPicker uses `height: calc(100% - 36px)` to fill the overlay space below the bar row
+  - categories fetched once on mount in App.jsx and threaded down as prop — no refetch in component
+---
+
+## Iteration 18 - Task 17: RFC Prompt overlay
+- Created src/components/overlays/RFCPrompt.jsx — overlay panel with "Was this a Re-Filed Case? Yes / No" buttons
+- Added `user` state to App.jsx (fetched on mount via supabase.auth.getUser)
+- Added `rfcPending` state: { sessionId, caseNum, elapsed } or null
+- Implemented handleResolve() and handleReclass() (bar stat buttons): log case_events, set rfcPending, resizePip('overlay')
+- Implemented handleRFCYes(): log rfc event, close session in DB, remove from cases array, resize back
+- Implemented handleRFCNo(): close session in DB, remove from cases array, resize back
+- Implemented handleResolveCase(id) and handleReclassCase(id) (tray): log event only; CaseLaneRow handles inline RFC
+- Implemented handleRFC(id) (tray "Yes RFC"): log rfc event + close session
+- Implemented handleCloseCase(id): update case_sessions closed, remove from state, resize to idle if no sessions remain
+- Updated buildPipBar() children: show RFCPrompt when rfcPending is set, else SwimlaneTray when trayOpen
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/overlays/RFCPrompt.jsx (created)
+  src/App.jsx (updated)
+  PRD.md (Task 17 marked [x])
+
+Learnings for future iterations:
+  - RFC overlay and tray are mutually exclusive in the children slot — rfcPending takes precedence
+  - Bar RFC overlay uses rfcPending state + overlayOpen flag; tray uses CaseLaneRow local state (inline)
+  - Resize after close: compute getBarSize with the remaining cases/processes arrays directly, not from stale state
+  - user state must be added before Task 20 can write any Supabase rows — now added, available for all handlers
+  - handleCloseCase is shared: called from tray "No, done" (Task 17) and will be called from bar pill × (Task 20)
+---
+
+## Iteration 21 - Task 20: End-session flows
+- Added handleBarPillClose(id): bar pill × stops timer + opens RFC overlay (session closed by RFC handlers, not immediately)
+- Updated handleResumeCase: now async, updates case_sessions.status='active' in DB before resuming timer
+- Added maybeShrinkToIdle(remainingCases, remainingProcesses) helper: setTrayOpen(false) + resizePip('idle') when all gone
+- Applied maybeShrinkToIdle to: handleCloseCase, handleRFCYes, handleRFCNo, handleNotACase, handleRFC, handleConfirmProcess
+- Inline tray-close logic added to handlePickerConfirm (overlay process confirm)
+- Wired onCloseCase={handleBarPillClose} in buildPipBar (was handleCloseCase)
+- handleCloseCase remains for tray "No, done" via onCloseSession
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (updated)
+  PRD.md (Task 20 marked [x])
+
+Learnings for future iterations:
+  - Bar pill × flow: stop timer → open RFC overlay → RFC handlers close session in DB (same pattern as Resolve/Reclass)
+  - maybeShrinkToIdle helper avoids duplicating the 3-line all-sessions-gone check across 6+ handlers
+  - handleResumeCase must update DB status to 'active' not just local state (awaiting_since not cleared, just status flip)
+  - Tray auto-close on idle: setTrayOpen(false) required alongside resizePip('idle') — resize alone leaves tray in stale open state
+---
+
+## Iteration 22 - Task 21: bar_sessions tracking
+- Added `barSessionId` state to App.jsx
+- Added `closeBarRef` (always-current ref: barSessionId, cases, processes) + `prevIsOpenRef` to detect isOpen true→false transition
+- useEffect on [isOpen]: when wasOpen && !isOpen && barSessionId exists → update bar_sessions with ended_at, total_cases, total_processes, then clear barSessionId
+- Added `createBarSession(userId)` async helper: inserts bar_sessions row, stores id in state
+- Called `createBarSession` in both `handleLaunch` and `ensurePipOpen` after ReactDOM root is created
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (updated)
+  PRD.md (Task 21 marked [x])
+
+Learnings for future iterations:
+  - prevIsOpenRef + closeBarRef pattern: avoids stale closures in isOpen effect while correctly detecting open→close transition (not firing on initial false state)
+  - createBarSession called in both handleLaunch (manual) and ensurePipOpen (bookmarklet-triggered) — both paths open the PiP
+  - AGENTS.md had the exact insert/update SQL pattern for bar_sessions — followed verbatim
+  - total_cases/total_processes at close time = current active count (cases.length, processes.length), per AGENTS.md pattern
+---
+
+## Iteration 20 - Task 19: Bookmarklet message listener + context-aware routing
+- Replaced message listener stubs with real handleCaseStart + handleProcessStart implementations
+- Added caseTimers/processTimers ref maps for per-session setInterval timers (elapsed tracking)
+- startCaseTimer/stopCaseTimer/startProcessTimer/stopProcessTimer helpers for timer lifecycle
+- handleCaseStart: creates case_sessions row, adds to cases array, focuses pill, starts timer, resizes pip (trayOpen if 3rd+, caseActive otherwise)
+- handleProcessStart: creates local UUID process, starts timer, opens ProcessPicker overlay, resizes to overlay
+- handlersRef pattern: handlersRef.current updated every render so message listener ([] deps) always calls latest handler without stale closures
+- ensurePipOpen(): restores if minimized, opens pip + creates ReactDOM root if not open
+- Wired all previously stubbed handlers: handleCall, handleCallCase, handleAwaitingCase, handleNotACase (all now full Supabase implementations)
+- stopCaseTimer/stopProcessTimer called in all session close paths (handleCloseCase, handleRFCYes, handleRFCNo, handleRFC, handleNotACase, handleAwaitingCase, handlePickerConfirm, handleConfirmProcess)
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (updated)
+  PRD.md (Task 19 marked [x])
+
+Learnings for future iterations:
+  - handlersRef.current = { handler } set every render is the cleanest stale-closure fix for message listeners with [] deps
+  - Timer system: caseTimers/processTimers as ref maps; setCases functional update works safely from setInterval
+  - ensurePipOpen duplicates handleLaunch logic — both set up pipRootRef.current; they share buildPipBar()
+  - resizePip inside setCases callback: safe because resizePip is a stable useCallback ref from usePipWindow
+  - All tray stubs (handleCallCase, handleAwaitingCase, handleNotACase) now fully wired — no more stubs in the codebase except Task 21 (bar_sessions)
+---
+
+## Iteration 23 - Task 22: Host page UI
+- Replaced dark placeholder host page with light Hapag Blue + white card layout
+- Meridian wordmark: 36px navy rounded square with M° in orange + "Meridian" in #003087
+- Browser support check: detects `documentPictureInPicture` in window; shows amber warning if missing
+- Launch button (navy, hover darker) shown when PiP is closed; green status indicator when open
+- Today's 4 stats displayed in a row of stat cards: Resolved (#16a34a), Reclass (#dc2626), Calls (#0284c7), Processes (#60a5fa)
+- Stats pulled from existing useStats() hook — no new data fetching needed
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (host page return JSX updated)
+  PRD.md (Task 22 marked [x])
+
+Learnings for future iterations:
+  - Host page uses standard DOM (not PiP window) so regular CSS/styles apply; no inline-style-only restriction here
+  - pipSupported check: `typeof window !== 'undefined' && 'documentPictureInPicture' in window`
+  - stats (resolved, reclass, calls, processCount) already destructured from useStats() — reuse in host page render
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 24 - Task 23: Error handling + edge cases
+- Added `pipToast` state + `showPipToast(msg)` helper (auto-clears after 2s via toastTimerRef)
+- Added `safeWrite(promise)` helper: awaits Supabase query, calls showPipToast on error, returns bool
+- Wrapped key Supabase writes with safeWrite: handleResolve, handleReclass, handleCall, handleRFCYes, handleRFCNo, handlePickerConfirm, handleConfirmProcess
+- Extended isOpen useEffect: when wasOpen && !isOpen, stops all timers and resets all app state (cases, processes, focusedCaseId, trayOpen, isMinimized, overlayOpen, rfcPending, pickerPending, lastTrigger, barSessionId, pipToast)
+- Updated PipBar.jsx: accepts pipToast prop; renders fixed-bottom red toast when set
+- resizePip null guard already existed in usePipWindow.js; stat button guards already existed in PipBar.jsx
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (updated)
+  src/PipBar.jsx (updated)
+  PRD.md (Task 23 marked [x])
+
+Learnings for future iterations:
+  - safeWrite pattern: `const ok = await safeWrite(supabase.from(...).insert({...})); if (!ok) return` — clean for any write
+  - State reset on external close: Object.values(caseTimers.current).forEach(clearInterval) then caseTimers.current = {} — clears all active intervals in one pass
+  - PiP toast uses position:fixed which is relative to the pip window viewport — works correctly
+  - pipToast passed via buildPipBar() like all other props — re-render pattern handles it automatically
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 26 - Task 2 (Phase 2): Fix logo not loading
+- Replaced M° div placeholder in App.jsx host page wordmark with `<img src="/meridian-mark-192.png" alt="Meridian" style={{ width: 40, height: 40, borderRadius: 8 }} />`
+- Removed now-unused `markStyle` object from App.jsx
+- Updated index.html: added manifest link, icon links, theme-color, apple-mobile-web-app-* meta tags, updated viewport meta
+- Created public/manifest.json with name, short_name, description, start_url, scope, display, orientation, background_color, theme_color, and two icons (192 + 512)
+- `npm run build` passes — dist/manifest.json exists
+
+Files changed:
+  src/App.jsx (M° → img tag, removed markStyle)
+  index.html (added PWA meta tags + manifest link)
+  public/manifest.json (created)
+
+Learnings for future iterations:
+  - Vite copies public/ to dist/ verbatim — manifest.json in public/ appears in dist/ without any config
+  - Removing an unused const (markStyle) before build prevents potential lint warnings
+  - index.html viewport meta should include maximum-scale=1.0 and user-scalable=no per PRD spec
+---
+
+## Iteration 25 - Task 1 (Phase 2): Fix MPL categories not populating
+- Root cause: categories useEffect had `[]` dependency, firing before auth resolved
+- RLS returns empty (not error) when unauthenticated — so no visible failure signal
+- Fix: added `user` as dependency so fetch only runs after `supabase.auth.getUser()` sets user state
+- Also changed `.select('*')` → `.select('id, name, team, sort_order')` to match PRD spec
+- Added `if (!user) return` guard + error logging for the fetch
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (categories useEffect)
+
+Learnings for future iterations:
+  - Always guard Supabase queries with `if (!user) return` and include `user` in dependency array
+  - RLS silent empty return is the hardest bug to spot — no error thrown, just empty data
+  - If process_categories still returns empty after this fix, RLS policy may be missing — Davis runs SQL manually (see PRD.md Notes for Ralph)
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 27 - Task 3 (Phase 2): Auth gate in App.jsx
+- Added `profile` and `authLoading` state to App.jsx
+- Updated auth useEffect: fetches `profiles` row after getUser(); sets authLoading=false when done
+- Added `handleOnboardingComplete(updatedProfile)` → setProfile(updatedProfile)
+- Imported Onboarding from components/Onboarding.jsx
+- Auth gate render logic: authLoading → spinner, user && !profile?.onboarded → <Onboarding>, else host page
+- Spinner uses `<style>` tag with @keyframes meridian-spin injected inline (host page, not PiP window)
+- Created minimal stub `src/components/Onboarding.jsx` (returns null) so build passes; Task 7 fills it out
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (auth state, useEffect, handleOnboardingComplete, import, render gate)
+  src/components/Onboarding.jsx (created — stub)
+
+Learnings for future iterations:
+  - Auth gate pattern: authLoading prevents flash of wrong UI; both user and profile must resolve before showing dashboard
+  - Stub component approach: create minimal export so build passes, document it's a stub for the next task
+  - `<style>` tag with @keyframes works in host page JSX (host document, not PiP window)
+  - `!profile?.onboarded` handles both null profile (profile fetch failed) and onboarded: false/null
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 29 - Task 5 (Phase 2): Step2Team — CH / MH selection
+- Created src/components/onboarding/Step2Team.jsx
+- Same card layout as Step1 (bgDeep page, #1a1a2e card, border, logo, 40px padding)
+- Two team cards: CH (amber #d97706) and MH (blue #60a5fa) in flex row
+- Selected state: colored border + rgba(accent,0.12) background + accent-colored label text
+- hexToRgb() helper converts hex accent to rgb for inline rgba() background
+- Continue button disabled (opacity 0.4) until team selected; Back link delegates to onBack
+- onNext({ team: selectedTeam }) — no Supabase write
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/onboarding/Step2Team.jsx (created)
+
+Learnings for future iterations:
+  - hexToRgb() helper needed for rgba(accent,0.12) card background since accent is a hex string
+  - Team cards use flex:1 to fill row equally; no fixed widths needed
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 30 - Task 6 (Phase 2): Step3Bookmarklet — bookmarklet install
+- Created src/components/onboarding/Step3Bookmarklet.jsx
+- Same card layout as Step1/Step2 (bgDeep page, #1a1a2e card, logo, 40px padding), max-width 520px
+- Numbered instruction list (3 items) with numbered circles (#003087 bg, 24px)
+- Draggable bookmarklet anchor using VITE_APP_URL || window.location.origin for host
+- anchor onClick preventDefault (prevents navigation if clicked instead of dragged)
+- Info box with border/bg per spec
+- "All done — Launch Meridian →" button always enabled; calls onComplete()
+- Back link calls onBack
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx (created)
+
+Learnings for future iterations:
+  - Bookmarklet anchor: onClick={e => e.preventDefault()} prevents accidental navigation when user clicks instead of drags
+  - host variable uses import.meta.env.VITE_APP_URL || window.location.origin — correct runtime resolution
+  - Unicode escapes in template literal (\\u2713, \\u2014) avoid issues with JSX string parsing of special chars
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 28 - Task 4 (Phase 2): Step1Profile — name setup
+- Created src/components/onboarding/Step1Profile.jsx
+- Full-screen dark layout (bg #0f0f1e), centered card (max 480px, #1a1a2e, border, 40px padding)
+- Meridian logo (64px), heading "Welcome to Meridian", subheading "Let's get you set up"
+- Name input pre-filled with user.email.split('@')[0], focus border changes to #003087
+- Continue button disabled (opacity 0.4) when input is empty; calls onNext({ full_name: trimmed })
+- Created src/components/onboarding/ directory
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/onboarding/Step1Profile.jsx (created)
+
+Learnings for future iterations:
+  - onboarding/ subdirectory under components/ — create with mkdir -p before writing files
+  - Local C object in each step component is fine (no shared import needed); keeps each step self-contained
+  - input onFocus/onBlur handlers change border color inline — no separate state needed for focus ring
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 31 - Task 7 (Phase 2): Onboarding shell — wire steps + Supabase write
+- Replaced stub Onboarding.jsx with full 3-step shell
+- State: step (1|2|3), formData (accumulated from each step's onNext)
+- handleNext(data): merges data into formData, increments step
+- handleBack(): decrements step
+- handleComplete(): fetches teams, updates profiles row (full_name, team_id, onboarded:true), calls onComplete(updatedProfile)
+- Progress dots: position:fixed, top:24px, centered — overlays on top of full-screen step components
+- Step components own their own full-screen layouts; dots float above them
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/Onboarding.jsx (full implementation replacing stub)
+
+Learnings for future iterations:
+  - Step components each render their own full-screen layout (minHeight:100vh) — progress dots must use position:fixed to overlay
+  - Step3Bookmarklet does not accept a `saving` prop — button is always enabled per PRD
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 33 - Task 9 (Phase 3): DashboardStatCard component
+- Created src/components/DashboardStatCard.jsx
+- Props: label, value, color, icon, active, onClick
+- Card: min-width 150px, flex 1, height 130px, border-radius 12px, background=color prop, padding 16px
+- Top row: label (white, 10px, 800 weight, uppercase, 0.08em letter-spacing) + icon (18px) right-aligned
+- Bottom: value (white, 42px, 800 weight, line-height 1)
+- Active state: inset 0 0 0 3px rgba(255,255,255,0.5) box-shadow
+- Hover: filter brightness(1.08), transition 150ms
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/DashboardStatCard.jsx (created)
+
+Learnings for future iterations:
+  - useState for hover state + onMouseEnter/onMouseLeave is the pattern for hover effects with inline styles
+  - `period` prop listed in PRD but not used in card rendering — omitted from internal logic (not needed)
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 34 - Task 10 (Phase 3): DashboardTable component
+- Created src/components/DashboardTable.jsx
+- Props: { rows } — array of dailyRows from useDashboardStats
+- 8-column CSS grid table: DATE | RESOLVED | RECLASSIFIED | CALLS | NOT A CASE | PROCESSES | TOTAL | TOTAL ACTIVITY
+- Header: 10px uppercase, 700 weight, C.textSec, 40px height
+- Data rows: 44px height, alternating bg, C.divider bottom border
+- Column colors: resolved=#16a34a, reclass=#dc2626, calls=#0284c7, notACase=#6b7280, processes=#60a5fa
+- Zero values render in C.textDim; date/total/totalActivity always use C.textPri with bold
+- Empty state: "No activity for this period" centered in 60px row
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/DashboardTable.jsx (created)
+
+Learnings for future iterations:
+  - CSS grid with repeat(N, 1fr) is cleaner than flex for fixed-column tables
+  - Zero-check applies to all numeric columns but not 'date' — key !== 'date' guard needed
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 32 - Task 8 (Phase 3): useDashboardStats hook
+- Created src/hooks/useDashboardStats.js
+- getDateRange(period) function per PRD spec (America/New_York, Monday-based weeks)
+- getNYDateStr() helper: converts ISO timestamp to "MM/DD" in NY timezone for daily grouping
+- Fetches case_events and process_sessions in parallel with Promise.all
+- Aggregates: resolved, reclass, calls, notACase, processes, casesAndCalls, totalActivity
+- dailyRows: grouped by NY date "MM/DD", each row has resolved/reclass/calls/notACase/processes/total/totalActivity
+- dailyRows sorted ascending by date string (localeCompare works since same year, same format)
+- cancelled flag prevents stale setState if userId/period changes mid-fetch
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useDashboardStats.js (created)
+
+Learnings for future iterations:
+  - getNYDateStr using toLocaleDateString with month:'2-digit', day:'2-digit' gives "MM/DD" format directly
+  - notACase events have excluded=true but still need to be counted (don't filter by !excluded for notACase)
+  - dailyRows total = resolved+reclass+calls (not including notACase); totalActivity adds processes
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 36 - Task 12 (Phase 3): Dashboard.jsx — wire everything together
+- Created src/components/Dashboard.jsx with full layout
+- Top bar: logo + "Meridian" + profile.full_name + "🚀 Launch PiP Bar" button
+- 5 period tabs (This Week / Last Week / This Month / Last Month / Year To Date)
+- 7 stat cards using DashboardStatCard with activeMetric click-to-select
+- Loading state: stat cards show "—", SkeletonTable renders 3 animated rows (meridian-pulse keyframes)
+- DashboardTable shown when not loading; DashboardChart only for this_month/last_month/ytd
+- Updated App.jsx: replaced old light-theme host page JSX with <Dashboard user profile onLaunchPip={handleLaunch} />
+- Removed unused host page style constants from App.jsx
+- `npm run build` passes — 729 modules, 0 errors
+
+Files changed:
+  src/components/Dashboard.jsx (created)
+  src/App.jsx (replaced host page with Dashboard, added import)
+
+Learnings for future iterations:
+  - SkeletonTable as a local function component inside Dashboard.jsx keeps it colocated without a new file
+  - CHART_PERIODS as a Set allows O(1) lookup: CHART_PERIODS.has(period)
+  - App.jsx old host page had many unused style constants after replacement — safe to remove them all
+  - No git repo exists — skip git commit step
+---
+
+## Iteration 35 - Task 11 (Phase 3): DashboardChart component
+- Installed recharts (was not in package.json)
+- Created src/components/DashboardChart.jsx
+- Props: rows, activeMetric, chartType, onChartTypeChange
+- Bar chart: BarChart + Bar with rounded top corners (radius [4,4,0,0])
+- Area chart: AreaChart + Area with monotone type, 20% fill opacity
+- Shared: ResponsiveContainer 100%/300px, XAxis dataKey="date", YAxis, CartesianGrid, Tooltip
+- Title: "Trend: {metricLabel}" white 15px 700 weight
+- Bar/Line toggle buttons: active=#E8540A, inactive=cardBg with border
+- METRIC_CONFIG map: resolved/reclass/calls/notACase/processes/casesAndCalls/totalActivity
+- Local C object with inline values (same pattern as DashboardTable — constants.js lacks cardBg/bgDeep)
+- `npm run build` passes — 87 modules, 0 errors
+
+Files changed:
+  package.json (recharts added to dependencies)
+  src/components/DashboardChart.jsx (created)
+
+Learnings for future iterations:
+  - recharts must be installed — not in package.json by default
+  - DashboardTable pattern: local C object with only the tokens needed — follow this for dashboard components
+  - ResponsiveContainer must wrap the chart element; pass the chart as a single child (not JSX inline)
+  - No git repo exists — skip git commit step
+---
