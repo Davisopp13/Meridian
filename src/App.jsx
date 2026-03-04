@@ -255,6 +255,7 @@ export default function App() {
   }
 
   async function handleProcessStart() {
+    if (!user || !profile?.onboarded) return
     const ok = await ensurePipOpen()
     if (!ok) return
 
@@ -368,6 +369,7 @@ export default function App() {
 
   // ── Launch PiP window ─────────────────────────────────────────────────────
   async function handleLaunch() {
+    if (!user || !profile?.onboarded) return
     const pw = await openPip()
     if (!pw) return
 
