@@ -17,6 +17,11 @@
   // Auth model: The bookmarklet has the user's UUID baked in (set during
   // onboarding). The anon key is used for all Supabase calls. RLS on
   // pending_triggers ensures only valid user_ids can insert rows.
+  //
+  // NOTE: We use Prefer: return=minimal (not return=representation) because
+  // the anon role can INSERT but cannot SELECT on pending_triggers.
+  // PostgREST would try to read back the inserted row with return=representation,
+  // which fails the SELECT RLS policy (requires auth.uid()).
 
   const SUPABASE_URL = 'https://wluynppocsoqjdbmwass.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXlucHBvY3NvcWpkYm13YXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDU4NzIsImV4cCI6MjA4ODIyMTg3Mn0.x9-t_038hz4eJUciA1F9-DWE8UN_V58KE0i43cpOAMk';
@@ -47,15 +52,13 @@
       let result;
 
       if (action === 'SUPABASE_INSERT_TRIGGER') {
-        // Insert a pending_trigger row using the anon key.
-        // The user_id in the body is baked into the bookmarklet.
         const resp = await fetch(SUPABASE_URL + '/rest/v1/pending_triggers', {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
+            'Prefer': 'return=minimal'
           },
           body: JSON.stringify(payload.body)
         });
@@ -64,7 +67,8 @@
           var errText = await resp.text();
           throw new Error(resp.status + ': ' + errText);
         }
-        result = await resp.json();
+        // return=minimal gives 201 with empty body
+        result = { success: true };
       }
 
       else {
