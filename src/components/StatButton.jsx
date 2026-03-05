@@ -18,7 +18,7 @@ export default function StatButton({ label, color, onClick, disabled = false, ac
     height: 32,
     minWidth: 88,
     padding: '0 12px',
-    borderRadius: 16,
+    borderRadius: 8,
     border: `1px solid ${disabled ? 'transparent' : `color-mix(in srgb, ${color} 30%, transparent)`}`,
     fontSize: 12,
     fontWeight: 600,

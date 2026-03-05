@@ -62,11 +62,11 @@ export default function PipBar({
         onClick={() => onRestore && onRestore()}
         style={{
           height: 32,
-          background: 'rgba(26,26,46,0.7)',
+          background: 'rgba(26,26,46,0.85)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 8,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -99,12 +99,12 @@ export default function PipBar({
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      background: 'rgba(15,15,30,0.65)',
+      background: 'rgba(26,26,46,0.75)', // Lighter, native-app tint instead of heavy dark
       backdropFilter: 'blur(24px)',
       WebkitBackdropFilter: 'blur(24px)',
-      boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 24, // Matches the dynamic island feel
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      borderRadius: 12, // Optimized shape for Windows (12px instead of 24px)
       overflow: 'hidden',
       height: '100%'
     }}>

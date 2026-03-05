@@ -15,7 +15,7 @@ export default function MButton({ onClick }) {
     width: 36,
     height: 36,
     background: 'linear-gradient(135deg, rgba(0,48,135,0.95), rgba(0,30,90,0.95))',
-    borderRadius: 12,
+    borderRadius: 8,
     border: '1px solid rgba(255,255,255,0.15)',
     borderTopColor: 'rgba(255,255,255,0.3)',
     cursor: 'pointer',
