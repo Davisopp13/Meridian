@@ -61,19 +61,27 @@ export default function PipBar({
       <div
         onClick={() => onRestore && onRestore()}
         style={{
-          height: 36,
-          background: C.bg,
+          height: 32,
+          background: 'rgba(26,26,46,0.7)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: 16,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 6,
+          gap: 8,
           cursor: 'pointer',
           userSelect: 'none',
-          fontFamily: '"Segoe UI", sans-serif',
+          fontFamily: '"Inter", system-ui, sans-serif',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(36,36,66,0.85)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(26,26,46,0.7)'; }}
       >
-        <span style={{ color: C.textSec, fontSize: 10 }}>▲</span>
-        <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700 }}>Meridian</span>
+        <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
+        <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px' }}>Meridian</span>
       </div>
     );
   }
@@ -88,17 +96,28 @@ export default function PipBar({
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: C.bg }}>
-      {/* Bar row — 36px */}
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      background: 'rgba(15,15,30,0.65)',
+      backdropFilter: 'blur(24px)',
+      WebkitBackdropFilter: 'blur(24px)',
+      boxShadow: '0 12px 48px rgba(0,0,0,0.5)',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 24, // Matches the dynamic island feel
+      overflow: 'hidden',
+      height: '100%'
+    }}>
+      {/* Bar row — fits within the new 60px height (using 60px root, padded) */}
       <div
         style={{
-          height: 36,
+          height: 60,
           display: 'flex',
           alignItems: 'center',
-          padding: '0 6px',
-          gap: 4,
+          padding: '0 12px',
+          gap: 8,
           flexShrink: 0,
-          fontFamily: '"Segoe UI", sans-serif',
+          fontFamily: '"Inter", system-ui, sans-serif',
         }}
       >
         {/* M° button */}
@@ -178,7 +197,7 @@ export default function PipBar({
           textAlign: 'center',
           zIndex: 9999,
           pointerEvents: 'none',
-          fontFamily: '"Segoe UI", sans-serif',
+          fontFamily: '"Inter", system-ui, sans-serif',
         }}>
           {pipToast}
         </div>

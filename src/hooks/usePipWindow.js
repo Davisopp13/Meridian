@@ -19,7 +19,13 @@ export function usePipWindow() {
       });
 
       pw.document.body.style.cssText =
-        'margin:0;padding:0;overflow:hidden;background:#1a1a2e;font-family:"Segoe UI",sans-serif';
+        'margin:0;padding:0;overflow:hidden;background:transparent;font-family:"Inter",system-ui,sans-serif';
+
+      // Inject Google Fonts for Inter
+      const link = pw.document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap';
+      pw.document.head.appendChild(link);
 
       pw.addEventListener('pagehide', () => {
         setPipWindow(null);

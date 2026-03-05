@@ -3,13 +3,16 @@ import { C, formatElapsed } from '../lib/constants.js';
 export default function ProcessPill({ elapsed, onLog, onClose }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 5,
-      padding: '0 8px', height: 26, borderRadius: 13,
-      background: 'rgba(96,165,250,0.15)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(96,165,250,0.3)',
-      fontSize: 11, fontWeight: 600, color: C.process,
+      display: 'flex', alignItems: 'center', gap: 6,
+      padding: '0 10px', height: 32, borderRadius: 16,
+      background: 'rgba(96,165,250,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      border: '1px solid rgba(96,165,250,0.3)',
+      fontSize: 12, fontWeight: 600, color: C.process,
+      fontFamily: '"Inter", system-ui, sans-serif',
+      boxShadow: '0 4px 12px rgba(96,165,250,0.1)',
       flexShrink: 0,
     }}>
-      <span style={{ fontSize: 10 }}>⏱</span>
+      <span style={{ fontSize: 11 }}>⏱</span>
       <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatElapsed(elapsed)}</span>
       <button
         onClick={(e) => { e.stopPropagation(); onLog && onLog(); }}

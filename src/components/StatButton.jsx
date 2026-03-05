@@ -15,27 +15,33 @@ export default function StatButton({ label, color, onClick, disabled = false, ac
   const [pressed, setPressed] = useState(false);
 
   const style = {
-    height: 28,
+    height: 32,
     minWidth: 88,
-    padding: '0 10px',
-    borderRadius: 14,
-    border: 'none',
-    fontSize: 11,
-    fontWeight: 700,
-    fontFamily: '"Inter", "Segoe UI", sans-serif',
+    padding: '0 12px',
+    borderRadius: 16,
+    border: `1px solid ${disabled ? 'transparent' : `color-mix(in srgb, ${color} 30%, transparent)`}`,
+    fontSize: 12,
+    fontWeight: 600,
+    fontFamily: '"Inter", system-ui, sans-serif',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 6,
     whiteSpace: 'nowrap',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    background: disabled ? 'rgba(255,255,255,0.07)' : color,
-    color: disabled ? C.textSec : C.textPri,
+    background: disabled
+      ? 'rgba(255,255,255,0.04)'
+      : active
+        ? `color-mix(in srgb, ${color} 25%, transparent)`
+        : `color-mix(in srgb, ${color} 15%, transparent)`,
+    color: disabled ? C.textSec : `color-mix(in srgb, ${color} 90%, white)`,
     opacity: disabled ? 0.5 : 1,
     flexShrink: 0,
     transform: pressed && !disabled ? 'scale(0.95)' : hovered && !disabled ? 'scale(1.04)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-    boxShadow: hovered && !disabled && active ? `0 4px 12px ${color}60` : 'none',
+    boxShadow: hovered && !disabled
+      ? `0 6px 16px color-mix(in srgb, ${color} 25%, transparent)`
+      : 'none',
   };
 
   return (

@@ -12,11 +12,12 @@ export default function MButton({ onClick }) {
   const [pressed, setPressed] = useState(false);
 
   const style = {
-    width: 32,
-    height: 32,
-    background: C.mBtn,
-    borderRadius: 8,
-    border: 'none',
+    width: 36,
+    height: 36,
+    background: 'linear-gradient(135deg, rgba(0,48,135,0.95), rgba(0,30,90,0.95))',
+    borderRadius: 12,
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderTopColor: 'rgba(255,255,255,0.3)',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -25,7 +26,9 @@ export default function MButton({ onClick }) {
     padding: 0,
     transform: pressed ? 'scale(0.92)' : hovered ? 'scale(1.06)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-    boxShadow: hovered ? '0 4px 12px rgba(0,48,135,0.4)' : 'none',
+    boxShadow: hovered
+      ? '0 6px 16px rgba(0,48,135,0.5), inset 0 1px 0 rgba(255,255,255,0.2)'
+      : '0 2px 8px rgba(0,48,135,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
   };
 
   const markStyle = {

@@ -12,10 +12,12 @@ export default function MinimizeButton({ onClick }) {
   const [pressed, setPressed] = useState(false);
 
   const style = {
-    width: 24,
-    height: 24,
-    background: hovered ? 'rgba(255,255,255,0.1)' : 'transparent',
-    border: 'none',
+    width: 28,
+    height: 28,
+    background: hovered ? 'rgba(255,255,255,0.12)' : 'transparent',
+    backdropFilter: hovered ? 'blur(8px)' : 'none',
+    WebkitBackdropFilter: hovered ? 'blur(8px)' : 'none',
+    border: hovered ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
@@ -25,8 +27,8 @@ export default function MinimizeButton({ onClick }) {
     color: hovered ? C.textPri : C.textSec,
     fontSize: 14,
     fontWeight: 700,
-    fontFamily: '"Inter", "Segoe UI", sans-serif',
-    borderRadius: 6,
+    fontFamily: '"Inter", system-ui, sans-serif',
+    borderRadius: 8,
     transform: pressed ? 'scale(0.9)' : hovered ? 'scale(1.1)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
   };

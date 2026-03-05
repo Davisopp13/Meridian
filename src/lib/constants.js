@@ -21,13 +21,13 @@ export const C = {
 }
 
 export const SIZES = {
-  idle: { width: 320, height: 64 },
-  caseActive: { width: 580, height: 64 },
-  processActive: { width: 500, height: 64 },
-  bothActive: { width: 640, height: 64 },
-  trayOpen: { width: 640, height: 360 },
-  overlay: { width: 640, height: 220 },
-  minimized: { width: 200, height: 36 },
+  idle: { width: 340, height: 60 },
+  caseActive: { width: 540, height: 60 },
+  processActive: { width: 500, height: 60 },
+  bothActive: { width: 620, height: 60 },
+  trayOpen: { width: 620, height: 360 },
+  overlay: { width: 620, height: 220 },
+  minimized: { width: 160, height: 32 },
 }
 
 export function formatElapsed(seconds) {
