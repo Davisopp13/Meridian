@@ -4,6 +4,7 @@ import { useDashboardStats } from '../hooks/useDashboardStats.js';
 import DashboardStatCard from './DashboardStatCard.jsx';
 import DashboardTable from './DashboardTable.jsx';
 import DashboardChart from './DashboardChart.jsx';
+import BookmarkletModal from './BookmarkletModal.jsx';
 
 const C = {
   bg:          '#1a1a2e',
@@ -42,6 +43,7 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
   const [period, setPeriod] = useState('this_week');
   const [activeMetric, setActiveMetric] = useState('resolved');
   const [chartType, setChartType] = useState('bar');
+  const [showBookmarkletModal, setShowBookmarkletModal] = useState(false);
 
   const stats = useDashboardStats({ userId: user.id, period });
 
@@ -132,6 +134,24 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
           >
             Sign Out
           </button>
+          <button
+            onClick={() => setShowBookmarkletModal(true)}
+            style={{
+              height: 36,
+              padding: '0 14px',
+              borderRadius: 8,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'transparent',
+              color: 'rgba(255,255,255,0.55)',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginRight: 10,
+              transition: 'all 150ms',
+            }}
+          >
+            ⚡ Bookmarklet
+          </button>
           <button style={launchBtnStyle} onClick={onLaunchPip}>
             🚀 Launch Widget
           </button>
@@ -187,6 +207,9 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
           </div>
         )}
       </div>
+      {showBookmarkletModal && (
+        <BookmarkletModal onClose={() => setShowBookmarkletModal(false)} />
+      )}
     </div>
   );
 }
