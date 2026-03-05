@@ -3,6 +3,7 @@ import * as ReactDOM from 'react-dom/client'
 import { usePipWindow } from './hooks/usePipWindow.js'
 import { useStats } from './hooks/useStats.js'
 import { useContextFocus } from './hooks/useContextFocus.js'
+import { usePendingTriggers } from './hooks/usePendingTriggers.js'
 import { supabase } from './lib/supabase.js'
 import PipBar from './PipBar.jsx'
 import Onboarding from './components/Onboarding.jsx'
@@ -277,6 +278,8 @@ export default function App() {
   // ── Handler ref — updated every render so message listener never goes stale ─
   const handlersRef = useRef({})
   handlersRef.current = { handleCaseStart, handleProcessStart }
+
+  usePendingTriggers(user?.id, { handleCaseStart, handleProcessStart })
 
   // ── Bookmarklet message listener ──────────────────────────────────────────
   useEffect(() => {
