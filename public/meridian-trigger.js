@@ -3,15 +3,14 @@
 // Salesforce page via new Function('MERIDIAN_PAYLOAD', code)(payload).
 //
 // MERIDIAN_PAYLOAD is injected by the bookmarklet and contains:
-//   { userId, token, relayFrame }
-//   - userId: read by the relay iframe from Meridian's Supabase localStorage session
-//   - token: read by the relay iframe from Meridian's Supabase localStorage session
-//   - relayFrame: reference to the relay iframe's contentWindow (set by bookmarklet)
+//   { userId, relayFrame }
+//   - userId: the Meridian user's UUID, baked into the bookmarklet at onboarding
+//   - relayFrame: reference to the relay iframe's contentWindow
 //
-// The bookmarklet itself is credential-free. Auth comes from the relay iframe
-// which shares origin with meridian-hlag.com and can read the Supabase session.
+// No auth token is needed — the relay uses the Supabase anon key.
+// RLS on pending_triggers validates that user_id references a real profile.
 //
-// This script:
+// Flow:
 // 1. Detects if we're on a Salesforce case page (8+ digit number in title)
 // 2. Extracts case metadata from the page if available
 // 3. Sends a SUPABASE_INSERT_TRIGGER message to the relay iframe
@@ -21,11 +20,10 @@
 
 (function() {
   var userId = MERIDIAN_PAYLOAD.userId;
-  var token = MERIDIAN_PAYLOAD.token;
   var relay = MERIDIAN_PAYLOAD.relayFrame;
 
-  if (!userId || !token || !relay) {
-    showToast('Meridian: Not logged in. Open meridian-hlag.com and sign in first.', 'error');
+  if (!userId || !relay) {
+    showToast('Meridian: Missing config. Try re-installing the bookmarklet from Meridian.', 'error');
     return;
   }
 
@@ -93,7 +91,6 @@
     id: msgId,
     action: 'SUPABASE_INSERT_TRIGGER',
     payload: {
-      token: token,
       body: body,
     }
   }, '*');
