@@ -6,7 +6,7 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '0 8px', height: 26, borderRadius: 13,
-        background: C.awaiting, cursor: 'pointer',
+        background: 'rgba(217,119,6,0.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', cursor: 'pointer',
         fontSize: 11, fontWeight: 600, color: '#fff',
         flexShrink: 0,
       }}>
@@ -30,19 +30,19 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '0 8px', height: 26, borderRadius: 13,
-        background: 'rgba(0,48,135,0.5)', border: '1px solid #003087',
-        fontSize: 11, fontWeight: 600, color: C.textPrimary,
+        background: 'rgba(0,48,135,0.3)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid #003087',
+        fontSize: 11, fontWeight: 600, color: C.textPri,
         flexShrink: 0,
       }}>
         <span style={{ color: C.activeDot }}>●</span>
         <span>{caseNumber}</span>
-        <span style={{ color: C.textSecondary, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ color: C.textSec, fontVariantNumeric: 'tabular-nums' }}>
           {formatElapsed(elapsed)}
         </span>
         <button
           onClick={(e) => { e.stopPropagation(); onPause && onPause(); }}
           style={{
-            background: 'none', border: 'none', color: C.textSecondary,
+            background: 'none', border: 'none', color: C.textSec,
             fontSize: 12, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
           }}
           title="Pause / Awaiting"
@@ -50,7 +50,7 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
         <button
           onClick={(e) => { e.stopPropagation(); onClose && onClose(); }}
           style={{
-            background: 'none', border: 'none', color: C.textSecondary,
+            background: 'none', border: 'none', color: C.textSec,
             fontSize: 12, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
           }}
           title="End session"
@@ -66,8 +66,8 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       style={{
         display: 'flex', alignItems: 'center', gap: 5,
         padding: '0 8px', height: 26, borderRadius: 13,
-        background: 'rgba(255,255,255,0.06)', border: '1px solid transparent',
-        fontSize: 11, fontWeight: 600, color: C.textSecondary,
+        background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid transparent',
+        fontSize: 11, fontWeight: 600, color: C.textSec,
         cursor: 'pointer', flexShrink: 0,
         transition: 'all 150ms',
       }}

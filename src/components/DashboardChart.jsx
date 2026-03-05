@@ -9,23 +9,23 @@ import {
 } from 'recharts';
 
 const C = {
-  textPri:    'rgba(255,255,255,0.93)',
-  textSec:    'rgba(255,255,255,0.45)',
-  textDim:    'rgba(255,255,255,0.25)',
-  divider:    'rgba(255,255,255,0.08)',
-  border:     'rgba(255,255,255,0.12)',
-  cardBg:     'rgba(255,255,255,0.04)',
-  mMark:      '#E8540A',
+  textPri: 'var(--text-pri)',
+  textSec: 'var(--text-sec)',
+  textDim: 'var(--text-dim)',
+  divider: 'var(--divider)',
+  border: 'var(--border)',
+  cardBg: 'var(--card-bg-subtle)',
+  mMark: 'var(--color-mmark)',
 };
 
 const METRIC_CONFIG = {
-  resolved:      { label: 'Resolved',        color: '#16a34a' },
-  reclass:       { label: 'Reclassified',     color: '#dc2626' },
-  calls:         { label: 'Calls',            color: '#0284c7' },
-  notACase:      { label: 'Not a Case',       color: '#6b7280' },
-  processes:     { label: 'Processes',        color: '#60a5fa' },
-  casesAndCalls: { label: 'Cases & Calls',    color: '#7c3aed' },
-  totalActivity: { label: 'Total Activity',   color: '#f59e0b' },
+  resolved: { label: 'Resolved', color: '#16a34a' },
+  reclass: { label: 'Reclassified', color: '#dc2626' },
+  calls: { label: 'Calls', color: '#0284c7' },
+  notACase: { label: 'Not a Case', color: '#6b7280' },
+  processes: { label: 'Processes', color: '#60a5fa' },
+  casesAndCalls: { label: 'Cases & Calls', color: '#7c3aed' },
+  totalActivity: { label: 'Total Activity', color: '#f59e0b' },
 };
 
 export default function DashboardChart({ rows, activeMetric, chartType, onChartTypeChange }) {
@@ -49,23 +49,27 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
   });
 
   const cardStyle = {
-    background:   C.cardBg,
-    border:       `1px solid ${C.border}`,
-    borderRadius: 12,
-    padding:      20,
-    marginTop:    24,
+    background: C.cardBg,
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: `1px solid ${C.border}`,
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 24,
+    boxShadow: 'var(--shadow-subtle)',
+    animation: 'fade-in-up 0.6s ease-out forwards',
   };
 
   const headerStyle = {
-    display:        'flex',
+    display: 'flex',
     justifyContent: 'space-between',
-    alignItems:     'center',
-    marginBottom:   12,
+    alignItems: 'center',
+    marginBottom: 12,
   };
 
   const titleStyle = {
-    color:      '#fff',
-    fontSize:   15,
+    color: '#fff',
+    fontSize: 15,
     fontWeight: 700,
   };
 
@@ -75,7 +79,7 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
       <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
       <Tooltip
-        contentStyle={{ background: '#1a1a2e', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
+        contentStyle={{ background: 'var(--bg-card)', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
         labelStyle={{ color: C.textSec }}
       />
       <Area
@@ -93,7 +97,7 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
       <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
       <Tooltip
-        contentStyle={{ background: '#1a1a2e', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
+        contentStyle={{ background: 'var(--bg-card)', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
         labelStyle={{ color: C.textSec }}
       />
       <Bar dataKey={activeMetric} fill={metricColor} radius={[4, 4, 0, 0]} />

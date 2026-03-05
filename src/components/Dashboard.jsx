@@ -7,36 +7,36 @@ import DashboardChart from './DashboardChart.jsx';
 import BookmarkletModal from './BookmarkletModal.jsx';
 
 const C = {
-  bg:          '#1a1a2e',
-  bgDeep:      '#0f0f1e',
-  mBtn:        '#003087',
-  mMark:       '#E8540A',
-  divider:     'rgba(255,255,255,0.08)',
-  border:      'rgba(255,255,255,0.12)',
-  cardBg:      'rgba(255,255,255,0.04)',
-  textPri:     'rgba(255,255,255,0.93)',
-  textSec:     'rgba(255,255,255,0.45)',
-  textDim:     'rgba(255,255,255,0.25)',
+  bg: 'var(--bg-card)',
+  bgDeep: 'var(--bg-deep)',
+  mBtn: 'var(--color-mbtn)',
+  mMark: 'var(--color-mmark)',
+  divider: 'var(--divider)',
+  border: 'var(--border)',
+  cardBg: 'var(--card-bg-subtle)',
+  textPri: 'var(--text-pri)',
+  textSec: 'var(--text-sec)',
+  textDim: 'var(--text-dim)',
 };
 
 const PERIODS = [
-  { key: 'this_week',   label: 'This Week'   },
-  { key: 'last_week',   label: 'Last Week'   },
-  { key: 'this_month',  label: 'This Month'  },
-  { key: 'last_month',  label: 'Last Month'  },
-  { key: 'ytd',         label: 'Year To Date'},
+  { key: 'this_week', label: 'This Week' },
+  { key: 'last_week', label: 'Last Week' },
+  { key: 'this_month', label: 'This Month' },
+  { key: 'last_month', label: 'Last Month' },
+  { key: 'ytd', label: 'Year To Date' },
 ];
 
 const CHART_PERIODS = new Set(['this_month', 'last_month', 'ytd']);
 
 const METRICS = [
-  { key: 'resolved',      label: 'Resolved',       color: '#16a34a', icon: '✓'  },
-  { key: 'reclass',       label: 'Reclassified',   color: '#dc2626', icon: '↩'  },
-  { key: 'calls',         label: 'Calls',           color: '#0284c7', icon: '📞' },
-  { key: 'notACase',      label: 'Not a Case',      color: '#6b7280', icon: '—'  },
-  { key: 'casesAndCalls', label: 'Cases & Calls',   color: '#003087', icon: '📋' },
-  { key: 'processes',     label: 'Processes',       color: '#60a5fa', icon: '⏱' },
-  { key: 'totalActivity', label: 'Total Activity',  color: '#E8540A', icon: '⚡' },
+  { key: 'resolved', label: 'Resolved', color: '#16a34a', icon: '✓' },
+  { key: 'reclass', label: 'Reclassified', color: '#dc2626', icon: '↩' },
+  { key: 'calls', label: 'Calls', color: '#0284c7', icon: '📞' },
+  { key: 'notACase', label: 'Not a Case', color: '#6b7280', icon: '—' },
+  { key: 'casesAndCalls', label: 'Cases & Calls', color: '#003087', icon: '📋' },
+  { key: 'processes', label: 'Processes', color: '#60a5fa', icon: '⏱' },
+  { key: 'totalActivity', label: 'Total Activity', color: '#E8540A', icon: '⚡' },
 ];
 
 export default function Dashboard({ user, profile, onLaunchPip }) {
@@ -62,9 +62,10 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
   const bodyStyle = {
     maxWidth: 1200,
     margin: '0 auto',
-    padding: '28px 24px',
+    padding: '32px 24px',
     boxSizing: 'border-box',
     width: '100%',
+    animation: 'fade-in-up 0.4s ease-out forwards',
   };
 
   const periodTabsStyle = {
@@ -241,7 +242,10 @@ function SkeletonTable() {
 
   return (
     <div style={containerStyle}>
-      <style>{`@keyframes meridian-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+      <style>{`
+        @keyframes meridian-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes fade-in-up { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+      `}</style>
       {[0, 1, 2].map(i => (
         <div key={i} style={skeletonRowStyle}>
           <div style={skeletonBarStyle('60px')} />

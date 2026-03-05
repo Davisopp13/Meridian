@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { C } from '../lib/constants.js';
 
 /**
@@ -7,11 +8,14 @@ import { C } from '../lib/constants.js';
  *   onClick  fn
  */
 export default function MButton({ onClick }) {
+  const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+
   const style = {
     width: 32,
     height: 32,
     background: C.mBtn,
-    borderRadius: 6,
+    borderRadius: 8,
     border: 'none',
     cursor: 'pointer',
     display: 'flex',
@@ -19,20 +23,32 @@ export default function MButton({ onClick }) {
     justifyContent: 'center',
     flexShrink: 0,
     padding: 0,
-    transition: 'opacity 120ms',
+    transform: pressed ? 'scale(0.92)' : hovered ? 'scale(1.06)' : 'scale(1)',
+    transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+    boxShadow: hovered ? '0 4px 12px rgba(0,48,135,0.4)' : 'none',
   };
 
   const markStyle = {
     color: C.mMark,
     fontSize: 15,
     fontWeight: 900,
-    fontFamily: '"Segoe UI", sans-serif',
+    fontFamily: '"Inter", "Segoe UI", sans-serif',
     lineHeight: 1,
     userSelect: 'none',
   };
 
   return (
-    <button style={style} onClick={onClick} title="Open Meridian dashboard">
+    <button
+      style={style}
+      onClick={onClick}
+      title="Open Meridian dashboard"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setPressed(false); }}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onTouchStart={() => setPressed(true)}
+      onTouchEnd={() => setPressed(false)}
+    >
       <span style={markStyle}>M°</span>
     </button>
   );

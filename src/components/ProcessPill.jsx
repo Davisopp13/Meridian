@@ -5,7 +5,7 @@ export default function ProcessPill({ elapsed, onLog, onClose }) {
     <div style={{
       display: 'flex', alignItems: 'center', gap: 5,
       padding: '0 8px', height: 26, borderRadius: 13,
-      background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.3)',
+      background: 'rgba(96,165,250,0.15)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(96,165,250,0.3)',
       fontSize: 11, fontWeight: 600, color: C.process,
       flexShrink: 0,
     }}>

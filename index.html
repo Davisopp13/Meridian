@@ -1,28 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <!-- Viewport -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Meridian</title>
 
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.json" />
+<head>
+  <meta charset="UTF-8" />
+  <!-- Viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Meridian</title>
 
-    <!-- Icons -->
-    <link rel="icon" href="/meridian-mark-192.png" />
-    <link rel="apple-touch-icon" href="/meridian-mark-192.png" />
+  <!-- PWA manifest -->
+  <link rel="manifest" href="/manifest.json" />
 
-    <!-- Theme -->
-    <meta name="theme-color" content="#003087" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Standalone display — Safari requires these in addition to manifest -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Meridian" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+  <!-- Icons -->
+  <link rel="icon" href="/meridian-mark-192.png" />
+  <link rel="apple-touch-icon" href="/meridian-mark-192.png" />
+
+  <!-- Theme -->
+  <meta name="theme-color" content="#003087" />
+
+  <!-- Standalone display — Safari requires these in addition to manifest -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Meridian" />
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
 </html>

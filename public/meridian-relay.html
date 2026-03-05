@@ -3,24 +3,151 @@
 <head><title>Meridian Relay</title></head>
 <body>
 <script>
-  var params = new URLSearchParams(window.location.search);
+  // Meridian Relay
+  // This page runs on meridian-hlag.com and relays
+  // Supabase API calls on behalf of the bookmarklet trigger
+  // which cannot make direct calls due to Salesforce CSP.
+  //
+  // Also handles trigger code loading to bypass CSP script-src restrictions.
 
-  if (params.get('load') === 'trigger') {
-    fetch('/meridian-trigger.js?v=' + Date.now())
-      .then(function(resp) {
-        if (!resp.ok) throw new Error('Failed to fetch trigger: ' + resp.status);
-        return resp.text();
-      })
-      .then(function(code) {
-        window.parent.postMessage({ meridianTriggerCode: code }, '*');
-      })
-      .catch(function(err) {
-        window.parent.postMessage({ meridianTriggerError: err.message }, '*');
-      });
+  const SUPABASE_URL = 'https://wluynppocsoqjdbmwass.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXlucHBvY3NvcWpkYm13YXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDU4NzIsImV4cCI6MjA4ODIyMTg3Mn0.x9-t_038hz4eJUciA1F9-DWE8UN_V58KE0i43cpOAMk';
+
+  // ── Supabase session reader ─────────────────────────────────────────────
+  // This iframe is on meridian-hlag.com, same origin as the Meridian app,
+  // so it can read the Supabase auth session from localStorage.
+  // The Supabase JS client stores the session under a key like:
+  //   sb-<project-ref>-auth-token
+  const SUPABASE_STORAGE_KEY = 'sb-wluynppocsoqjdbmwass-auth-token';
+
+  function getSessionFromStorage() {
+    try {
+      const raw = localStorage.getItem(SUPABASE_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      // Supabase stores { access_token, refresh_token, user: { id, ... }, ... }
+      if (parsed && parsed.access_token && parsed.user && parsed.user.id) {
+        return {
+          userId: parsed.user.id,
+          token: parsed.access_token,
+          refreshToken: parsed.refresh_token || null,
+        };
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
+  // ── Trigger code loader ────────────────────────────────────────────────────
+  // When loaded with ?load=trigger, read the auth session from localStorage
+  // and fetch the trigger JS. Send both credentials and code to the parent
+  // window (the Salesforce page) so it can run via new Function().
+  // The bookmarklet itself stays credential-free.
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('load') === 'trigger') {
+    const session = getSessionFromStorage();
+
+    if (!session) {
+      window.parent.postMessage({
+        meridianTriggerError: 'Not logged in to Meridian. Open meridian-hlag.com and sign in first.'
+      }, '*');
+    } else {
+      fetch('/meridian-trigger.js?v=' + Date.now())
+        .then(function(resp) {
+          if (!resp.ok) throw new Error('Failed to fetch trigger: ' + resp.status);
+          return resp.text();
+        })
+        .then(function(code) {
+          window.parent.postMessage({
+            meridianTriggerCode: code,
+            meridianAuth: {
+              userId: session.userId,
+              token: session.token,
+            }
+          }, '*');
+        })
+        .catch(function(err) {
+          window.parent.postMessage({ meridianTriggerError: err.message }, '*');
+        });
+    }
+  }
+
+  // ── Message relay ──────────────────────────────────────────────────────────
+  // Listen for messages from the trigger code running in the SF page context.
+  // The trigger sends payloads here because SF CSP blocks direct fetch() to
+  // Supabase. This relay is on meridian-hlag.com so it can call Supabase freely.
+  window.addEventListener('message', async function(event) {
+    if (!event.data || event.data.relay !== 'MERIDIAN_TRIGGER') return;
+
+    const { id, action, payload } = event.data;
+
+    try {
+      let result;
+
+      if (action === 'SUPABASE_INSERT_TRIGGER') {
+        // Insert a pending_trigger row so the Meridian app picks it up via Realtime
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/pending_triggers', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + (payload.token || SUPABASE_ANON_KEY),
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(payload.body)
+        });
+
+        if (!resp.ok) {
+          var errText = await resp.text();
+          throw new Error(resp.status + ': ' + errText);
+        }
+        result = await resp.json();
+      }
+
+      else if (action === 'SUPABASE_AUTH_REFRESH') {
+        // Refresh an auth token
+        const resp = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ refresh_token: payload.refresh_token })
+        });
+
+        if (!resp.ok) {
+          var errText2 = await resp.text();
+          throw new Error(resp.status + ': ' + errText2);
+        }
+        result = await resp.json();
+      }
+
+      else {
+        throw new Error('Unknown action: ' + action);
+      }
+
+      // Send success back to trigger code
+      event.source.postMessage({
+        relay: 'MERIDIAN_TRIGGER_RESPONSE',
+        id: id,
+        success: true,
+        data: result
+      }, '*');
+
+    } catch (err) {
+      event.source.postMessage({
+        relay: 'MERIDIAN_TRIGGER_RESPONSE',
+        id: id,
+        success: false,
+        error: err.message
+      }, '*');
+    }
+  });
+
+  // Signal that relay is ready
   if (window.parent !== window) {
-    window.parent.postMessage({ type: 'MERIDIAN_RELAY_READY' }, '*');
+    window.parent.postMessage({ relay: 'MERIDIAN_RELAY_READY' }, '*');
   }
 </script>
 </body>
