@@ -209,7 +209,7 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
         )}
       </div>
       {showBookmarkletModal && (
-        <BookmarkletModal onClose={() => setShowBookmarkletModal(false)} />
+        <BookmarkletModal onClose={() => setShowBookmarkletModal(false)} user={user} />
       )}
     </div>
   );
