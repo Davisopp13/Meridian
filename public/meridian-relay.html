@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head><title>Meridian Relay</title></head>
+<body>
+<script>
+  var params = new URLSearchParams(window.location.search);
+
+  if (params.get('load') === 'trigger') {
+    fetch('/meridian-trigger.js?v=' + Date.now())
+      .then(function(resp) {
+        if (!resp.ok) throw new Error('Failed to fetch trigger: ' + resp.status);
+        return resp.text();
+      })
+      .then(function(code) {
+        window.parent.postMessage({ meridianTriggerCode: code }, '*');
+      })
+      .catch(function(err) {
+        window.parent.postMessage({ meridianTriggerError: err.message }, '*');
+      });
+  }
+
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'MERIDIAN_RELAY_READY' }, '*');
+  }
+</script>
+</body>
+</html>
