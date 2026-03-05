@@ -8,6 +8,7 @@ import { supabase } from './lib/supabase.js'
 import PipBar from './PipBar.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Dashboard from './components/Dashboard.jsx'
+import PendingTriggerBanner from './components/PendingTriggerBanner.jsx'
 import AuthScreen from './components/auth/AuthScreen.jsx'
 import SwimlaneTray from './components/SwimlaneTray.jsx'
 import RFCPrompt from './components/overlays/RFCPrompt.jsx'
@@ -43,6 +44,7 @@ export default function App() {
   const [categories, setCategories] = useState([])
   const [barSessionId, setBarSessionId] = useState(null)
   const [pipToast, setPipToast] = useState(null)
+  const [pendingTrigger, setPendingTrigger] = useState(null) // queued trigger when PiP not open
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -222,8 +224,12 @@ export default function App() {
 
   async function handleCaseStart({ caseNumber, accountId, caseType, caseSubtype }) {
     if (!user) return
-    const ok = await ensurePipOpen()
-    if (!ok) return
+    if (!isOpen) {
+      // PiP not open — queue the trigger so the banner can handle it
+      setPendingTrigger({ type: 'case', data: { caseNumber, accountId, caseType, caseSubtype } })
+      return
+    }
+    if (isMinimized) setIsMinimized(false)
 
     const { data, error } = await supabase
       .from('case_sessions')
@@ -257,8 +263,12 @@ export default function App() {
 
   async function handleProcessStart() {
     if (!user || !profile?.onboarded) return
-    const ok = await ensurePipOpen()
-    if (!ok) return
+    if (!isOpen) {
+      // PiP not open — queue the trigger
+      setPendingTrigger({ type: 'process', data: {} })
+      return
+    }
+    if (isMinimized) setIsMinimized(false)
 
     const id = crypto.randomUUID()
     const newProcess = { id, elapsed: 0, paused: false }
@@ -275,30 +285,7 @@ export default function App() {
     resizePip('overlay')
   }
 
-  // ── Handler ref — updated every render so message listener never goes stale ─
-  const handlersRef = useRef({})
-  handlersRef.current = { handleCaseStart, handleProcessStart }
-
   usePendingTriggers(user?.id, { handleCaseStart, handleProcessStart })
-
-  // ── Bookmarklet message listener ──────────────────────────────────────────
-  useEffect(() => {
-    function handleMessage(e) {
-      if (!e.data || !e.data.type) return
-      if (!e.data.type.startsWith('MERIDIAN_')) return
-      const { type, caseNumber, accountId, caseType, caseSubtype } = e.data
-      if (type === 'MERIDIAN_CASE_START' && caseNumber) {
-        console.log('[Meridian] CASE_START received:', caseNumber)
-        handlersRef.current.handleCaseStart({ caseNumber, accountId, caseType, caseSubtype })
-      }
-      if (type === 'MERIDIAN_PROCESS_START') {
-        console.log('[Meridian] PROCESS_START received')
-        handlersRef.current.handleProcessStart()
-      }
-    }
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
 
   // ── Re-render PipBar into PiP window on every state change ────────────────
   useEffect(() => {
@@ -381,6 +368,28 @@ export default function App() {
     pipRootRef.current = ReactDOM.createRoot(container)
     pipRootRef.current.render(buildPipBar())
     if (user) createBarSession(user.id)
+  }
+
+  async function handlePendingTriggerLaunch() {
+    const trigger = pendingTrigger
+    setPendingTrigger(null)
+    if (!trigger) return
+
+    const pw = await openPip()
+    if (!pw) return
+
+    const container = pw.document.createElement('div')
+    pw.document.body.appendChild(container)
+    pipRootRef.current = ReactDOM.createRoot(container)
+    pipRootRef.current.render(buildPipBar())
+    if (user) createBarSession(user.id)
+
+    // Now process the queued trigger — PiP is open so it won't queue again
+    if (trigger.type === 'case') {
+      handleCaseStart(trigger.data)
+    } else if (trigger.type === 'process') {
+      handleProcessStart()
+    }
   }
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -731,5 +740,14 @@ export default function App() {
     return <Onboarding user={user} onComplete={handleOnboardingComplete} />
   }
 
-  return <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} />
+  return (
+    <>
+      <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} />
+      <PendingTriggerBanner
+        trigger={pendingTrigger}
+        onLaunch={handlePendingTriggerLaunch}
+        onDismiss={() => setPendingTrigger(null)}
+      />
+    </>
+  )
 }
