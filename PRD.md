@@ -142,7 +142,7 @@ No changes needed. Code already uses correct table/column names.
   - Files: `src/App.jsx`
   - Test: `npm run build` completes without errors
 
-- [ ] **Task 2: Rename case_sessions → ct_cases in case_events references**
+- [x] **Task 2: Rename case_sessions → ct_cases in case_events references**
   - What: The `case_events` table's `session_id` column still references `ct_cases.id`. No code change needed for the FK itself (Supabase handles it), but verify that every `case_events` insert in App.jsx uses the correct session ID from the `ct_cases` insert response
   - This is a verification task — read through all `case_events` inserts and confirm `session_id` is set from the `ct_cases` row ID. If it already is, mark done.
   - Files: `src/App.jsx` (read-only verification, fix if needed)
