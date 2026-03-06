@@ -163,7 +163,7 @@ No changes needed. Code already uses correct table/column names.
   - Files: `src/hooks/useDashboardStats.js`
   - Test: `npm run build`
 
-- [ ] **Task 5: Update mpl_entries insert in App.jsx (handlePickerConfirm and handleConfirmProcess)**
+- [x] **Task 5: Update mpl_entries insert in App.jsx (handlePickerConfirm and handleConfirmProcess)**
   - What: The two functions that write process data currently don't exist as `mpl_entries` inserts — they already write to `mpl_entries`. Verify these inserts match the schema:
     - Required columns: `user_id`, `category_id`, `subcategory_id` (NOT NULL), `minutes`, `source`
     - `minutes` should be `Math.round(durationSeconds / 60) || 1` (already done)
