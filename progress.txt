@@ -864,3 +864,17 @@ Files changed:
 Learnings for future iterations:
   - Task 11 was a verification task; Task 4 had already made all the required changes
 ---
+## Iteration 12 - Task 12: Full build and import verification
+- Ran `npm run build` — passes with 0 errors
+- Grepped src/ for all stale table/column names:
+  - from('case_sessions'), from('process_sessions'), from('process_categories'), from('profiles'), from('teams') — all empty
+  - .onboarded, team_id, logged_at — all empty
+- No code changes needed — codebase is fully aligned with canonical schema
+
+Files changed:
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - All 12 schema alignment tasks are now complete — PRD is fully done
+  - Build produces one chunk size warning (>500KB) but this is not an error; no action needed
+---

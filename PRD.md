@@ -265,7 +265,7 @@ No changes needed. Code already uses correct table/column names.
 
 ### Phase 6: Smoke Test — Full Build Verification
 
-- [ ] **Task 12: Full build and import verification**
+- [x] **Task 12: Full build and import verification**
   - What: Run `npm run build` and verify zero errors. Then do a grep across `src/` for any remaining references to old table names:
     ```bash
     grep -rn "from('case_sessions')" src/
