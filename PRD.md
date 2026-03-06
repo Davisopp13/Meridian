@@ -221,7 +221,7 @@ No changes needed. Code already uses correct table/column names.
 
 ### Phase 3: Category Fetch — Verify Normalized Model
 
-- [ ] **Task 9: Verify mpl_categories fetch uses normalized join**
+- [x] **Task 9: Verify mpl_categories fetch uses normalized join**
   - What: In `src/App.jsx`, the category fetch already does:
     ```js
     supabase

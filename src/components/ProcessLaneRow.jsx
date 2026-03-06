@@ -43,7 +43,8 @@ export default function ProcessLaneRow({
 
   function handleSelectCategory(cat) {
     setSelectedCategory(cat)
-    setSelectedSubcategory(null)
+    const subs = cat.mpl_subcategories || []
+    setSelectedSubcategory(subs.length === 1 ? subs[0] : null)
     setMinutes(String(Math.max(1, Math.round(elapsed / 60))))
   }
 

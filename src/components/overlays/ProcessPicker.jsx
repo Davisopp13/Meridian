@@ -11,7 +11,8 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
 
   function handleSelectCat(cat) {
     setSelectedCat(cat)
-    setSelectedSub(null)
+    const subs = cat.mpl_subcategories || []
+    setSelectedSub(subs.length === 1 ? subs[0] : null)
   }
 
   function handleConfirm() {
