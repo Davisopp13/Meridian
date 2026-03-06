@@ -13,6 +13,7 @@ import AuthScreen from './components/auth/AuthScreen.jsx'
 import SwimlaneTray from './components/SwimlaneTray.jsx'
 import RFCPrompt from './components/overlays/RFCPrompt.jsx'
 import ProcessPicker from './components/overlays/ProcessPicker.jsx'
+import ManualEntryForm from './components/ManualEntryForm.jsx'
 
 const MERIDIAN_HOST = import.meta.env.VITE_APP_URL || window.location.origin
 
@@ -45,6 +46,7 @@ export default function App() {
   const [barSessionId, setBarSessionId] = useState(null)
   const [pipToast, setPipToast] = useState(null)
   const [pendingTrigger, setPendingTrigger] = useState(null) // queued trigger when PiP not open
+  const [manualEntryOpen, setManualEntryOpen] = useState(false)
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -132,6 +134,7 @@ export default function App() {
       setOverlayOpen(false)
       setRfcPending(null)
       setPickerPending(null)
+      setManualEntryOpen(false)
       setLastTrigger('cases')
       setBarSessionId(null)
       setPipToast(null)
@@ -333,6 +336,12 @@ export default function App() {
             elapsed={pickerPending.elapsed}
             onConfirm={handlePickerConfirm}
             onCancel={handlePickerCancel}
+          />
+        ) : manualEntryOpen ? (
+          <ManualEntryForm
+            categories={categories}
+            onClose={handleManualEntryClose}
+            onLog={handleManualLog}
           />
         ) : trayOpen ? (
           <SwimlaneTray
@@ -558,14 +567,32 @@ export default function App() {
     if (ok) refetch()
   }
 
+  // `+` button — opens manual entry form directly, no pill or timer created
   function handleNewProcess() {
-    const id = crypto.randomUUID()
-    setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
-    setPickerPending({ processId: id, elapsed: 0 })
+    setManualEntryOpen(true)
     setOverlayOpen(true)
-    setLastTrigger('processes')
-    startProcessTimer(id)
     resizePip('overlay')
+  }
+
+  function handleManualEntryClose() {
+    setManualEntryOpen(false)
+    setOverlayOpen(false)
+    resizePip(getBarSize(cases, processes, trayOpen, false))
+  }
+
+  async function handleManualLog(categoryId, subcategoryId, minutes) {
+    if (!user) return
+    await safeWrite(supabase.from('mpl_entries').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes,
+      source: 'manual',
+    }))
+    setManualEntryOpen(false)
+    setOverlayOpen(false)
+    refetch()
+    resizePip(getBarSize(cases, processes, trayOpen, false))
   }
 
   async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
