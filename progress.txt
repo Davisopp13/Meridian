@@ -878,3 +878,47 @@ Learnings for future iterations:
   - All 12 schema alignment tasks are now complete — PRD is fully done
   - Build produces one chunk size warning (>500KB) but this is not an error; no action needed
 ---
+
+## Iteration 14 - Task 1 (MPL UX PRD): Bookmarklet-only live timer
+- Added `typecheck` script to package.json (maps to `vite build`)
+- Created `src/components/ManualEntryForm.jsx` stub (header + placeholder, ready for Task 2)
+- Added `manualEntryOpen` state to App.jsx
+- Changed `handleNewProcess()` to open ManualEntryForm (no process created, no timer started)
+- Added `handleManualEntryClose()` and `handleManualLog()` handlers in App.jsx
+- Wired ManualEntryForm into `buildPipBar()` overlay slot (between pickerPending and trayOpen)
+- `handleProcessStart()` (bookmarklet) is unchanged — still creates a pill + timer
+- `npm run typecheck` passes (vite build, 737 modules, 0 errors)
+
+Files changed:
+  package.json (added typecheck script)
+  src/App.jsx (import, state, handlers, render)
+  src/components/ManualEntryForm.jsx (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - `npm run typecheck` did not exist — had to add it as `vite build` alias to package.json first
+  - Read/Edit/Write tools require a file to have been Read in the SAME conversation turn before editing/writing
+  - The + button is `handleNewProcess` in App.jsx, wired to PipBar's `onNewProcess` and ProcessesLane's `+ New Process` button
+  - Bookmarklet trigger uses `handleProcessStart` (via usePendingTriggers hook), NOT handleNewProcess — these are separate paths
+  - ManualEntryForm uses `height: 'calc(100% - 60px)'` since the bar row is 60px tall
+  - MERIDIAN_PROCESS_START is routed through Supabase Realtime (pending_triggers table), not via window.postMessage
+---
+
+## Iteration 14 - Task 2 (PRD v2): ManualEntryForm
+- Replaced the placeholder ManualEntryForm with a full implementation
+- Duration picker: pill buttons for 5/10/15/20/30/45/60 min + Custom (reveals number input)
+- Category list: same item button style as ProcessPicker (tinted bg, border on selected)
+- Subcategory list: appears below category list when a category with subcategories is selected
+- Log button appears (bottom-right) when duration + category + subcategory (if applicable) are all set
+- onLog(categoryId, subcategoryId | null, minutes) called on confirm
+- Container uses height: calc(100% - 36px) to match ProcessPicker overlay sizing
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/ManualEntryForm.jsx (full rewrite)
+
+Learnings for future iterations:
+  - Task 3 will replace the expand-in-place subcategory pattern with drill-down navigation
+  - subs derived from selectedCat?.mpl_subcategories || [] — reuse this reference to avoid repeated optional chaining
+  - canLog check: getMinutes() > 0 && selectedCat && (subs.length === 0 || selectedSub != null)
+---

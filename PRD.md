@@ -38,7 +38,7 @@ Apply four UX fixes to the MPL (Manual Process Log) PWA widget. These changes ad
 
 ### Phase 2: Manual Entry Form
 
-- [ ] **Task 2: Build manual entry form**
+- [x] **Task 2: Build manual entry form**
   - What: When `+` is tapped, show a fixed-height form tray (same container as the existing LOG PROCESS tray) with:
     1. **Duration picker** at the top — pill-style buttons: `5 min`, `10 min`, `15 min`, `20 min`, `30 min`, `45 min`, `60 min`, plus a `Custom` option that reveals a number input (minutes). One must be selected before logging is allowed.
     2. **Category list** below the duration picker — same list of categories as the bookmarklet-triggered flow (see Task 3 for the drill-down).
