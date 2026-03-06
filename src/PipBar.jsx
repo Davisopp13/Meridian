@@ -164,7 +164,7 @@ export default function PipBar({
         />
         <StatButton
           label={`${stats.processes} Total`}
-          color={hasActiveProcess ? C.process : C.processNavy}
+          color={C.process}
           active={hasActiveProcess}
           onClick={() => onNewProcess && onNewProcess()}
           title="Processes"

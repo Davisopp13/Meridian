@@ -153,7 +153,7 @@ export default function App() {
       const u = session?.user ?? null
       setUser(u)
       if (u) {
-        supabase.from('profiles').select('*').eq('id', u.id).single()
+        supabase.from('platform_users').select('*').eq('id', u.id).single()
           .then(({ data: p }) => { setProfile(p); setAuthLoading(false) })
       } else {
         setAuthLoading(false)
@@ -164,7 +164,7 @@ export default function App() {
       const u = session?.user ?? null
       setUser(u)
       if (u) {
-        supabase.from('profiles').select('*').eq('id', u.id).single()
+        supabase.from('platform_users').select('*').eq('id', u.id).single()
           .then(({ data: p }) => setProfile(p))
       } else {
         setProfile(null)
@@ -181,20 +181,21 @@ export default function App() {
   const { resolved, reclass, calls, processes: processCount, refetch } = useStats()
   const stats = { resolved, reclass, calls, processes: processCount }
 
-  // ── Fetch process categories once after auth ──────────────────────────────
+  // ── Fetch process categories (team-filtered) after auth ───────────────────
   useEffect(() => {
-    if (!user) return
+    if (!user || !profile?.team) return
     supabase
-      .from('process_categories')
-      .select('id, name, team, sort_order')
-      .eq('active', true)
-      .order('team')
-      .order('sort_order')
+      .from('mpl_categories')
+      .select('id, name, team, display_order, mpl_subcategories(id, name, display_order)')
+      .eq('team', profile.team)
+      .eq('is_active', true)
+      .order('display_order')
+      .order('display_order', { referencedTable: 'mpl_subcategories' })
       .then(({ data, error }) => {
-        if (error) console.error('[Meridian] process_categories fetch failed', error)
+        if (error) console.error('[Meridian] mpl_categories fetch failed', error)
         if (data) setCategories(data)
       })
-  }, [user])
+  }, [user, profile])
 
   // ── Auto-open tray on 3rd case or 3rd process ─────────────────────────────
   useEffect(() => {
@@ -262,7 +263,7 @@ export default function App() {
   }
 
   async function handleProcessStart() {
-    if (!user || !profile?.onboarded) return
+    if (!user || !profile?.onboarding_complete) return
     if (!isOpen) {
       // PiP not open — queue the trigger
       setPendingTrigger({ type: 'process', data: {} })
@@ -359,7 +360,7 @@ export default function App() {
 
   // ── Launch PiP window ─────────────────────────────────────────────────────
   async function handleLaunch() {
-    if (!user || !profile?.onboarded) return
+    if (!user || !profile?.onboarding_complete) return
     const pw = await openPip()
     if (!pw) return
 
@@ -566,15 +567,16 @@ export default function App() {
     resizePip('overlay')
   }
 
-  async function handlePickerConfirm(categoryName, durationSeconds) {
+  async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
     if (!pickerPending || !user) return
     const { processId } = pickerPending
     stopProcessTimer(processId)
-    const ok = await safeWrite(supabase.from('process_sessions').insert({
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
-      category: categoryName,
-      duration_s: durationSeconds,
-      entry_mode: 'timer',
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes: Math.round(durationSeconds / 60) || 1,
+      source: 'pip',
     }))
     if (!ok) return
     const remaining = processes.filter(p => p.id !== processId)
@@ -701,14 +703,15 @@ export default function App() {
     maybeShrinkToIdle(remaining, processes)
   }
 
-  async function handleConfirmProcess(id, categoryName, durationSeconds) {
+  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
     if (!user) return
     stopProcessTimer(id)
-    const ok = await safeWrite(supabase.from('process_sessions').insert({
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
-      category: categoryName,
-      duration_s: durationSeconds,
-      entry_mode: 'timer',
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes: Math.round(durationSeconds / 60) || 1,
+      source: 'pip',
     }))
     if (!ok) return
     const remaining = processes.filter(p => p.id !== id)
@@ -736,7 +739,7 @@ export default function App() {
     return <AuthScreen />
   }
 
-  if (!profile?.onboarded) {
+  if (!profile?.onboarding_complete) {
     return <Onboarding user={user} onComplete={handleOnboardingComplete} />
   }
 

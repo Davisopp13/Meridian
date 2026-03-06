@@ -1,28 +1,6 @@
 import { useState } from 'react'
 import { C, formatElapsed } from '../lib/constants'
 
-function catBtn(team, selected) {
-  const bg = team === 'CH'
-    ? 'rgba(251,191,36,0.15)'
-    : 'rgba(96,165,250,0.15)'
-  const border = team === 'CH'
-    ? 'rgba(251,191,36,0.5)'
-    : 'rgba(96,165,250,0.5)'
-  const color = team === 'CH' ? '#fbbf24' : C.process
-  return {
-    padding: '5px 8px',
-    borderRadius: 6,
-    border: `1px solid ${selected ? border : 'rgba(255,255,255,0.1)'}`,
-    background: selected ? bg : 'rgba(255,255,255,0.04)',
-    color: selected ? color : C.textSec,
-    fontSize: 10,
-    fontWeight: selected ? 700 : 500,
-    cursor: 'pointer',
-    textAlign: 'left',
-    fontFamily: '"Segoe UI", sans-serif',
-    transition: 'all 100ms',
-  }
-}
 
 function actionBtn(color, muted = false) {
   return {
@@ -42,12 +20,13 @@ function actionBtn(color, muted = false) {
 
 export default function ProcessLaneRow({
   process,       // { id, elapsed, categoryName }
-  categories,    // [{ id, name, team, sort_order }]
-  onConfirm,     // (id, category, durationSeconds)
+  categories,    // [{ id, name, team, display_order, mpl_subcategories[] }]
+  onConfirm,     // (id, categoryId, subcategoryId, durationSeconds)
   onCancel,      // (id)
 }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState(null)
+  const [selectedSubcategory, setSelectedSubcategory] = useState(null)
   const [minutes, setMinutes] = useState('')
 
   const { id, elapsed } = process
@@ -57,20 +36,22 @@ export default function ProcessLaneRow({
     if (!pickerOpen) {
       setPickerOpen(true)
       setSelectedCategory(null)
+      setSelectedSubcategory(null)
       setMinutes('')
     }
   }
 
   function handleSelectCategory(cat) {
     setSelectedCategory(cat)
+    setSelectedSubcategory(null)
     setMinutes(String(Math.max(1, Math.round(elapsed / 60))))
   }
 
   function handleConfirm(e) {
     e.stopPropagation()
-    if (!selectedCategory) return
+    if (!selectedCategory || !selectedSubcategory) return
     const secs = Math.round(parseFloat(minutes) * 60) || elapsed
-    onConfirm(id, selectedCategory.name, secs)
+    onConfirm(id, selectedCategory.id, selectedSubcategory.id, secs)
   }
 
   function handleCancel(e) {
@@ -82,6 +63,7 @@ export default function ProcessLaneRow({
     e.stopPropagation()
     setPickerOpen(false)
     setSelectedCategory(null)
+    setSelectedSubcategory(null)
     setMinutes('')
   }
 
@@ -125,8 +107,9 @@ export default function ProcessLaneRow({
   }
 
   // ── Picker open ───────────────────────────────────────────────────────────
-  const chCats = categories.filter(c => c.team === 'CH' || c.team === 'BOTH')
-  const mhCats = categories.filter(c => c.team === 'MH' || c.team === 'BOTH')
+  const tint = categories[0]?.team === 'CH'
+    ? { bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.5)', color: '#fbbf24' }
+    : { bg: 'rgba(96,165,250,0.15)', border: 'rgba(96,165,250,0.5)', color: C.process }
 
   return (
     <div style={rowStyle}>
@@ -147,13 +130,19 @@ export default function ProcessLaneRow({
         </button>
       </div>
 
-      {/* Category grid — 2 columns */}
+      {/* Step 1: Category list */}
       {categories.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginBottom: 8 }}>
-          {[...chCats, ...mhCats].map(cat => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+          {categories.map(cat => (
             <button
               key={cat.id}
-              style={catBtn(cat.team, selectedCategory?.id === cat.id)}
+              style={{
+                padding: '5px 8px', borderRadius: 6, fontSize: 10, fontWeight: selectedCategory?.id === cat.id ? 700 : 500,
+                cursor: 'pointer', textAlign: 'left', fontFamily: '"Segoe UI", sans-serif', transition: 'all 100ms',
+                border: `1px solid ${selectedCategory?.id === cat.id ? tint.border : 'rgba(255,255,255,0.1)'}`,
+                background: selectedCategory?.id === cat.id ? tint.bg : 'rgba(255,255,255,0.04)',
+                color: selectedCategory?.id === cat.id ? tint.color : C.textSec,
+              }}
               onClick={e => { e.stopPropagation(); handleSelectCategory(cat) }}
             >
               {cat.name}
@@ -166,12 +155,30 @@ export default function ProcessLaneRow({
         </div>
       )}
 
-      {/* Minutes input + confirm — shown after category selected */}
-      {selectedCategory && (
+      {/* Step 2: Subcategory list */}
+      {selectedCategory && (selectedCategory.mpl_subcategories || []).length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+          {(selectedCategory.mpl_subcategories || []).map(sub => (
+            <button
+              key={sub.id}
+              style={{
+                padding: '4px 7px', borderRadius: 6, fontSize: 10, fontWeight: selectedSubcategory?.id === sub.id ? 700 : 500,
+                cursor: 'pointer', textAlign: 'left', fontFamily: '"Segoe UI", sans-serif', transition: 'all 100ms',
+                border: `1px solid ${selectedSubcategory?.id === sub.id ? tint.border : 'rgba(255,255,255,0.08)'}`,
+                background: selectedSubcategory?.id === sub.id ? tint.bg : 'rgba(255,255,255,0.02)',
+                color: selectedSubcategory?.id === sub.id ? tint.color : C.textSec,
+              }}
+              onClick={e => { e.stopPropagation(); setSelectedSubcategory(sub) }}
+            >
+              {sub.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Step 3: Minutes input + confirm */}
+      {selectedCategory && selectedSubcategory && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: C.textSec, fontFamily: '"Segoe UI", sans-serif' }}>
-            {selectedCategory.name}
-          </span>
           <input
             type="number"
             min="0"
@@ -180,17 +187,10 @@ export default function ProcessLaneRow({
             onChange={e => setMinutes(e.target.value)}
             onClick={e => e.stopPropagation()}
             style={{
-              width: 44,
-              height: 22,
-              borderRadius: 4,
-              border: `1px solid ${C.border}`,
-              background: 'rgba(255,255,255,0.07)',
-              color: C.textPri,
-              fontSize: 11,
-              fontWeight: 700,
-              textAlign: 'center',
-              fontFamily: '"Segoe UI", sans-serif',
-              outline: 'none',
+              width: 44, height: 22, borderRadius: 4,
+              border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.07)',
+              color: C.textPri, fontSize: 11, fontWeight: 700,
+              textAlign: 'center', fontFamily: '"Segoe UI", sans-serif', outline: 'none',
             }}
           />
           <span style={{ fontSize: 10, color: C.textSec, fontFamily: '"Segoe UI", sans-serif' }}>
@@ -199,10 +199,7 @@ export default function ProcessLaneRow({
           <button style={actionBtn(C.process)} onClick={handleConfirm}>
             ✓ Log
           </button>
-          <button
-            style={actionBtn(C.textSec, true)}
-            onClick={handleCancel}
-          >
+          <button style={actionBtn(C.textSec, true)} onClick={handleCancel}>
             × Cancel
           </button>
         </div>

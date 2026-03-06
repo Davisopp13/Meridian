@@ -29,9 +29,9 @@ export default function StatButton({ label, color, onClick, disabled = false, ac
     gap: 6,
     whiteSpace: 'nowrap',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    background: disabled ? '#d1d5db' : color, // light grey for disabled
+    background: color, // Always display the assigned vibrant hue
     color: '#ffffff', // pure white text
-    opacity: disabled ? 0.7 : 1,
+    opacity: disabled ? 0.85 : 1,
     flexShrink: 0,
     transform: pressed && !disabled ? 'scale(0.95)' : hovered && !disabled ? 'scale(1.04)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',

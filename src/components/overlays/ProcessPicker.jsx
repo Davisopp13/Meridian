@@ -2,36 +2,41 @@ import { useState } from 'react'
 import { C } from '../../lib/constants.js'
 
 export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel }) {
-  const [selected, setSelected] = useState(null)
+  const [selectedCat, setSelectedCat] = useState(null)
+  const [selectedSub, setSelectedSub] = useState(null)
   const [minutes, setMinutes] = useState(Math.max(1, Math.round(elapsed / 60)))
 
-  const chCategories = categories.filter(c => c.team === 'CH' || c.team === 'BOTH')
-  const mhCategories = categories.filter(c => c.team === 'MH' || c.team === 'BOTH')
+  const tint = categories[0]?.team === 'CH' ? 'rgba(251,191,36,1)' : 'rgba(96,165,250,1)'
+  const tintColor = categories[0]?.team === 'CH' ? C.awaiting : C.process
+
+  function handleSelectCat(cat) {
+    setSelectedCat(cat)
+    setSelectedSub(null)
+  }
 
   function handleConfirm() {
-    if (!selected) return
-    onConfirm(selected.name, minutes * 60)
+    if (!selectedCat || !selectedSub) return
+    onConfirm(selectedCat.id, selectedSub.id, minutes * 60)
   }
 
-  const colHeadStyle = {
-    fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3,
-  }
-
-  function catBtn(cat, tint) {
-    const isSel = selected?.id === cat.id
+  function itemBtn(item, isSelected) {
     return (
       <button
-        key={cat.id}
-        onClick={() => setSelected(cat)}
+        key={item.id}
+        onClick={() => isSelected === 'cat' ? handleSelectCat(item) : setSelectedSub(item)}
         style={{
           width: '100%', textAlign: 'left', padding: '4px 7px',
-          marginBottom: 2, borderRadius: 4, border: isSel ? `1px solid ${tint}` : '1px solid transparent',
-          cursor: 'pointer', fontSize: 10.5, fontWeight: isSel ? 700 : 400,
-          background: isSel ? `${tint}55` : `${tint}22`,
+          marginBottom: 2, borderRadius: 4,
+          border: (isSelected === 'cat' ? selectedCat?.id : selectedSub?.id) === item.id
+            ? `1px solid ${tint}` : '1px solid transparent',
+          cursor: 'pointer', fontSize: 10.5,
+          fontWeight: (isSelected === 'cat' ? selectedCat?.id : selectedSub?.id) === item.id ? 700 : 400,
+          background: (isSelected === 'cat' ? selectedCat?.id : selectedSub?.id) === item.id
+            ? `${tint}55` : `${tint}22`,
           color: C.textPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}
       >
-        {cat.name}
+        {item.name}
       </button>
     )
   }
@@ -61,20 +66,26 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
         >✕</button>
       </div>
 
-      {/* Category grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, flex: 1, overflowY: 'auto' }}>
-        <div>
-          <div style={{ ...colHeadStyle, color: C.awaiting }}>CH</div>
-          {chCategories.map(cat => catBtn(cat, 'rgba(251,191,36,1)'))}
+      {/* Step 1: Category list */}
+      <div style={{ overflowY: 'auto' }}>
+        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3, color: tintColor }}>
+          CATEGORY
         </div>
-        <div>
-          <div style={{ ...colHeadStyle, color: C.process }}>MH</div>
-          {mhCategories.map(cat => catBtn(cat, 'rgba(96,165,250,1)'))}
-        </div>
+        {categories.map(cat => itemBtn(cat, 'cat'))}
       </div>
 
-      {/* Minutes + confirm (only after selection) */}
-      {selected && (
+      {/* Step 2: Subcategory list */}
+      {selectedCat && (
+        <div style={{ overflowY: 'auto' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3, color: C.textSec }}>
+            SUBCATEGORY
+          </div>
+          {(selectedCat.mpl_subcategories || []).map(sub => itemBtn(sub, 'sub'))}
+        </div>
+      )}
+
+      {/* Step 3: Minutes + confirm */}
+      {selectedCat && selectedSub && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
           <span style={{ fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}>Minutes:</span>
           <input
