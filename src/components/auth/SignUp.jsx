@@ -35,7 +35,7 @@ export default function SignUp({ onSwitchToSignIn }) {
 
     // Update profile with full_name immediately after signup
     if (data.user) {
-      await supabase.from('profiles')
+      await supabase.from('platform_users')
         .update({ full_name: fullName.trim() })
         .eq('id', data.user.id)
     }

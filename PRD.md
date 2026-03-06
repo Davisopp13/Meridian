@@ -206,7 +206,7 @@ No changes needed. Code already uses correct table/column names.
   - Files: `src/components/Onboarding.jsx`
   - Test: `npm run build`
 
-- [ ] **Task 8: Update SignUp.jsx — remove profiles reference**
+- [x] **Task 8: Update SignUp.jsx — remove profiles reference**
   - What: In `src/components/auth/SignUp.jsx`, after signup the code does:
     ```js
     await supabase.from('profiles').update({ full_name: fullName.trim() }).eq('id', data.user.id)
