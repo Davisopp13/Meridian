@@ -233,13 +233,14 @@ export default function App() {
     if (isMinimized) setIsMinimized(false)
 
     const { data, error } = await supabase
-      .from('case_sessions')
+      .from('ct_cases')
       .insert({
         user_id: user.id,
         case_number: caseNumber,
-        account_id: accountId || null,
         case_type: caseType || null,
         case_subtype: caseSubtype || null,
+        source: 'pip',
+        entry_date: new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' }),
       })
       .select('id')
       .single()
@@ -425,7 +426,7 @@ export default function App() {
   }
 
   async function handleResumeCase(id) {
-    await supabase.from('case_sessions')
+    await supabase.from('ct_cases')
       .update({ status: 'active' })
       .eq('id', id)
     setCases(prev => prev.map(c => c.id === id ? { ...c, paused: false, awaiting: false } : c))
@@ -436,8 +437,8 @@ export default function App() {
     const c = cases.find(x => x.id === id)
     if (!c || !user) return
     stopCaseTimer(id)
-    await supabase.from('case_sessions')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed' })
+    await supabase.from('ct_cases')
+      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: null })
       .eq('id', id)
     const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)
@@ -517,8 +518,8 @@ export default function App() {
       rfc: true,
     }))
     if (!ok1) return
-    await safeWrite(supabase.from('case_sessions')
-      .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed' })
+    await safeWrite(supabase.from('ct_cases')
+      .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
       .eq('id', sessionId))
     const remaining = cases.filter(x => x.id !== sessionId)
     setCases(remaining)
@@ -533,8 +534,8 @@ export default function App() {
     if (!rfcPending || !user) return
     const { sessionId, elapsed } = rfcPending
     stopCaseTimer(sessionId)
-    await safeWrite(supabase.from('case_sessions')
-      .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed' })
+    await safeWrite(supabase.from('ct_cases')
+      .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
       .eq('id', sessionId))
     const remaining = cases.filter(x => x.id !== sessionId)
     setCases(remaining)
@@ -650,7 +651,7 @@ export default function App() {
 
   async function handleAwaitingCase(id) {
     if (!user) return
-    await supabase.from('case_sessions')
+    await supabase.from('ct_cases')
       .update({ status: 'awaiting', awaiting_since: new Date().toISOString() })
       .eq('id', id)
     stopCaseTimer(id)
@@ -671,8 +672,8 @@ export default function App() {
       excluded: true,
       rfc: false,
     })
-    await supabase.from('case_sessions')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed' })
+    await supabase.from('ct_cases')
+      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'abandoned' })
       .eq('id', id)
     const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)
@@ -693,8 +694,8 @@ export default function App() {
       excluded: false,
       rfc: true,
     })
-    await supabase.from('case_sessions')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed' })
+    await supabase.from('ct_cases')
+      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
       .eq('id', id)
     const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)

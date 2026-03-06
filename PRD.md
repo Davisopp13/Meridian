@@ -1,445 +1,309 @@
-# Meridian Phase 2 PRD — Bugs + Onboarding + Dashboard
+# Meridian Schema Alignment PRD
 
 ## Project Overview
-
-Existing Meridian PiP Bar React (Vite) app deployed on Vercel. Supabase backend with tables: `case_sessions`, `case_events`, `process_sessions`, `process_categories`, `bar_sessions`, `profiles`, `teams`. This run fixes 3 post-launch bugs and adds two major features: a 3-step onboarding flow and a stats dashboard (the host page). All new UI uses the same dark Meridian design language as the PiP bar. Recharts for the trend chart.
-
-**Success:** Bugs fixed, new users can onboard and install the bookmarklet, dashboard shows correct stats with period tabs, stat cards, daily table, and trend chart matching the CT 1.0 reference layout.
-
----
+Align the existing Meridian PiP Bar codebase with the canonical Supabase schema (meridian-migration-v2.sql + meridian-supplement.sql). The app is a Vite + React 18 project using `@supabase/supabase-js`. Every Supabase query in the codebase references old table/column names that no longer exist. This PRD maps every mismatch and provides atomic tasks to fix them without changing any UI behavior or visual design.
 
 ## Architecture & Key Decisions
+- **Framework:** Vite + React 18 (no router — single-page app)
+- **Database:** Supabase (Postgres) with RLS
+- **Styling:** Inline styles only — no Tailwind, no CSS modules. DO NOT change any styles.
+- **Auth:** Supabase email/password auth (not magic link)
+- **PiP:** Document Picture-in-Picture API (Chrome/Edge 116+)
+- **State:** React useState/useRef only — no Redux, no Zustand
+- **Key pattern:** App.jsx manages all state and passes props/callbacks to PipBar and child components. PipBar is rendered into the PiP window via ReactDOM.createRoot.
 
-- React (Vite) — no TypeScript, no Tailwind
-- All styles are inline CSS objects — no external stylesheets, no className for new components
-- Supabase client lives in `src/lib/supabase.js` — import only from there, never create a second instance
-- Color tokens in `src/lib/constants.js` as `C` — never hardcode hex values
-- `America/New_York` timezone for all daily/weekly/monthly stat boundaries
-- `process_categories` is read-only for authenticated users — never attempt INSERT/UPDATE on it
-- Recharts is the only charting library — do not install others
-- `public/relay.html` — do not touch
-- Dashboard = host page (`App.jsx` or a dedicated `Dashboard.jsx` rendered by App) — not a separate route, single-page app
+## Environment & Setup
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set in `.env.local`
+- `VITE_APP_URL` is set for bookmarklet host resolution
+- Node 18+, npm
+- The canonical schema is already deployed to Supabase — DO NOT run any migrations
 
----
+## Complete Table Name Mapping
 
-## Color Tokens (from `src/lib/constants.js`)
+Old table → New table:
+| Old (in code) | New (canonical) | Notes |
+|---|---|---|
+| `case_sessions` | `ct_cases` | Same concept, different name + new columns |
+| `case_events` | `case_events` | **KEPT** — added via supplement migration, references `ct_cases` |
+| `process_sessions` | `mpl_entries` | Fundamentally different columns |
+| `process_categories` | `mpl_categories` | Different columns, normalized subcategories |
+| `bar_sessions` | `bar_sessions` | **KEPT** — added via supplement migration, same structure |
+| `profiles` | `platform_users` | Different column names |
+| `teams` | *(removed)* | Team is a column on `platform_users`, not a separate table |
+| `pending_triggers` | `pending_triggers` | Already correct in code |
 
-```js
-const C = {
-  bg:           '#1a1a2e',
-  bgDeep:       '#0f0f1e',
-  mBtn:         '#003087',
-  mMark:        '#E8540A',
-  resolved:     '#16a34a',
-  reclass:      '#dc2626',
-  calls:        '#0284c7',
-  process:      '#60a5fa',
-  notACase:     '#6b7280',
-  awaiting:     '#d97706',
-  textPri:      'rgba(255,255,255,0.93)',
-  textSec:      'rgba(255,255,255,0.45)',
-  textDim:      'rgba(255,255,255,0.25)',
-  divider:      'rgba(255,255,255,0.08)',
-  border:       'rgba(255,255,255,0.12)',
-  cardBg:       'rgba(255,255,255,0.04)',
-  cardBgHover:  'rgba(255,255,255,0.07)',
-};
-```
+## Complete Column Mapping
 
----
+### ct_cases (was case_sessions)
+| Old column | New column | Notes |
+|---|---|---|
+| `id` | `id` | Same |
+| `user_id` | `user_id` | Same, but now FK → platform_users (not auth.users) |
+| `case_number` | `case_number` | Same |
+| *(missing)* | `case_type` | New — text, nullable |
+| *(missing)* | `case_subtype` | New — text, nullable |
+| `started_at` | `started_at` | Same |
+| `ended_at` | `ended_at` | Same |
+| `duration_s` | `duration_s` | Same |
+| `status` | `status` | Same — 'active' / 'awaiting' / 'closed' |
+| `awaiting_since` | `awaiting_since` | Same |
+| *(missing)* | `resolution` | New — 'resolved' / 'reclassified' / 'abandoned' — nullable |
+| *(missing)* | `is_rfc` | New — boolean default false |
+| *(missing)* | `notes` | New — text nullable |
+| *(missing)* | `source` | New — 'pip' / 'manual' default 'pip' |
+| *(missing)* | `entry_date` | New — date default CURRENT_DATE |
+| *(missing)* | `created_at` | New — timestamptz |
+| *(missing)* | `updated_at` | New — timestamptz, auto-updated |
+| `account_id` | *(dropped)* | Was on case_sessions in some versions, now on pending_triggers only |
 
-## Environment
+### case_events (KEPT — same structure)
+| Column | Notes |
+|---|---|
+| `id` | Same |
+| `session_id` | FK → `ct_cases.id` (was → case_sessions.id) |
+| `user_id` | FK → `platform_users.id` |
+| `type` | Same — 'resolved' / 'reclassified' / 'call' / 'rfc' / 'not_a_case' |
+| `excluded` | Same — boolean |
+| `rfc` | Same — boolean |
+| `timestamp` | Same — timestamptz |
 
-```
-VITE_SUPABASE_URL=        (already set)
-VITE_SUPABASE_ANON_KEY=   (already set)
-VITE_APP_URL=             (already set — production Vercel URL)
-```
+### mpl_entries (was process_sessions)
+| Old column | New column | Notes |
+|---|---|---|
+| `id` | `id` | Same |
+| `user_id` | `user_id` | Same |
+| `category` (text) | `category_id` (uuid FK) | **BREAKING** — now FK to mpl_categories |
+| `subcategory` (text) | `subcategory_id` (uuid FK) | **BREAKING** — now FK to mpl_subcategories, NOT NULL |
+| `duration_s` | *(dropped)* | Use `minutes` (integer) instead |
+| `logged_at` | *(dropped)* | Use `created_at` instead |
+| `entry_mode` | *(dropped)* | Use `source` ('main_app' / 'quick_log' / 'pip') instead |
+| *(missing)* | `minutes` | New — integer NOT NULL, CHECK > 0 |
+| *(missing)* | `entry_date` | New — date default CURRENT_DATE |
+| *(missing)* | `notes` | New — text nullable |
+| *(missing)* | `source` | New — 'main_app' / 'quick_log' / 'pip' |
+| *(missing)* | `created_at` | New — timestamptz |
+| *(missing)* | `updated_at` | New — auto |
 
----
+### mpl_categories (was process_categories)
+| Old column | New column | Notes |
+|---|---|---|
+| `id` | `id` | Same |
+| `name` | `name` | Same |
+| `team` | `team` | Same — 'CH' / 'MH' |
+| `sort_order` | `display_order` | Renamed |
+| `active` | `is_active` | Renamed |
 
-## File Structure (additions only)
+### mpl_subcategories (NEW — did not exist before)
+| Column | Notes |
+|---|---|
+| `id` | uuid PK |
+| `category_id` | FK → mpl_categories |
+| `name` | text |
+| `display_order` | integer |
+| `is_active` | boolean |
 
-```
-src/
-  App.jsx                          ← add auth gate + onboarding check + dashboard
-  components/
-    Dashboard.jsx                  ← new — main dashboard page
-    DashboardStatCard.jsx          ← new — single stat card
-    DashboardTable.jsx             ← new — daily breakdown table
-    DashboardChart.jsx             ← new — recharts trend chart
-    Onboarding.jsx                 ← new — 3-step onboarding shell
-    onboarding/
-      Step1Profile.jsx             ← new — name input
-      Step2Team.jsx                ← new — CH / MH picker
-      Step3Bookmarklet.jsx         ← new — bookmarklet install instructions
-  hooks/
-    useDashboardStats.js           ← new — period-aware data fetching
-public/
-  meridian-mark-192.png            ← already in folder, do not move
-  meridian-mark-512.png            ← already in folder, do not move
-```
+### platform_users (was profiles / user_profiles)
+| Old column | New column | Notes |
+|---|---|---|
+| `id` | `id` | Same |
+| `email` | `email` | Same |
+| `full_name` | `full_name` | Same |
+| `team_id` (FK→teams) | `team` (text 'CH'/'MH') | **BREAKING** — no more teams table |
+| `onboarded` | `onboarding_complete` | Renamed |
+| *(missing)* | `preferred_mode` | New — 'ct' / 'mpl' |
+| *(missing)* | `invite_code_used` | New |
+| *(missing)* | `role` | New — 'agent' / 'supervisor' / 'admin' |
+| *(missing)* | `supervisor_id` | New — FK self-reference |
+| *(missing)* | `is_active` | New |
+| *(missing)* | `last_active_at` | New |
+| *(missing)* | `created_at` | New |
+| *(missing)* | `updated_at` | New |
 
----
+### bar_sessions (KEPT — same structure)
+No changes needed. Already matches.
+
+### pending_triggers (already correct)
+No changes needed. Code already uses correct table/column names.
 
 ## Tasks
 
-### Phase 1: Bug Fixes
+### Phase 1: Supabase Query Layer — Rename All Table References
 
-- [x] **Task 1: Fix MPL categories not populating**
-  - The Process picker overlay and ProcessLaneRow inline picker fetch from `process_categories` but return empty
-  - Diagnose: find the fetch call and confirm it matches exactly:
+- [x] **Task 1: Rename case_sessions → ct_cases in App.jsx**
+  - What: Find every `supabase.from('case_sessions')` call in `src/App.jsx` and replace with `supabase.from('ct_cases')`
+  - Also update insert payloads to include new columns: `case_type`, `case_subtype`, `source: 'pip'`, `entry_date` (use `new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })` for YYYY-MM-DD)
+  - The `handleCaseStart` function already receives `caseType` and `caseSubtype` from the bookmarklet — pass them through to the insert
+  - When closing a case (handleCloseCase, handleRFCYes, handleRFCNo, handleNotACase), also set `resolution` on `ct_cases`:
+    - handleRFCYes: set `resolution: 'resolved'` and `is_rfc: true`
+    - handleRFCNo: set `resolution: 'resolved'` and `is_rfc: false`
+    - handleNotACase: set `resolution: 'abandoned'`
+    - handleCloseCase: set `resolution: null` (no resolution — closed manually)
+  - DO NOT change any state management, timer logic, or UI rendering
+  - Files: `src/App.jsx`
+  - Test: `npm run build` completes without errors
+
+- [ ] **Task 2: Rename case_sessions → ct_cases in case_events references**
+  - What: The `case_events` table's `session_id` column still references `ct_cases.id`. No code change needed for the FK itself (Supabase handles it), but verify that every `case_events` insert in App.jsx uses the correct session ID from the `ct_cases` insert response
+  - This is a verification task — read through all `case_events` inserts and confirm `session_id` is set from the `ct_cases` row ID. If it already is, mark done.
+  - Files: `src/App.jsx` (read-only verification, fix if needed)
+  - Test: `npm run build`
+
+- [ ] **Task 3: Rename process_sessions → mpl_entries in useStats.js**
+  - What: In `src/hooks/useStats.js`, replace `supabase.from('process_sessions')` with `supabase.from('mpl_entries')`
+  - Change the select from `.select('id', { count: 'exact', head: true })` to `.select('id', { count: 'exact', head: true })`
+  - Change filter column from `logged_at` to `created_at`
+  - Files: `src/hooks/useStats.js`
+  - Test: `npm run build`
+
+- [ ] **Task 4: Rename process_sessions → mpl_entries in useDashboardStats.js**
+  - What: In `src/hooks/useDashboardStats.js`, replace `supabase.from('process_sessions')` with `supabase.from('mpl_entries')`
+  - Change `.select('logged_at, duration_s, category')` to `.select('created_at, minutes, category_id')`
+  - Change filter column from `logged_at` to `created_at`
+  - In the grouping loop, change `p.logged_at` to `p.created_at` for the `getNYDateStr()` call
+  - Files: `src/hooks/useDashboardStats.js`
+  - Test: `npm run build`
+
+- [ ] **Task 5: Update mpl_entries insert in App.jsx (handlePickerConfirm and handleConfirmProcess)**
+  - What: The two functions that write process data currently don't exist as `mpl_entries` inserts — they already write to `mpl_entries`. Verify these inserts match the schema:
+    - Required columns: `user_id`, `category_id`, `subcategory_id` (NOT NULL), `minutes`, `source`
+    - `minutes` should be `Math.round(durationSeconds / 60) || 1` (already done)
+    - `source` should be `'pip'` (already done)
+    - Verify `subcategory_id` is always passed and never null
+  - Files: `src/App.jsx`
+  - Test: `npm run build`
+
+- [ ] **Task 6: Rename profiles → platform_users in App.jsx auth flow**
+  - What: In the `useEffect` that fetches the user profile on auth, replace:
+    - `supabase.from('platform_users')` — this may already be correct. Check and verify.
+    - The `.select('*')` call should work since `platform_users` has all needed columns
+  - Also check: `profile.onboarding_complete` — the old schema used `profile.onboarded`. Verify the code uses `onboarding_complete` (matches canonical schema)
+  - Also check: `profile.team` — old schema used `profile.team_id` (FK to teams table). New schema has `profile.team` as text ('CH'/'MH'). Verify the code accesses `profile.team` not `profile.team_id`
+  - Files: `src/App.jsx`
+  - Test: `npm run build`
+
+### Phase 2: Onboarding Flow — Remove teams Table Dependency
+
+- [ ] **Task 7: Rewrite Onboarding.jsx to use platform_users directly**
+  - What: The current `handleComplete()` in `src/components/Onboarding.jsx`:
+    1. Queries `supabase.from('teams')` to find team ID — **DELETE THIS**, teams table doesn't exist
+    2. Updates `supabase.from('profiles')` with `team_id` — **CHANGE** to `supabase.from('platform_users')` with `team` (text value directly)
+    3. Sets `onboarded: true` — **CHANGE** to `onboarding_complete: true`
+  - New handleComplete should be:
     ```js
-    const { data, error } = await supabase
-      .from('process_categories')
-      .select('id, name, team, sort_order')
-      .eq('active', true)
-      .order('team')
-      .order('sort_order');
-    ```
-  - If the query looks correct but data is still empty, the RLS policy may be missing. Add a comment to `progress.txt`: "process_categories RLS policy may need manual SQL — see AGENTS.md". Do NOT attempt to run SQL.
-  - If data returns but components don't render, trace the prop chain: fetch result → state → ProcessPicker props → ProcessLaneRow props → render. Fix any broken link.
-  - Test: `npm run build` passes; no console errors related to process_categories
-
-- [x] **Task 2: Fix logo not loading**
-  - Find where the host page renders a placeholder M° or missing logo
-  - Replace with `<img src="/meridian-mark-192.png" alt="Meridian" style={{ width: 40, height: 40, borderRadius: 8 }} />`
-  - Check `index.html` — ensure ALL of these exist in `<head>`:
-    ```html
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.json" />
-
-    <!-- Icons -->
-    <link rel="icon" href="/meridian-mark-192.png" />
-    <link rel="apple-touch-icon" href="/meridian-mark-192.png" />
-
-    <!-- Theme -->
-    <meta name="theme-color" content="#003087" />
-
-    <!-- Standalone display — Safari requires these in addition to manifest -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Meridian" />
-
-    <!-- Viewport -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    ```
-  - The app is a single-page app (no router) — onboarding, dashboard, and PiP host are all state-driven views within the same `index.html`. This means `scope: "/"` in the manifest covers all three automatically. No routing config needed.
-  - If `vite-plugin-pwa` is already in `package.json`, ensure its `vite.config.js` entry includes `manifest: false` (we supply our own) and `registerType: 'autoUpdate'`. If it is NOT installed, do not install it — the static manifest is sufficient for PWA installability on Chrome/Edge.
-  - Create `public/manifest.json` if it doesn't exist:
-    ```json
-    {
-      "name": "Meridian",
-      "short_name": "Meridian",
-      "description": "Meridian PiP Bar — Case and Process capture",
-      "start_url": "/",
-      "scope": "/",
-      "display": "standalone",
-      "orientation": "any",
-      "background_color": "#1a1a2e",
-      "theme_color": "#003087",
-      "icons": [
-        { "src": "/meridian-mark-192.png", "sizes": "192x192", "type": "image/png" },
-        { "src": "/meridian-mark-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-      ]
-    }
-    ```
-  - `"scope": "/"` is critical — it ensures onboarding, dashboard, and PiP host all stay inside the installed PWA window. Without it, state-driven renders can break out into a browser tab on some browsers.
-  - Test: `npm run build` passes; `dist/manifest.json` exists; icon appears in browser tab on `npm run dev`
-
----
-
-### Phase 2: Onboarding Flow
-
-Onboarding runs once per user. After auth, check `profiles.onboarded`. If `false` or `null`, render `<Onboarding />` instead of the dashboard. On completion, set `onboarded = true` in Supabase and re-render to dashboard.
-
-- [x] **Task 3: Auth gate in App.jsx**
-  - Add auth state to App.jsx:
-    ```js
-    const [user, setUser]       = useState(null);
-    const [profile, setProfile] = useState(null);
-    const [authLoading, setAuthLoading] = useState(true);
-
-    useEffect(() => {
-      supabase.auth.getUser().then(({ data }) => {
-        setUser(data.user ?? null);
-        if (data.user) {
-          supabase.from('profiles').select('*')
-            .eq('id', data.user.id).single()
-            .then(({ data: p }) => { setProfile(p); setAuthLoading(false); });
-        } else {
-          setAuthLoading(false);
-        }
-      });
-    }, []);
-    ```
-  - Render logic:
-    - `authLoading === true` → full-screen dark spinner (centered, `#E8540A` color)
-    - `!user` → existing sign-in UI (do not change existing auth flow)
-    - `user && (!profile?.onboarded)` → `<Onboarding user={user} onComplete={p => setProfile(p)} />`
-    - `user && profile?.onboarded` → existing dashboard/PiP host page content
-  - `handleOnboardingComplete(updatedProfile)` sets profile state → triggers re-render to dashboard
-  - Test: `npm run build` passes
-
-- [x] **Task 4: Step1Profile — name setup**
-  - File: `src/components/onboarding/Step1Profile.jsx`
-  - Props: `{ user, onNext }`
-  - Full-screen dark layout (`background: '#0f0f1e'`), flex center both axes
-  - Centered card: max-width 480px, `background: '#1a1a2e'`, border `1px solid rgba(255,255,255,0.12)`, border-radius 16px, padding 40px
-  - Top: `<img src="/meridian-mark-192.png" />` 64px centered, margin-bottom 24px
-  - Heading: "Welcome to Meridian" — white, 24px, 800 weight, center
-  - Subheading: "Let's get you set up" — textSec, 14px, center, margin-bottom 32px
-  - Label: "Your name" — textSec, 12px, uppercase, letter-spacing
-  - Input: full width, 48px height, `background: rgba(255,255,255,0.06)`, border `1px solid rgba(255,255,255,0.12)`, border-radius 10px, white text 15px, padding 0 16px. Focus: border `#003087`
-  - Pre-fill value with `user.email.split('@')[0]`
-  - "Continue →" button: full width, 48px height, `background: #003087`, white text 15px 700 weight, border-radius 10px, border none, cursor pointer. Disabled (opacity 0.4) when input is empty.
-  - On click: `onNext({ full_name: inputValue.trim() })`
-  - Do NOT write to Supabase in this step
-  - Test: `npm run build` passes
-
-- [x] **Task 5: Step2Team — CH / MH selection**
-  - File: `src/components/onboarding/Step2Team.jsx`
-  - Props: `{ onNext, onBack }`
-  - Same card layout as Step1
-  - Heading: "Your Team" — same style
-  - Subheading: "This determines which process categories you see"
-  - Two team cards in a flex row, gap 16px, each flex:1:
-    - **CH card**: label "CH", sublabel "Container Haulage", accent `#d97706` (amber)
-    - **MH card**: label "MH", sublabel "Merchant Haulage", accent `#60a5fa` (blue)
-    - Each card: height 110px, border-radius 12px, border 2px, cursor pointer, flex column center
-    - Unselected: `background: rgba(255,255,255,0.04)`, border `rgba(255,255,255,0.12)`
-    - Selected: `background: rgba({accent},0.12)`, border = accent color, label text = accent color
-    - Large team letter ("CH"/"MH"): 32px, 800 weight
-    - Sublabel: 12px, textSec
-  - "Continue →" button: same style as Step1, disabled until a team is selected
-  - Back link: `← Back` — textSec, 13px, cursor pointer, text-only, margin-top 16px, centered
-  - On continue: `onNext({ team: selectedTeam })`
-  - Do NOT write to Supabase
-  - Test: `npm run build` passes
-
-- [x] **Task 6: Step3Bookmarklet — bookmarklet install**
-  - File: `src/components/onboarding/Step3Bookmarklet.jsx`
-  - Props: `{ onComplete, onBack }`
-  - Same card layout, max-width 520px
-  - Heading: "Install the Bookmarklet"
-  - Subheading: "One click to start tracking from anywhere"
-  - Numbered instruction list (3 items), each row: number circle (`#003087` bg, white, 20px) + instruction text (textPri, 14px):
-    1. "Show your bookmarks bar — press Ctrl+Shift+B (Windows) or Cmd+Shift+B (Mac)"
-    2. "Drag the orange button below up to your bookmarks bar"
-    3. "Click it on a Salesforce page to log a case, or any other page to log a process"
-  - Draggable bookmarklet anchor — centered, margin 24px auto:
-    ```jsx
-    const host = import.meta.env.VITE_APP_URL || window.location.origin;
-    const bmHref = `javascript:(function(){let cN='',aN='',typeVal='',subtypeVal='';try{let m=document.title.match(/\\d{8,}/);if(m&&m[0])cN=m[0].trim()}catch(e){}try{function w(n,d){if(d>50)return;if(!typeVal&&n.classList?.contains('slds-p-around_small')){let t=n.textContent?.trim()||'';if(t.startsWith('Type / Sub-Type')){let v=t.replace('Type / Sub-Type','').trim(),p=v.split(' / ');typeVal=p[0]||'';subtypeVal=p[1]||''}}if(!aN&&n.tagName==='A'){let h=n.getAttribute('href');if(h&&h.startsWith('/lightning/r/Account/001')){let i=h.match(/001[a-zA-Z0-9]{12,15}/);if(i&&i[0])aN=i[0]}}if(n.shadowRoot)for(let c of n.shadowRoot.children)w(c,d+1);for(let c of n.children)w(c,d+1)}w(document.body,0)}catch(e){}const isSF=!!cN,HOST='${host}',RELAY_ID='meridian-relay-iframe';const pl=isSF?{type:'MERIDIAN_CASE_START',caseNumber:cN,accountId:aN||null,caseType:typeVal||null,caseSubtype:subtypeVal||null,timestamp:Date.now()}:{type:'MERIDIAN_PROCESS_START',pageUrl:window.location.href,timestamp:Date.now()};let rf=document.getElementById(RELAY_ID);if(rf){rf.contentWindow.postMessage(pl,HOST)}else{rf=document.createElement('iframe');rf.id=RELAY_ID;rf.src=HOST+'/relay.html?t='+Date.now();rf.style.cssText='display:none;position:fixed;width:0;height:0;border:none;z-index:-1';document.body.appendChild(rf);function om(e){if(e.origin!==HOST)return;if(e.data&&e.data.type==='MERIDIAN_RELAY_READY'){window.removeEventListener('message',om);rf.contentWindow.postMessage(pl,HOST)}}window.addEventListener('message',om);setTimeout(function(){window.removeEventListener('message',om);try{rf.contentWindow.postMessage(pl,HOST)}catch(e){}},800)}try{const ex=document.getElementById('meridian-toast');if(ex)ex.remove();const t=document.createElement('div');t.id='meridian-toast';t.textContent=isSF?'✓ Meridian — Case '+cN:'✓ Meridian — Process timer started';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#003087;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:"Segoe UI",sans-serif;z-index:2147483647;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3);border-left:3px solid #E8540A;transition:opacity 300ms';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0'},2200);setTimeout(function(){t.remove()},2500)}catch(e){}})();`;
-    ```
-    Style: `display:inline-block`, `background:#E8540A`, white text, `font-weight:700`, `font-size:14px`, padding `10px 24px`, border-radius 20px, cursor grab, `user-select:none`, text-decoration none. Label: "⚡ Meridian"
-  - Info box below: `background: rgba(255,255,255,0.04)`, border `1px solid rgba(255,255,255,0.12)`, border-radius 10px, padding 14px 16px. Text (textSec, 13px): "Works on Chrome and Edge 116+. The bookmarklet never stores your passwords or personal data."
-  - "All done — Launch Meridian →" button: same primary button style, always enabled
-  - Back link same as Step2
-  - On complete: `onComplete()`
-  - Test: `npm run build` passes; `href` of anchor contains correct HOST value
-
-- [x] **Task 7: Onboarding shell — wire steps + Supabase write**
-  - File: `src/components/Onboarding.jsx`
-  - Props: `{ user, onComplete }`
-  - State: `step` (1|2|3), `formData` (accumulated object)
-  - Progress dots: 3 dots centered at top of card area. Current = `#003087` filled 10px circle. Others = `C.border` outline 10px circle. Gap 8px.
-  - `handleNext(data)`: merges data into formData, increments step
-  - `handleComplete()`:
-    ```js
-    // 1. Get team_id
-    const { data: teams } = await supabase.from('teams').select('id, name');
-    const teamRow = teams.find(t => t.name === formData.team);
-    // 2. Update profile
     const { data: updatedProfile } = await supabase
-      .from('profiles')
+      .from('platform_users')
       .update({
-        full_name:  formData.full_name,
-        team_id:    teamRow?.id || null,
-        onboarded:  true,
+        full_name: formData.full_name,
+        team: formData.team,  // 'CH' or 'MH' directly
+        onboarding_complete: true,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
       .select('*')
-      .single();
-    // 3. Notify parent
-    props.onComplete(updatedProfile);
+      .single()
+    onComplete(updatedProfile)
     ```
-  - Renders: `step === 1` → `<Step1Profile>`, `step === 2` → `<Step2Team>`, `step === 3` → `<Step3Bookmarklet>`
-  - Test: `npm run build` passes; flow moves 1→2→3; Supabase write triggered on complete
+  - Files: `src/components/Onboarding.jsx`
+  - Test: `npm run build`
 
----
-
-### Phase 3: Dashboard
-
-The dashboard is the host page — what users see when the PiP bar is not open. Shows personal productivity stats and the Launch PiP Bar button.
-
-**Reference:** CT 1.0 layout — 5 period tabs, stat cards, daily table, trend chart. Meridian adds Not a Case and Processes to everything.
-
-- [x] **Task 8: useDashboardStats hook**
-  - File: `src/hooks/useDashboardStats.js`
-  - Accepts `{ userId, period }` where period = `'this_week' | 'last_week' | 'this_month' | 'last_month' | 'ytd'`
-  - Date range logic in `America/New_York` (do NOT use moment.js or date-fns):
+- [ ] **Task 8: Update SignUp.jsx — remove profiles reference**
+  - What: In `src/components/auth/SignUp.jsx`, after signup the code does:
     ```js
-    function getDateRange(period) {
-      const now = new Date();
-      const toNYDate = d => new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-      const ny = toNYDate(now);
-
-      const startOfDay = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
-      const endOfDay   = d => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
-
-      // Monday of current week
-      const dayOfWeek = ny.getDay(); // 0=Sun
-      const diffToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const thisMonday = new Date(ny); thisMonday.setDate(ny.getDate() - diffToMon);
-
-      if (period === 'this_week') {
-        return { from: startOfDay(thisMonday), to: now };
-      }
-      if (period === 'last_week') {
-        const lastMon = new Date(thisMonday); lastMon.setDate(thisMonday.getDate() - 7);
-        const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate() + 6);
-        return { from: startOfDay(lastMon), to: endOfDay(lastSun) };
-      }
-      if (period === 'this_month') {
-        const start = new Date(ny.getFullYear(), ny.getMonth(), 1);
-        return { from: startOfDay(start), to: now };
-      }
-      if (period === 'last_month') {
-        const start = new Date(ny.getFullYear(), ny.getMonth() - 1, 1);
-        const end   = new Date(ny.getFullYear(), ny.getMonth(), 0);
-        return { from: startOfDay(start), to: endOfDay(end) };
-      }
-      if (period === 'ytd') {
-        const start = new Date(ny.getFullYear(), 0, 1);
-        return { from: startOfDay(start), to: now };
-      }
-    }
+    await supabase.from('profiles').update({ full_name: fullName.trim() }).eq('id', data.user.id)
     ```
-  - Fetches:
+    Change to:
     ```js
-    // Case events
-    const { data: events } = await supabase
-      .from('case_events')
-      .select('type, excluded, timestamp')
-      .eq('user_id', userId)
-      .gte('timestamp', range.from.toISOString())
-      .lte('timestamp', range.to.toISOString());
-
-    // Process sessions
-    const { data: procs } = await supabase
-      .from('process_sessions')
-      .select('logged_at, duration_s, category')
-      .eq('user_id', userId)
-      .gte('logged_at', range.from.toISOString())
-      .lte('logged_at', range.to.toISOString());
+    await supabase.from('platform_users').update({ full_name: fullName.trim() }).eq('id', data.user.id)
     ```
-  - Aggregates totals and `dailyRows` (group by date `MM/DD` in NY timezone)
-  - Returns: `{ resolved, reclass, calls, notACase, processes, casesAndCalls, totalActivity, dailyRows, loading, error }`
-  - `dailyRows`: `[{ date: 'MM/DD', resolved, reclass, calls, notACase, processes, total, totalActivity }]` sorted ascending
-  - Test: `npm run build` passes
+    Note: The `handle_new_user()` trigger auto-creates the `platform_users` row on signup, so this update will find the row.
+  - Files: `src/components/auth/SignUp.jsx`
+  - Test: `npm run build`
 
-- [x] **Task 9: DashboardStatCard component**
-  - File: `src/components/DashboardStatCard.jsx`
-  - Props: `{ label, value, period, color, icon, active, onClick }`
-  - Inline styles only
-  - Card: min-width 150px, flex 1, height 130px, border-radius 12px, background = `color` prop, padding 16px, cursor pointer, position relative, overflow hidden
-  - Top row: label (white, 10px, 800 weight, uppercase, letter-spacing 0.08em, max 2 lines) left + icon (18px) right
-  - Bottom: value (white, 42px, 800 weight, line-height 1)
-  - Active state: `box-shadow: inset 0 0 0 3px rgba(255,255,255,0.5)`
-  - Hover: `filter: brightness(1.08)`, transition 150ms
-  - Icons: Resolved=`✓`, Reclassified=`↩`, Calls=`📞`, Not a Case=`—`, Cases & Calls=`📋`, Processes=`⏱`, Total Activity=`⚡`
-  - Test: `npm run build` passes
+### Phase 3: Category Fetch — Verify Normalized Model
 
-- [x] **Task 10: DashboardTable component**
-  - File: `src/components/DashboardTable.jsx`
-  - Props: `{ rows }`
-  - Inline styles only. Dark bg `C.cardBg`, border `C.border`, border-radius 12px, overflow hidden
-  - Header: 10px uppercase, 700 weight, textSec, `C.cardBg` bg, 40px height, columns: DATE | RESOLVED | RECLASSIFIED | CALLS | NOT A CASE | PROCESSES | TOTAL | TOTAL ACTIVITY
-  - Rows: 44px height, `C.divider` bottom border, alternating `transparent`/`rgba(255,255,255,0.02)`
-  - Date: white, 700 weight
-  - Resolved: `#16a34a`, Reclassified: `#dc2626`, Calls: `#0284c7`, Not a Case: `#6b7280`, Processes: `#60a5fa`
-  - Zero values: textDim
-  - Total + Total Activity: textPri, 700 weight
-  - Empty state: "No activity for this period" — 60px height, textSec, centered
-  - Test: `npm run build` passes
+- [ ] **Task 9: Verify mpl_categories fetch uses normalized join**
+  - What: In `src/App.jsx`, the category fetch already does:
+    ```js
+    supabase
+      .from('mpl_categories')
+      .select('id, name, team, display_order, mpl_subcategories(id, name, display_order)')
+    ```
+    Verify this is correct — it should work because `mpl_subcategories` has a FK `category_id` to `mpl_categories`, and PostgREST auto-detects the relation.
+  - Also verify: the `.eq('is_active', true)` filter is present (matches canonical column name)
+  - Also verify: the `.order('display_order')` calls are present for both tables
+  - **Auto-select logic**: When a category has exactly 1 subcategory, the UI should auto-select it. This is a UI concern handled by ProcessPicker and ProcessLaneRow — verify those components check `(selectedCategory.mpl_subcategories || []).length === 1` and auto-select if so. If they don't, add the auto-select:
+    - In `ProcessPicker.jsx`: after `handleSelectCat(cat)`, check if `cat.mpl_subcategories.length === 1` and if so, immediately call `setSelectedSub(cat.mpl_subcategories[0])`
+    - In `ProcessLaneRow.jsx`: after `handleSelectCategory(cat)`, check if `(cat.mpl_subcategories || []).length === 1` and if so, immediately call `setSelectedSubcategory(cat.mpl_subcategories[0])`
+  - Files: `src/App.jsx`, `src/components/overlays/ProcessPicker.jsx`, `src/components/ProcessLaneRow.jsx`
+  - Test: `npm run build`
 
-- [x] **Task 11: DashboardChart component**
-  - File: `src/components/DashboardChart.jsx`
-  - Props: `{ rows, activeMetric, chartType, onChartTypeChange }`
-  - Install recharts if not in package.json: `npm install recharts`
-  - Only renders on `this_month`, `last_month`, `ytd` periods — parent controls visibility
-  - `activeMetric` maps to: `resolved | reclass | calls | notACase | processes | casesAndCalls | totalActivity`
-  - Metric color map matches stat card colors
-  - Bar chart: `<BarChart>` + `<Bar>` fill = metric color
-  - Area chart (line mode): `<AreaChart>` + `<Area>` stroke = metric color, fill = metric color at 20% opacity, `type="monotone"`
-  - Shared: `<ResponsiveContainer width="100%" height={300}>`, `<XAxis dataKey="date">` (textDim, no axis line), `<YAxis>` (textDim, no axis line), `<CartesianGrid strokeDasharray="3 3" stroke={C.divider}>`
-  - Chart title: "Trend: {metricLabel}" — white, 15px, 700 weight, margin-bottom 12px
-  - Line/Bar toggle: top-right, two buttons. Active: `background:#E8540A`, white text. Inactive: `background:C.cardBg`, `border:C.border`, textSec
-  - Wrap in dark card: `background: C.cardBg`, border `C.border`, border-radius 12px, padding 20px
-  - Test: `npm run build` passes — recharts in package.json
+### Phase 4: Remove Stale Migration File
 
-- [x] **Task 12: Dashboard.jsx — wire everything together**
-  - File: `src/components/Dashboard.jsx`
-  - Props: `{ user, profile, onLaunchPip }`
-  - State: `period` (default `'this_week'`), `activeMetric` (default `'resolved'`), `chartType` (default `'bar'`)
-  - Uses `useDashboardStats({ userId: user.id, period })`
-  - Top bar (64px, `#1a1a2e`, border-bottom `C.border`):
-    - Left: `<img src="/meridian-mark-192.png" style={{width:32,height:32,borderRadius:6}} />` + "Meridian" (white, 17px, 800) + profile.full_name (textSec, 13px)
-    - Right: "🚀 Launch PiP Bar" button (`#003087` bg, `border-left: 3px solid #E8540A`, white, 14px 700, height 40px, padding 0 20px, border-radius 10px, border none) → calls `onLaunchPip()`
-  - Body: max-width 1200px, margin auto, padding 28px 24px
-  - Period tabs row: flex, gap 8px, margin-bottom 24px
-    - 5 tabs: This Week | Last Week | This Month | Last Month | Year To Date
-    - Active: `background: #E8540A`, white, 700. Inactive: `background: rgba(255,255,255,0.06)`, textSec
-    - Each tab: height 40px, padding 0 20px, border-radius 20px, border none, cursor pointer, font-size 13px, transition 150ms
-  - Stat cards row: `display:flex`, `flexWrap:wrap`, gap 10px, margin-bottom 24px
-    - 7 cards using `<DashboardStatCard>` in order: Resolved, Reclassified, Calls, Not a Case, Cases & Calls, Processes, Total Activity
-    - `active` prop = `activeMetric === metricKey`
-    - `onClick` = `() => setActiveMetric(metricKey)`
-  - Loading state: cards show `—` as value, table shows 3 skeleton rows (`background: rgba(255,255,255,0.06)`, border-radius 4px, animated pulse via CSS)
-  - `<DashboardTable rows={stats.dailyRows} />` — always shown
-  - `<DashboardChart>` — only shown when period is `this_month`, `last_month`, or `ytd`
-  - Test: `npm run build` passes; `npm run dev` shows full dashboard with correct layout
+- [ ] **Task 10: Replace old migration with schema reference comment**
+  - What: Delete the contents of `supabase/migrations/001_initial_schema.sql` and replace with:
+    ```sql
+    -- ============================================================
+    -- STALE — DO NOT RUN
+    -- The canonical schema is deployed via meridian-migration-v2.sql
+    -- + meridian-supplement.sql (case_events, bar_sessions)
+    -- This file is kept for git history only.
+    -- ============================================================
+    ```
+  - Files: `supabase/migrations/001_initial_schema.sql`
+  - Test: `npm run build`
 
----
+### Phase 5: Dashboard Stats — Fix Remaining Query Issues
+
+- [ ] **Task 11: Fix useDashboardStats category display**
+  - What: The dashboard `dailyRows` grouping currently tracks process count but doesn't show category names. This is fine for now — processes are just counted. But verify that the `procs` query works with the new schema:
+    - Old: `.select('logged_at, duration_s, category')` from `process_sessions`
+    - New: `.select('created_at, minutes, category_id')` from `mpl_entries`
+    - The grouping by date uses `getNYDateStr(p.created_at)` — verify this works
+  - If the old code references `p.logged_at` anywhere else in the file, change to `p.created_at`
+  - Files: `src/hooks/useDashboardStats.js`
+  - Test: `npm run build`
+
+### Phase 6: Smoke Test — Full Build Verification
+
+- [ ] **Task 12: Full build and import verification**
+  - What: Run `npm run build` and verify zero errors. Then do a grep across `src/` for any remaining references to old table names:
+    ```bash
+    grep -rn "from('case_sessions')" src/
+    grep -rn "from('process_sessions')" src/
+    grep -rn "from('process_categories')" src/
+    grep -rn "from('profiles')" src/
+    grep -rn "from('teams')" src/
+    grep -rn "\.onboarded" src/
+    grep -rn "team_id" src/
+    grep -rn "logged_at" src/
+    ```
+    If any of these return results, fix them according to the mapping table above.
+  - Files: All `src/` files
+  - Test: `npm run build` + all grep commands return empty
 
 ## Testing Strategy
-
-- Primary: `npm run build` — zero errors after every task
-- Secondary: `npm run dev` — visual check for Tasks 8, 11, 12
-- No automated test suite
-
----
+- Primary: `npm run build` (Vite production build — catches import errors, syntax errors, undefined references)
+- Secondary: grep for stale table/column names (see Task 12)
+- Note: There are no unit tests in this project. Build passing is the verification gate.
 
 ## Out of Scope
-
-- No supervisor/team views — personal stats only
-- No CSV/Excel export
-- No settings page
-- No push notifications
-- No changes to PiP bar components (PipBar.jsx, CasePill, ProcessPill, SwimlaneTray, overlays, etc.)
-- No changes to bookmarklet or relay.html
-- No new Supabase tables or schema changes
-
----
+- **DO NOT** change any UI components, styles, colors, layouts, or visual behavior
+- **DO NOT** modify the bookmarklet, relay, or trigger files (`public/meridian-relay.html`, `public/meridian-trigger.js`, `BOOKMARKLET.md`)
+- **DO NOT** run any SQL migrations — the schema is already deployed
+- **DO NOT** add new features, new components, or new hooks
+- **DO NOT** refactor state management patterns or component structure
+- **DO NOT** change auth flow (sign in, sign up, magic link) — only fix table references
+- **DO NOT** modify `src/lib/supabase.js`, `src/lib/constants.js`, `src/index.css`, `vite.config.js`
+- **DO NOT** add TypeScript, ESLint, or any new dev dependencies
+- **DO NOT** touch `package.json` or `package-lock.json`
 
 ## Notes for Ralph
-
-- **process_categories RLS** — if categories still don't load after fixing the fetch query (Task 1), the Supabase RLS policy may be missing. Leave a note in `progress.txt` — Davis will run the SQL manually:
-  ```sql
-  CREATE POLICY "process_categories_read"
-    ON public.process_categories FOR SELECT
-    USING (auth.role() = 'authenticated');
-  ```
-- **Recharts install** — check `package.json` before installing. If recharts is already there, skip `npm install recharts`.
-- **Inline styles only** — all new components use inline style objects. No new `.css` files. No `className` additions unless targeting existing styles.
-- **Bookmarklet href in Step3** — the `host` variable must use `import.meta.env.VITE_APP_URL` at runtime so the correct production URL is embedded. The template literal approach in Task 6 handles this correctly.
-- **Week starts Monday** — `getDay()` returns 0 for Sunday. `diffToMon = day === 0 ? 6 : day - 1`.
-- **`profiles.onboarded` null safety** — treat `null` same as `false`. Check `!profile?.onboarded` not `profile?.onboarded === false`.
-- **onLaunchPip wiring** — `Dashboard.jsx` receives `onLaunchPip` as a prop from App.jsx. App.jsx already has `openPip()` from `usePipWindow` — pass it down: `<Dashboard onLaunchPip={openPip} ... />`.
-- **Logo files exist** — `public/meridian-mark-192.png` and `public/meridian-mark-512.png` are already there. Reference as `/meridian-mark-192.png`. Do not copy or recreate them.
-- **Dark theme throughout** — all new screens use `background: '#0f0f1e'` for page bg and `'#1a1a2e'` for cards/bars. White text on dark. Same visual language as the PiP bar.
-- **PWA scope — critical** — because the app is single-page (state-driven, no router), all views (onboarding, dashboard, PiP host) live inside the same `index.html`. The manifest `"scope": "/"` and `"start_url": "/"` ensure the installed PWA window never breaks out to a browser tab regardless of which state the app is in. Do not add any `window.location` navigation or `<a href>` links that point outside the app — use state changes only.
-- **No new browser windows from dashboard** — the "Launch PiP Bar" button calls `openPip()` which uses the Document PiP API to spawn the floating window. It does NOT open a new browser tab. Keep it this way.
-- **PWA install prompt** — Meridian will show an install prompt in Chrome/Edge once the manifest and a service worker (or at minimum the manifest + HTTPS) are in place. The `display: standalone` setting is what removes the browser chrome when installed. Onboarding and dashboard must look correct in standalone mode (no browser address bar visible).
+- This codebase uses **inline styles everywhere** — no CSS classes, no Tailwind. Don't add any.
+- `App.jsx` is the god component — all state lives there, all Supabase calls happen there (or in hooks). Components are pure UI.
+- The PiP bar is rendered into a separate browser window via `window.documentPictureInPicture`. The `pipRootRef` holds a React root that re-renders on every state change. Don't try to optimize this — it works.
+- `case_events` is deliberately kept as a separate table (not flattened into `ct_cases`) because a single case session can have multiple events: resolve, then RFC check, plus calls logged during the session.
+- When closing a case, the code should BOTH insert a `case_events` row AND update the `ct_cases` row's `resolution`/`is_rfc` fields. The events table is the audit trail; the case row's resolution is the summary.
+- The `pending_triggers` Realtime subscription in `usePendingTriggers.js` is already correct — it references the right table and columns. Don't touch it.
+- `mpl_entries.subcategory_id` is NOT NULL in the schema. Every process log MUST include a subcategory. The UI should auto-select when a category has exactly one subcategory.
+- The relay iframe in `public/meridian-relay.html` contains hardcoded Supabase credentials (anon key). These are for the NEW Supabase project. DO NOT change them.
+- `entry_date` on `ct_cases` and `mpl_entries` should use America/New_York timezone for the date boundary: `new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })` gives YYYY-MM-DD format.
