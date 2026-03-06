@@ -42,10 +42,10 @@ export default function CategoryDrillDown({ categories = [], onSelect, headerSlo
         style={{
           width: '100%', textAlign: 'left', padding: '5px 8px',
           marginBottom: 3, borderRadius: 4,
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.15)',
           cursor: 'pointer', fontSize: 11, fontWeight: 500,
-          background: `${tint}22`,
-          color: C.textPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          background: '#2a2d3e',
+          color: 'rgba(255,255,255,0.9)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}
       >
         {item.name}

@@ -70,7 +70,7 @@ Apply four UX fixes to the MPL (Manual Process Log) PWA widget. These changes ad
 
 ### Phase 4: Category Button Contrast Fix
 
-- [ ] **Task 4: Fix white-on-white category button contrast**
+- [x] **Task 4: Fix white-on-white category button contrast**
   - What: Category buttons in the LOG PROCESS tray currently render white text on a white/near-white background, making them unreadable. Fix the contrast so buttons are clearly legible.
   - Target style: buttons should use a dark surface background (e.g. `bg-[#2a2d3e]` or `bg-slate-700`) with white text, OR a light gray background (e.g. `bg-slate-100`) with dark text (`text-slate-800`). Match whichever fits the existing tray design language.
   - The tray background is dark (`#1a1a2e` or similar navy). Buttons should contrast clearly against this.
