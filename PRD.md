@@ -239,7 +239,7 @@ No changes needed. Code already uses correct table/column names.
 
 ### Phase 4: Remove Stale Migration File
 
-- [ ] **Task 10: Replace old migration with schema reference comment**
+- [x] **Task 10: Replace old migration with schema reference comment**
   - What: Delete the contents of `supabase/migrations/001_initial_schema.sql` and replace with:
     ```sql
     -- ============================================================
