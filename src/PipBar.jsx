@@ -99,12 +99,10 @@ export default function PipBar({
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      background: 'rgba(26,26,46,0.75)', // Lighter, native-app tint instead of heavy dark
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 12, // Optimized shape for Windows (12px instead of 24px)
+      background: '#ffffff',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      border: '1px solid rgba(0,0,0,0.05)',
+      borderRadius: 12,
       overflow: 'hidden',
       height: '100%'
     }}>
@@ -144,28 +142,28 @@ export default function PipBar({
 
         {/* Stat buttons */}
         <StatButton
-          label={`✓ ${stats.resolved}`}
+          label={`${stats.resolved} Resolved`}
           color={C.resolved}
           disabled={!hasFocused}
           onClick={() => hasFocused && onResolve && onResolve()}
           title="Resolved"
         />
         <StatButton
-          label={`↩ ${stats.reclass}`}
+          label={`${stats.reclass} Reclassified`}
           color={C.reclass}
           disabled={!hasFocused}
           onClick={() => hasFocused && onReclass && onReclass()}
           title="Reclassified"
         />
         <StatButton
-          label={`📞 ${stats.calls}`}
+          label={`${stats.calls} Calls`}
           color={C.calls}
           disabled={!hasFocused}
           onClick={() => hasFocused && onCall && onCall()}
           title="Call"
         />
         <StatButton
-          label={`📋 ${stats.processes}`}
+          label={`${stats.processes} Total`}
           color={hasActiveProcess ? C.process : C.processNavy}
           active={hasActiveProcess}
           onClick={() => onNewProcess && onNewProcess()}

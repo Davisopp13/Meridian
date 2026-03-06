@@ -19,7 +19,7 @@ export default function StatButton({ label, color, onClick, disabled = false, ac
     minWidth: 88,
     padding: '0 12px',
     borderRadius: 8,
-    border: `1px solid ${disabled ? 'transparent' : `color-mix(in srgb, ${color} 30%, transparent)`}`,
+    border: 'none',
     fontSize: 12,
     fontWeight: 600,
     fontFamily: '"Inter", system-ui, sans-serif',
@@ -29,18 +29,14 @@ export default function StatButton({ label, color, onClick, disabled = false, ac
     gap: 6,
     whiteSpace: 'nowrap',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    background: disabled
-      ? 'rgba(255,255,255,0.04)'
-      : active
-        ? `color-mix(in srgb, ${color} 25%, transparent)`
-        : `color-mix(in srgb, ${color} 15%, transparent)`,
-    color: disabled ? C.textSec : `color-mix(in srgb, ${color} 90%, white)`,
-    opacity: disabled ? 0.5 : 1,
+    background: disabled ? '#d1d5db' : color, // light grey for disabled
+    color: '#ffffff', // pure white text
+    opacity: disabled ? 0.7 : 1,
     flexShrink: 0,
     transform: pressed && !disabled ? 'scale(0.95)' : hovered && !disabled ? 'scale(1.04)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
     boxShadow: hovered && !disabled
-      ? `0 6px 16px color-mix(in srgb, ${color} 25%, transparent)`
+      ? '0 4px 12px rgba(0,0,0,0.15)'
       : 'none',
   };
 

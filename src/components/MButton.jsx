@@ -14,30 +14,18 @@ export default function MButton({ onClick }) {
   const style = {
     width: 36,
     height: 36,
-    background: 'linear-gradient(135deg, rgba(0,48,135,0.95), rgba(0,30,90,0.95))',
+    background: 'transparent',
     borderRadius: 8,
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderTopColor: 'rgba(255,255,255,0.3)',
+    border: 'none',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    padding: 0,
+    padding: 2,
     transform: pressed ? 'scale(0.92)' : hovered ? 'scale(1.06)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-    boxShadow: hovered
-      ? '0 6px 16px rgba(0,48,135,0.5), inset 0 1px 0 rgba(255,255,255,0.2)'
-      : '0 2px 8px rgba(0,48,135,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-  };
-
-  const markStyle = {
-    color: C.mMark,
-    fontSize: 15,
-    fontWeight: 900,
-    fontFamily: '"Inter", "Segoe UI", sans-serif',
-    lineHeight: 1,
-    userSelect: 'none',
+    boxShadow: 'none',
   };
 
   return (
@@ -52,7 +40,12 @@ export default function MButton({ onClick }) {
       onTouchStart={() => setPressed(true)}
       onTouchEnd={() => setPressed(false)}
     >
-      <span style={markStyle}>M°</span>
+      <img
+        src="/meridian-mark-512.png"
+        alt="Meridian Logo"
+        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        draggable={false}
+      />
     </button>
   );
 }
