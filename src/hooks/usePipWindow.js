@@ -27,6 +27,44 @@ export function usePipWindow() {
       link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap';
       pw.document.head.appendChild(link);
 
+      // Inject CSS custom properties (PiP window has no access to parent's index.css)
+      const style = pw.document.createElement('style');
+      style.textContent = `
+        :root {
+          --font-family: 'Inter', system-ui, sans-serif;
+          --bg-deep: #0f0f1e;
+          --bg-card: #1a1a2e;
+          --color-mbtn: #003087;
+          --color-mmark: #E8540A;
+          --color-resolved: #22c55e;
+          --color-reclass: #ef4444;
+          --color-calls: #3b82f6;
+          --color-process: #64748b;
+          --color-process-navy: rgba(0,48,135,0.4);
+          --color-awaiting: #f59e0b;
+          --color-active-dot: #4ade80;
+          --divider: rgba(255,255,255,0.08);
+          --border: rgba(255,255,255,0.12);
+          --card-bg-subtle: rgba(255,255,255,0.04);
+          --text-pri: rgba(255,255,255,0.95);
+          --text-sec: rgba(255,255,255,0.55);
+          --text-dim: rgba(255,255,255,0.3);
+          --shadow-subtle: 0 4px 12px rgba(0,0,0,0.15);
+          --shadow-glow: 0 0 16px rgba(0,48,135,0.3);
+          --case-focus: rgba(0,48,135,0.15);
+          --case-border: rgba(0,48,135,0.4);
+          --row-focus: rgba(255,255,255,0.06);
+          --amber-row: rgba(217,119,6,0.12);
+        }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+      `;
+      pw.document.head.appendChild(style);
+
       pw.addEventListener('pagehide', () => {
         setPipWindow(null);
         setIsOpen(false);
