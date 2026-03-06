@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C } from '../lib/constants.js'
+import CategoryDrillDown from './CategoryDrillDown.jsx'
 
 const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
 
@@ -10,14 +11,14 @@ const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
  * Props:
  *   categories  — [{ id, name, team, mpl_subcategories[] }]
  *   onClose     — () close without logging
- *   onLog       — (categoryId, subcategoryId, minutes) save entry with source:'manual'
+ *   onLog       — (categoryId, subcategoryId|null, minutes) save entry with source:'manual'
  */
 export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   const [selectedMinutes, setSelectedMinutes] = useState(null)
   const [showCustom, setShowCustom] = useState(false)
   const [customMinutes, setCustomMinutes] = useState('')
-  const [selectedCat, setSelectedCat] = useState(null)
-  const [selectedSub, setSelectedSub] = useState(null)
+  const [selection, setSelection] = useState(null) // { cat, sub }
+  const [selectionKey, setSelectionKey] = useState(0)
 
   const tint = categories[0]?.team === 'CH' ? 'rgba(251,191,36,1)' : 'rgba(96,165,250,1)'
   const tintColor = categories[0]?.team === 'CH' ? C.awaiting : C.process
@@ -27,20 +28,18 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
     return selectedMinutes || 0
   }
 
-  function handleSelectCat(cat) {
-    setSelectedCat(cat)
-    const subs = cat.mpl_subcategories || []
-    setSelectedSub(subs.length === 1 ? subs[0] : null)
+  function handleSelect(cat, sub) {
+    setSelection({ cat, sub })
+    setSelectionKey(k => k + 1) // reset drill-down to category screen
   }
 
   function handleLog() {
     const mins = getMinutes()
-    if (!mins || !selectedCat) return
-    onLog(selectedCat.id, selectedSub?.id ?? null, mins)
+    if (!mins || !selection) return
+    onLog(selection.cat.id, selection.sub?.id ?? null, mins)
   }
 
-  const subs = selectedCat?.mpl_subcategories || []
-  const canLog = getMinutes() > 0 && selectedCat && (subs.length === 0 || selectedSub != null)
+  const canLog = getMinutes() > 0 && selection != null
 
   function durationPillStyle(val) {
     const isSelected = !showCustom && selectedMinutes === val
@@ -51,27 +50,6 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
       background: isSelected ? `${tint}44` : 'rgba(255,255,255,0.06)',
       color: C.textPri,
     }
-  }
-
-  function itemBtn(item, type) {
-    const isSelected = type === 'cat' ? selectedCat?.id === item.id : selectedSub?.id === item.id
-    return (
-      <button
-        key={item.id}
-        onClick={() => type === 'cat' ? handleSelectCat(item) : setSelectedSub(item)}
-        style={{
-          width: '100%', textAlign: 'left', padding: '3px 7px',
-          marginBottom: 2, borderRadius: 4,
-          border: isSelected ? `1px solid ${tint}` : '1px solid transparent',
-          cursor: 'pointer', fontSize: 10.5,
-          fontWeight: isSelected ? 700 : 400,
-          background: isSelected ? `${tint}55` : `${tint}22`,
-          color: C.textPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}
-      >
-        {item.name}
-      </button>
-    )
   }
 
   return (
@@ -144,37 +122,35 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
         </div>
       </div>
 
-      {/* Category list */}
-      <div style={{ overflowY: 'auto', flex: 1 }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3, color: tintColor }}>
-          CATEGORY
+      {/* Selected category indicator */}
+      {selection && (
+        <div style={{ fontSize: 9.5, color: tintColor, fontWeight: 600, lineHeight: 1 }}>
+          {selection.cat.name}{selection.sub ? ` \u203a ${selection.sub.name}` : ''}
         </div>
-        {categories.map(cat => itemBtn(cat, 'cat'))}
+      )}
+
+      {/* Category drill-down — fills remaining space */}
+      <CategoryDrillDown
+        key={selectionKey}
+        categories={categories}
+        onSelect={handleSelect}
+      />
+
+      {/* Log button row — fixed height to prevent layout shift */}
+      <div style={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        {canLog && (
+          <button
+            onClick={handleLog}
+            style={{
+              padding: '4px 14px', borderRadius: 12, border: 'none',
+              background: C.process, color: '#fff', fontSize: 11,
+              fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Log
+          </button>
+        )}
       </div>
-
-      {/* Subcategory list */}
-      {selectedCat && subs.length > 0 && (
-        <div style={{ overflowY: 'auto', flex: 1 }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3, color: C.textSec }}>
-            SUBCATEGORY
-          </div>
-          {subs.map(sub => itemBtn(sub, 'sub'))}
-        </div>
-      )}
-
-      {/* Log button */}
-      {canLog && (
-        <button
-          onClick={handleLog}
-          style={{
-            padding: '4px 14px', borderRadius: 12, border: 'none',
-            background: C.process, color: '#fff', fontSize: 11,
-            fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-end',
-          }}
-        >
-          Log
-        </button>
-      )}
     </div>
   )
 }

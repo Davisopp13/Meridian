@@ -50,7 +50,7 @@ Apply four UX fixes to the MPL (Manual Process Log) PWA widget. These changes ad
 
 ### Phase 3: Drill-Down Category Navigation
 
-- [ ] **Task 3: Replace expand-in-place with drill-down navigation**
+- [x] **Task 3: Replace expand-in-place with drill-down navigation**
   - What: The LOG PROCESS tray currently expands downward when a category is selected, showing subcategories below it. Replace this with a full screen swap (slide-in replacement) so the widget height never changes.
   - New flow:
     1. **Category screen** — shows the list of categories for the user's team (CH or MH). Full-width tap targets.

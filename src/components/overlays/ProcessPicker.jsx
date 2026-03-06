@@ -1,45 +1,21 @@
 import { useState } from 'react'
 import { C } from '../../lib/constants.js'
+import CategoryDrillDown from '../CategoryDrillDown.jsx'
 
 export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel }) {
-  const [selectedCat, setSelectedCat] = useState(null)
-  const [selectedSub, setSelectedSub] = useState(null)
+  const [selection, setSelection] = useState(null) // { cat, sub }
   const [minutes, setMinutes] = useState(Math.max(1, Math.round(elapsed / 60)))
 
   const tint = categories[0]?.team === 'CH' ? 'rgba(251,191,36,1)' : 'rgba(96,165,250,1)'
   const tintColor = categories[0]?.team === 'CH' ? C.awaiting : C.process
 
-  function handleSelectCat(cat) {
-    setSelectedCat(cat)
-    const subs = cat.mpl_subcategories || []
-    setSelectedSub(subs.length === 1 ? subs[0] : null)
+  function handleSelect(cat, sub) {
+    setSelection({ cat, sub })
   }
 
   function handleConfirm() {
-    if (!selectedCat || !selectedSub) return
-    onConfirm(selectedCat.id, selectedSub.id, minutes * 60)
-  }
-
-  function itemBtn(item, isSelected) {
-    return (
-      <button
-        key={item.id}
-        onClick={() => isSelected === 'cat' ? handleSelectCat(item) : setSelectedSub(item)}
-        style={{
-          width: '100%', textAlign: 'left', padding: '4px 7px',
-          marginBottom: 2, borderRadius: 4,
-          border: (isSelected === 'cat' ? selectedCat?.id : selectedSub?.id) === item.id
-            ? `1px solid ${tint}` : '1px solid transparent',
-          cursor: 'pointer', fontSize: 10.5,
-          fontWeight: (isSelected === 'cat' ? selectedCat?.id : selectedSub?.id) === item.id ? 700 : 400,
-          background: (isSelected === 'cat' ? selectedCat?.id : selectedSub?.id) === item.id
-            ? `${tint}55` : `${tint}22`,
-          color: C.textPri, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}
-      >
-        {item.name}
-      </button>
-    )
+    if (!selection) return
+    onConfirm(selection.cat.id, selection.sub?.id ?? null, minutes * 60)
   }
 
   return (
@@ -67,49 +43,52 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
         >✕</button>
       </div>
 
-      {/* Step 1: Category list */}
-      <div style={{ overflowY: 'auto' }}>
-        <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3, color: tintColor }}>
-          CATEGORY
-        </div>
-        {categories.map(cat => itemBtn(cat, 'cat'))}
-      </div>
-
-      {/* Step 2: Subcategory list */}
-      {selectedCat && (
-        <div style={{ overflowY: 'auto' }}>
-          <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 3, color: C.textSec }}>
-            SUBCATEGORY
+      {!selection ? (
+        /* Phase 1: category drill-down */
+        <CategoryDrillDown
+          categories={categories}
+          onSelect={handleSelect}
+        />
+      ) : (
+        /* Phase 2: confirm selection + minutes */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+          <div style={{ fontSize: 11, color: C.textPri }}>
+            <span style={{ color: tint, fontWeight: 700 }}>{selection.cat.name}</span>
+            {selection.sub && <> &rsaquo; {selection.sub.name}</>}
           </div>
-          {(selectedCat.mpl_subcategories || []).map(sub => itemBtn(sub, 'sub'))}
-        </div>
-      )}
-
-      {/* Step 3: Minutes + confirm */}
-      {selectedCat && selectedSub && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 4 }}>
-          <span style={{ fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}>Minutes:</span>
-          <input
-            type="number"
-            min={1}
-            value={minutes}
-            onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
-            style={{
-              width: 48, padding: '3px 6px', borderRadius: 4,
-              border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.07)',
-              color: C.textPri, fontSize: 12, textAlign: 'center',
-            }}
-          />
           <button
-            onClick={handleConfirm}
+            onClick={() => setSelection(null)}
             style={{
-              padding: '4px 14px', borderRadius: 12, border: 'none',
-              background: C.process, color: '#fff', fontSize: 11,
-              fontWeight: 700, cursor: 'pointer',
+              background: 'none', border: 'none', color: tintColor,
+              fontSize: 10, cursor: 'pointer', padding: 0, alignSelf: 'flex-start', fontWeight: 600,
             }}
           >
-            Confirm
+            ← Change
           </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: C.textSec, whiteSpace: 'nowrap' }}>Minutes:</span>
+            <input
+              type="number"
+              min={1}
+              value={minutes}
+              onChange={e => setMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{
+                width: 48, padding: '3px 6px', borderRadius: 4,
+                border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.07)',
+                color: C.textPri, fontSize: 12, textAlign: 'center',
+              }}
+            />
+            <button
+              onClick={handleConfirm}
+              style={{
+                padding: '4px 14px', borderRadius: 12, border: 'none',
+                background: C.process, color: '#fff', fontSize: 11,
+                fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              Confirm
+            </button>
+          </div>
         </div>
       )}
     </div>
