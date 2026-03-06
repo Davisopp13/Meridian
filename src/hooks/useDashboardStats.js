@@ -78,11 +78,11 @@ export function useDashboardStats({ userId, period }) {
           .gte('timestamp', range.from.toISOString())
           .lte('timestamp', range.to.toISOString()),
         supabase
-          .from('process_sessions')
-          .select('logged_at, duration_s, category')
+          .from('mpl_entries')
+          .select('created_at, minutes, category_id')
           .eq('user_id', userId)
-          .gte('logged_at', range.from.toISOString())
-          .lte('logged_at', range.to.toISOString()),
+          .gte('created_at', range.from.toISOString())
+          .lte('created_at', range.to.toISOString()),
       ]);
 
       if (cancelled) return;
@@ -121,7 +121,7 @@ export function useDashboardStats({ userId, period }) {
       }
 
       for (const p of procs) {
-        const date = getNYDateStr(p.logged_at);
+        const date = getNYDateStr(p.created_at);
         if (!dayMap[date]) dayMap[date] = { date, resolved: 0, reclass: 0, calls: 0, notACase: 0, processes: 0 };
         dayMap[date].processes++;
       }

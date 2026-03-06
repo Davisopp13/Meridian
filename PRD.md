@@ -155,7 +155,7 @@ No changes needed. Code already uses correct table/column names.
   - Files: `src/hooks/useStats.js`
   - Test: `npm run build`
 
-- [ ] **Task 4: Rename process_sessions → mpl_entries in useDashboardStats.js**
+- [x] **Task 4: Rename process_sessions → mpl_entries in useDashboardStats.js**
   - What: In `src/hooks/useDashboardStats.js`, replace `supabase.from('process_sessions')` with `supabase.from('mpl_entries')`
   - Change `.select('logged_at, duration_s, category')` to `.select('created_at, minutes, category_id')`
   - Change filter column from `logged_at` to `created_at`
