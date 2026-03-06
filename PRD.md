@@ -254,7 +254,7 @@ No changes needed. Code already uses correct table/column names.
 
 ### Phase 5: Dashboard Stats — Fix Remaining Query Issues
 
-- [ ] **Task 11: Fix useDashboardStats category display**
+- [x] **Task 11: Fix useDashboardStats category display**
   - What: The dashboard `dailyRows` grouping currently tracks process count but doesn't show category names. This is fine for now — processes are just counted. But verify that the `procs` query works with the new schema:
     - Old: `.select('logged_at, duration_s, category')` from `process_sessions`
     - New: `.select('created_at, minutes, category_id')` from `mpl_entries`

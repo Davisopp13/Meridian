@@ -789,3 +789,78 @@ Learnings for future iterations:
   - ResponsiveContainer must wrap the chart element; pass the chart as a single child (not JSX inline)
   - No git repo exists — skip git commit step
 ---
+
+## Iteration 6 - Task 6: Verify platform_users refs in App.jsx auth flow
+- Verification task — App.jsx already correctly uses:
+  - supabase.from('platform_users') in both getSession and onAuthStateChange handlers
+  - profile.onboarding_complete (not profile.onboarded)
+  - profile.team (not profile.team_id)
+- No code changes needed, build passes
+
+Files changed:
+  PRD.md (task marked complete), progress.txt
+
+Learnings for future iterations:
+  - Tasks 6 was pre-implemented; when PRD says "check and verify", read the file first before writing any code
+  - profile.team is text ('CH'/'MH') directly — no join to teams table needed
+---
+
+## Iteration 7 - Task 7: Rewrite Onboarding.jsx to use platform_users directly
+- Removed teams table lookup (supabase.from('teams'))
+- Changed supabase.from('profiles') → supabase.from('platform_users')
+- Changed team_id (FK) → team (text 'CH'/'MH' directly)
+- Changed onboarded → onboarding_complete
+- npm run build passes — 0 errors
+
+Files changed:
+  src/components/Onboarding.jsx, PRD.md
+
+Learnings for future iterations:
+  - teams table is gone; team is now a text column on platform_users
+  - onboarded → onboarding_complete on platform_users
+---
+
+## Iteration 8 - Task 8: Update SignUp.jsx — remove profiles reference
+- Changed `supabase.from('profiles')` to `supabase.from('platform_users')` in handleSignUp
+- Files changed: src/components/auth/SignUp.jsx, PRD.md
+- `npm run build` passes — 0 errors
+- Learnings for future iterations:
+  - Single-line change; handle_new_user() trigger auto-creates platform_users row on signup
+---
+
+## Iteration 9 - Task 9: Verify mpl_categories fetch uses normalized join
+- App.jsx fetch already correct: mpl_categories with mpl_subcategories nested join, is_active filter, display_order ordering for both tables
+- Added auto-select logic to ProcessPicker.jsx: when cat has exactly 1 subcategory, setSelectedSub(subs[0]) in handleSelectCat
+- Added auto-select logic to ProcessLaneRow.jsx: when cat has exactly 1 subcategory, setSelectedSubcategory(subs[0]) in handleSelectCategory
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/overlays/ProcessPicker.jsx, src/components/ProcessLaneRow.jsx, PRD.md
+
+Learnings for future iterations:
+  - PostgREST auto-detects mpl_subcategories relation via FK category_id; nested select works without extra joins
+  - Auto-select pattern: const subs = cat.mpl_subcategories || []; setSub(subs.length === 1 ? subs[0] : null)
+---
+
+## Iteration 10 - Task 10: Replace old migration with schema reference comment
+- Replaced contents of supabase/migrations/001_initial_schema.sql with STALE comment block
+- `npm run build` passes — 0 errors
+
+Files changed:
+  supabase/migrations/001_initial_schema.sql, PRD.md
+
+Learnings for future iterations:
+  - SQL migration files are just text — Write tool handles them directly
+---
+
+## Iteration 11 - Task 11: Fix useDashboardStats category display (verification)
+- useDashboardStats.js was already fully updated in Task 4: uses mpl_entries, created_at, minutes, category_id, p.created_at
+- No code changes needed — verification only
+- `npm run build` passes — 0 errors
+
+Files changed:
+  PRD.md (task marked complete)
+
+Learnings for future iterations:
+  - Task 11 was a verification task; Task 4 had already made all the required changes
+---
