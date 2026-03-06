@@ -27,6 +27,7 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
       flexDirection: 'column',
       gap: 8,
       height: 'calc(100% - 36px)',
+      minHeight: 0,
       boxSizing: 'border-box',
     }}>
       {/* Header */}

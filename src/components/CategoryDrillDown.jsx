@@ -56,7 +56,7 @@ export default function CategoryDrillDown({ categories = [], onSelect, onScreenC
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {headerSlot}
 
       {/* Screen title + back button */}
@@ -78,7 +78,7 @@ export default function CategoryDrillDown({ categories = [], onSelect, onScreenC
       </div>
 
       {/* List */}
-      <div style={{ overflowY: 'auto', flex: 1 }}>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
         {screen === 'category'
           ? categories.map(cat => itemBtn(cat, handleSelectCat))
           : (activeCat?.mpl_subcategories || []).map(sub =>

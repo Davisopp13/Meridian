@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback } from 'react';
 import { SIZES } from '../lib/constants.js';
 
+const PIP_MARGIN = 16; // px from screen edge when pinned to bottom-right
+
 export function usePipWindow() {
   const [pipWindow, setPipWindow] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -58,9 +60,9 @@ export function usePipWindow() {
         }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
       `;
       pw.document.head.appendChild(style);
@@ -93,21 +95,23 @@ export function usePipWindow() {
     }
   }, [pipWindow]);
 
-  const resizePip = useCallback((mode) => {
+  const resizeAndPin = useCallback((mode) => {
     if (!pipWindow) {
-      console.warn('resizePip called but pipWindow is null');
+      console.warn('resizeAndPin called but pipWindow is null');
       return;
     }
     const size = SIZES[mode];
     if (!size) {
-      console.warn(`resizePip: unknown mode "${mode}"`);
+      console.warn(`resizeAndPin: unknown mode "${mode}"`);
       return;
     }
     try {
       pipWindow.resizeTo(size.width, size.height);
+      const x = window.screen.availWidth - size.width - PIP_MARGIN;
+      const y = window.screen.availHeight - size.height - PIP_MARGIN;
+      pipWindow.moveTo(x, y);
     } catch (e) {
-      // resizeTo requires user activation — called outside gesture context, skipping
-      console.warn('[Meridian] resizePip skipped (no user activation):', mode);
+      console.warn('[Meridian] PiP resize/move skipped (no user activation):', mode);
     }
   }, [pipWindow]);
 
@@ -116,7 +120,7 @@ export function usePipWindow() {
     isOpen,
     openPip,
     closePip,
-    resizePip,
+    resizeAndPin,
     pipRootRef,
   };
 }

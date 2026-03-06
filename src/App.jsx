@@ -27,7 +27,7 @@ function getBarSize(cases, processes, trayOpen, overlayOpen) {
 }
 
 export default function App() {
-  const { pipWindow, isOpen, openPip, resizePip, pipRootRef } = usePipWindow()
+  const { pipWindow, isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
 
   // ── App state ─────────────────────────────────────────────────────────────
   const [user, setUser] = useState(null)
@@ -263,7 +263,7 @@ export default function App() {
     setFocusedCaseId(sessionId)
     setLastTrigger('cases')
     startCaseTimer(sessionId)
-    resizePip(willOpenTray ? 'trayOpen' : getBarSize(nextCases, processes, trayOpen, false))
+    resizeAndPin(willOpenTray ? 'trayOpen' : getBarSize(nextCases, processes, trayOpen, false))
   }
 
   async function handleProcessStart() {
@@ -287,7 +287,7 @@ export default function App() {
     setPickerPending({ processId: id, elapsed: 0 })
     setOverlayOpen(true)
     startProcessTimer(id)
-    resizePip('categoryScreen')
+    resizeAndPin('categoryScreen')
   }
 
   usePendingTriggers(user?.id, { handleCaseStart, handleProcessStart })
@@ -412,18 +412,18 @@ export default function App() {
 
   function handleMinimize() {
     setIsMinimized(true)
-    resizePip('minimized')
+    resizeAndPin('minimized')
   }
 
   function handleRestore() {
     setIsMinimized(false)
-    resizePip(getBarSize(cases, processes, trayOpen, overlayOpen))
+    resizeAndPin(getBarSize(cases, processes, trayOpen, overlayOpen))
   }
 
   function handleToggleTray() {
     const next = !trayOpen
     setTrayOpen(next)
-    resizePip(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen))
+    resizeAndPin(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen))
   }
 
   function handleFocusCase(id) {
@@ -464,7 +464,7 @@ export default function App() {
     stopCaseTimer(id)
     setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
     setOverlayOpen(true)
-    resizePip('overlay')
+    resizeAndPin('overlay')
   }
 
   function handleLogProcess(id) {
@@ -472,14 +472,14 @@ export default function App() {
     if (!p) return
     setPickerPending({ processId: id, elapsed: p.elapsed })
     setOverlayOpen(true)
-    resizePip('categoryScreen')
+    resizeAndPin('categoryScreen')
   }
 
   function handleCloseProcess(id) {
     stopProcessTimer(id)
     const nextProcesses = processes.filter(p => p.id !== id)
     setProcesses(nextProcesses)
-    resizePip(getBarSize(cases, nextProcesses, trayOpen, false))
+    resizeAndPin(getBarSize(cases, nextProcesses, trayOpen, false))
   }
 
   async function handleResolve() {
@@ -496,7 +496,7 @@ export default function App() {
     if (!ok) return
     setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
     setOverlayOpen(true)
-    resizePip('overlay')
+    resizeAndPin('overlay')
   }
 
   async function handleReclass() {
@@ -513,7 +513,7 @@ export default function App() {
     if (!ok) return
     setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
     setOverlayOpen(true)
-    resizePip('overlay')
+    resizeAndPin('overlay')
   }
 
   async function handleRFCYes() {
@@ -572,13 +572,13 @@ export default function App() {
   function handleNewProcess() {
     setManualEntryOpen(true)
     setOverlayOpen(true)
-    resizePip('manualEntryForm')
+    resizeAndPin('manualEntryForm')
   }
 
   function handleManualEntryClose() {
     setManualEntryOpen(false)
     setOverlayOpen(false)
-    resizePip(getBarSize(cases, processes, trayOpen, false))
+    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
   }
 
   async function handleManualLog(categoryId, subcategoryId, minutes) {
@@ -593,7 +593,7 @@ export default function App() {
     setManualEntryOpen(false)
     setOverlayOpen(false)
     refetch()
-    resizePip(getBarSize(cases, processes, trayOpen, false))
+    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
   }
 
   async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
@@ -615,29 +615,29 @@ export default function App() {
     refetch()
     if (cases.length === 0 && remaining.length === 0) {
       setTrayOpen(false)
-      resizePip('idle')
+      resizeAndPin('idle')
     } else {
-      resizePip(getBarSize(cases, remaining, trayOpen, false))
+      resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
     }
   }
 
   function handlePickerScreenChange(screen) {
-    resizePip(screen === 'subcategory' ? 'subcategoryScreen' : 'categoryScreen')
+    resizeAndPin(screen === 'subcategory' ? 'subcategoryScreen' : 'categoryScreen')
   }
 
   function handlePickerCancel() {
     setPickerPending(null)
     setOverlayOpen(false)
-    resizePip(getBarSize(cases, processes, trayOpen, false))
+    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
   }
 
   // ── Helper: resize/close tray when all sessions gone ─────────────────────
   function maybeShrinkToIdle(remainingCases, remainingProcesses) {
     if (remainingCases.length === 0 && remainingProcesses.length === 0) {
       setTrayOpen(false)
-      resizePip('idle')
+      resizeAndPin('idle')
     } else {
-      resizePip(getBarSize(remainingCases, remainingProcesses, trayOpen, false))
+      resizeAndPin(getBarSize(remainingCases, remainingProcesses, trayOpen, false))
     }
   }
 
