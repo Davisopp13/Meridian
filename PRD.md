@@ -172,7 +172,7 @@ No changes needed. Code already uses correct table/column names.
   - Files: `src/App.jsx`
   - Test: `npm run build`
 
-- [ ] **Task 6: Rename profiles → platform_users in App.jsx auth flow**
+- [x] **Task 6: Rename profiles → platform_users in App.jsx auth flow**
   - What: In the `useEffect` that fetches the user profile on auth, replace:
     - `supabase.from('platform_users')` — this may already be correct. Check and verify.
     - The `.select('*')` call should work since `platform_users` has all needed columns

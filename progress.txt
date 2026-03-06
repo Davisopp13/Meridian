@@ -684,6 +684,88 @@ Learnings for future iterations:
   - No git repo exists — skip git commit step
 ---
 
+## Iteration 36b - Task 1 (Schema Alignment): Rename case_sessions → ct_cases in App.jsx
+- Replaced all 8 `supabase.from('case_sessions')` calls with `supabase.from('ct_cases')`
+- Removed `account_id` from handleCaseStart insert (column dropped in new schema)
+- Added `source: 'pip'` and `entry_date` (NY timezone YYYY-MM-DD) to handleCaseStart insert
+- Added `resolution: null` to handleCloseCase update
+- Added `resolution: 'resolved', is_rfc: true` to handleRFCYes and handleRFC updates
+- Added `resolution: 'resolved', is_rfc: false` to handleRFCNo update
+- Added `resolution: 'abandoned'` to handleNotACase update
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - entry_date format: `new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' })` → YYYY-MM-DD
+  - handleRFC (tray inline RFC Yes) mirrors handleRFCYes: both set resolution='resolved', is_rfc=true
+  - account_id was only on old case_sessions; ct_cases does not have this column — remove from all inserts
+---
+
+## Iteration 37 - Task 2 (Schema Alignment): Verify case_events session_id references
+- Verification task — read all case_events inserts in App.jsx
+- Confirmed: handleResolve, handleReclass, handleCall use focusedCaseId (set from ct_cases id in handleCaseStart)
+- Confirmed: handleRFCYes uses rfcPending.sessionId (originates from ct_cases id)
+- Confirmed: all tray handlers (handleResolveCase, handleReclassCase, handleCallCase, handleNotACase, handleRFC) use the case id arg which is always the ct_cases row id
+- No code changes needed — all session_id values correctly reference ct_cases.id
+- `npm run build` passes — 0 errors
+
+Files changed:
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - Verification tasks: read the file, trace the data flow, confirm correctness, then mark done
+  - session_id in case_events always comes from case.id in the cases array, which is set from ct_cases insert response
+---
+
+## Iteration 38 - Task 3 (Schema Alignment): Rename process_sessions → mpl_entries in useStats.js
+- Replaced `supabase.from('process_sessions')` with `supabase.from('mpl_entries')`
+- Changed filter column from `logged_at` to `created_at` in both `.gte()` and `.lt()` calls
+- `.select('id', { count: 'exact', head: true })` was already correct — no change needed
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useStats.js
+
+Learnings for future iterations:
+  - mpl_entries uses `created_at` for timestamp filtering (not `logged_at`)
+  - Count-only query pattern unchanged: `{ count: 'exact', head: true }` still correct
+---
+
+## Iteration 40 - Task 5 (Schema Alignment): Verify mpl_entries inserts in handlePickerConfirm and handleConfirmProcess
+- Verification task — read both functions in App.jsx
+- Both already use `supabase.from('mpl_entries')` with: user_id, category_id, subcategory_id, minutes, source:'pip'
+- subcategory_id is never null: ProcessPicker guards with `if (!selectedCat || !selectedSub) return`; ProcessLaneRow guards with `if (!selectedCategory || !selectedSubcategory) return`
+- minutes = Math.round(durationSeconds / 60) || 1 — correct per schema (integer > 0)
+- No code changes needed — inserts already match canonical schema
+- `npm run build` passes — 0 errors
+
+Files changed:
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - Both overlay (ProcessPicker) and tray (ProcessLaneRow) paths guard subcategory before calling onConfirm — subcategory_id will never be null in DB writes
+  - mpl_entries insert: category_id + subcategory_id are UUIDs from the picker selection, not text values
+---
+
+## Iteration 39 - Task 4 (Schema Alignment): Rename process_sessions → mpl_entries in useDashboardStats.js
+- Replaced `supabase.from('process_sessions')` with `supabase.from('mpl_entries')`
+- Changed `.select('logged_at, duration_s, category')` to `.select('created_at, minutes, category_id')`
+- Changed both filter columns from `logged_at` to `created_at` (`.gte` and `.lte`)
+- Changed `p.logged_at` to `p.created_at` in the daily grouping loop
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useDashboardStats.js
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - mpl_entries uses `created_at` (not `logged_at`) and `minutes` (not `duration_s`), `category_id` (not `category`)
+  - All four references to the old column must be updated: select, gte filter, lte filter, and grouping loop
+---
+
 ## Iteration 35 - Task 11 (Phase 3): DashboardChart component
 - Installed recharts (was not in package.json)
 - Created src/components/DashboardChart.jsx
