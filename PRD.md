@@ -148,7 +148,7 @@ No changes needed. Code already uses correct table/column names.
   - Files: `src/App.jsx` (read-only verification, fix if needed)
   - Test: `npm run build`
 
-- [ ] **Task 3: Rename process_sessions → mpl_entries in useStats.js**
+- [x] **Task 3: Rename process_sessions → mpl_entries in useStats.js**
   - What: In `src/hooks/useStats.js`, replace `supabase.from('process_sessions')` with `supabase.from('mpl_entries')`
   - Change the select from `.select('id', { count: 'exact', head: true })` to `.select('id', { count: 'exact', head: true })`
   - Change filter column from `logged_at` to `created_at`

@@ -25,11 +25,11 @@ export function useStats() {
         .gte('timestamp', `${todayISO}T00:00:00-05:00`)
         .lt('timestamp',  `${tomorrowISO}T00:00:00-05:00`),
       supabase
-        .from('process_sessions')
+        .from('mpl_entries')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .gte('logged_at', `${todayISO}T00:00:00-05:00`)
-        .lt('logged_at',  `${tomorrowISO}T00:00:00-05:00`),
+        .gte('created_at', `${todayISO}T00:00:00-05:00`)
+        .lt('created_at',  `${tomorrowISO}T00:00:00-05:00`),
     ]);
 
     const events = eventsResult.data || [];
