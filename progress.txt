@@ -922,3 +922,50 @@ Learnings for future iterations:
   - subs derived from selectedCat?.mpl_subcategories || [] — reuse this reference to avoid repeated optional chaining
   - canLog check: getMinutes() > 0 && selectedCat && (subs.length === 0 || selectedSub != null)
 ---
+
+## Iteration 15 - Task 3 (MPL UX PRD): Drill-Down Category Navigation
+- Created src/components/CategoryDrillDown.jsx — shared component for both flows
+  - Internal state: screen ('category'|'subcategory') + activeCat
+  - Category with 0 subs → onSelect(cat, null) immediately
+  - Category with 1 sub → onSelect(cat, subs[0]) immediately (auto-select)
+  - Category with 2+ subs → drill to subcategory screen; Back button returns to category screen
+  - headerSlot prop for optional content above the list
+- Updated ManualEntryForm.jsx to use CategoryDrillDown
+  - selection state { cat, sub } replaces selectedCat/selectedSub
+  - selectionKey increments on each selection to remount drill-down (reset to category screen)
+  - Selection indicator shows chosen category › subcategory above the drill-down
+  - Fixed-height 28px Log button row prevents layout shift
+- Updated ProcessPicker.jsx to use CategoryDrillDown
+  - Phase 1: CategoryDrillDown visible when no selection
+  - Phase 2: after selection, show category label + "← Change" + minutes + Confirm
+  - Setting selection(null) via "← Change" returns to Phase 1
+- `npm run typecheck` passes — 738 modules, 0 errors
+
+Files changed:
+  src/components/CategoryDrillDown.jsx (created)
+  src/components/ManualEntryForm.jsx (updated)
+  src/components/overlays/ProcessPicker.jsx (updated)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - selectionKey remount pattern: increment key to reset a stateful child component to its initial state
+  - Fixed-height reserved slot for conditional button prevents layout shift in fixed-height PiP window
+  - Phase 1/Phase 2 pattern in ProcessPicker (no selection vs. selection made) is clean for linear flows
+  - tintColor / tint derived from categories[0]?.team — same pattern as before, works in CategoryDrillDown too
+  - Auto-select for subs.length === 1 preserved from previous iteration; avoids unnecessary drill-down screen
+---
+
+## Iteration N - Task 4: Fix white-on-white category button contrast
+- Fixed `CategoryDrillDown.jsx` category/subcategory button styles
+- Root cause: `background: \`${tint}22\`` produced invalid CSS (appended "22" to end of rgba string like `rgba(251,191,36,1)22`), browser ignored it, leaving buttons with no background
+- Secondary issue: `color: C.textPri` uses `var(--text-pri)` which doesn't resolve in the PiP window's separate document context (no stylesheet injected there)
+- Fix: replaced invalid tinted background with solid `#2a2d3e` and replaced CSS variable color with hardcoded `rgba(255,255,255,0.9)`
+
+Files changed:
+  src/components/CategoryDrillDown.jsx, PRD.md
+
+Learnings for future iterations:
+  - Appending hex alpha suffix (e.g. "22") to an rgba() string produces invalid CSS — use `rgba(r,g,b,0.13)` instead
+  - CSS variables from index.css are NOT available in the PiP window — always use hardcoded values in PiP components
+  - `npm run typecheck` runs `vite build` — passes cleanly after fix
+---
