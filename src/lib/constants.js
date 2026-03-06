@@ -21,13 +21,16 @@ export const C = {
 }
 
 export const SIZES = {
-  idle: { width: 340, height: 60 },
-  caseActive: { width: 540, height: 60 },
-  processActive: { width: 500, height: 60 },
-  bothActive: { width: 620, height: 60 },
-  trayOpen: { width: 620, height: 360 },
-  overlay: { width: 620, height: 220 },
-  minimized: { width: 160, height: 32 },
+  idle:              { width: 680, height: 60 },
+  caseActive:        { width: 680, height: 60 },
+  processActive:     { width: 680, height: 60 },
+  bothActive:        { width: 680, height: 60 },
+  trayOpen:          { width: 680, height: 360 },
+  categoryScreen:    { width: 680, height: 320 },
+  subcategoryScreen: { width: 680, height: 320 },
+  manualEntryForm:   { width: 680, height: 360 },
+  overlay:           { width: 680, height: 280 },
+  minimized:         { width: 160, height: 32 },
 }
 
 export function formatElapsed(seconds) {

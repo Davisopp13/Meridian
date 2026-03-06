@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { C } from '../../lib/constants.js'
 import CategoryDrillDown from '../CategoryDrillDown.jsx'
 
-export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel }) {
+export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel, onScreenChange }) {
   const [selection, setSelection] = useState(null) // { cat, sub }
   const [minutes, setMinutes] = useState(Math.max(1, Math.round(elapsed / 60)))
 
@@ -48,6 +48,7 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
         <CategoryDrillDown
           categories={categories}
           onSelect={handleSelect}
+          onScreenChange={onScreenChange}
         />
       ) : (
         /* Phase 2: confirm selection + minutes */
@@ -57,7 +58,7 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
             {selection.sub && <> &rsaquo; {selection.sub.name}</>}
           </div>
           <button
-            onClick={() => setSelection(null)}
+            onClick={() => { onScreenChange?.('category'); setSelection(null) }}
             style={{
               background: 'none', border: 'none', color: tintColor,
               fontSize: 10, cursor: 'pointer', padding: 0, alignSelf: 'flex-start', fontWeight: 600,

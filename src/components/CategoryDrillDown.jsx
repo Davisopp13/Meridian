@@ -10,7 +10,7 @@ import { C } from '../lib/constants.js'
  *   onSelect    — (cat, sub|null) called when selection is complete
  *   headerSlot  — optional JSX rendered above the list (e.g. duration picker in manual mode)
  */
-export default function CategoryDrillDown({ categories = [], onSelect, headerSlot }) {
+export default function CategoryDrillDown({ categories = [], onSelect, onScreenChange, headerSlot }) {
   const [screen, setScreen] = useState('category') // 'category' | 'subcategory'
   const [activeCat, setActiveCat] = useState(null)
 
@@ -24,12 +24,14 @@ export default function CategoryDrillDown({ categories = [], onSelect, headerSlo
     } else if (subs.length === 1) {
       onSelect(cat, subs[0])
     } else {
+      onScreenChange?.('subcategory')
       setActiveCat(cat)
       setScreen('subcategory')
     }
   }
 
   function handleBack() {
+    onScreenChange?.('category')
     setScreen('category')
     setActiveCat(null)
   }

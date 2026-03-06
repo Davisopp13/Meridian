@@ -287,7 +287,7 @@ export default function App() {
     setPickerPending({ processId: id, elapsed: 0 })
     setOverlayOpen(true)
     startProcessTimer(id)
-    resizePip('overlay')
+    resizePip('categoryScreen')
   }
 
   usePendingTriggers(user?.id, { handleCaseStart, handleProcessStart })
@@ -336,6 +336,7 @@ export default function App() {
             elapsed={pickerPending.elapsed}
             onConfirm={handlePickerConfirm}
             onCancel={handlePickerCancel}
+            onScreenChange={handlePickerScreenChange}
           />
         ) : manualEntryOpen ? (
           <ManualEntryForm
@@ -471,7 +472,7 @@ export default function App() {
     if (!p) return
     setPickerPending({ processId: id, elapsed: p.elapsed })
     setOverlayOpen(true)
-    resizePip('overlay')
+    resizePip('categoryScreen')
   }
 
   function handleCloseProcess(id) {
@@ -571,7 +572,7 @@ export default function App() {
   function handleNewProcess() {
     setManualEntryOpen(true)
     setOverlayOpen(true)
-    resizePip('overlay')
+    resizePip('manualEntryForm')
   }
 
   function handleManualEntryClose() {
@@ -618,6 +619,10 @@ export default function App() {
     } else {
       resizePip(getBarSize(cases, remaining, trayOpen, false))
     }
+  }
+
+  function handlePickerScreenChange(screen) {
+    resizePip(screen === 'subcategory' ? 'subcategoryScreen' : 'categoryScreen')
   }
 
   function handlePickerCancel() {
