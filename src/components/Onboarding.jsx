@@ -20,24 +20,18 @@ export default function Onboarding({ user, onComplete }) {
 
   async function handleComplete() {
     try {
-      // 1. Get team_id
-      const { data: teams } = await supabase.from('teams').select('id, name')
-      const teamRow = teams?.find(t => t.name === formData.team)
-
-      // 2. Update profile
       const { data: updatedProfile } = await supabase
-        .from('profiles')
+        .from('platform_users')
         .update({
-          full_name:  formData.full_name,
-          team_id:    teamRow?.id || null,
-          onboarded:  true,
-          updated_at: new Date().toISOString(),
+          full_name:           formData.full_name,
+          team:                formData.team,
+          onboarding_complete: true,
+          updated_at:          new Date().toISOString(),
         })
         .eq('id', user.id)
         .select('*')
         .single()
 
-      // 3. Notify parent
       onComplete(updatedProfile)
     } catch (err) {
       console.error('Onboarding complete error:', err)

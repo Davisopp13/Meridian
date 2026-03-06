@@ -183,7 +183,7 @@ No changes needed. Code already uses correct table/column names.
 
 ### Phase 2: Onboarding Flow — Remove teams Table Dependency
 
-- [ ] **Task 7: Rewrite Onboarding.jsx to use platform_users directly**
+- [x] **Task 7: Rewrite Onboarding.jsx to use platform_users directly**
   - What: The current `handleComplete()` in `src/components/Onboarding.jsx`:
     1. Queries `supabase.from('teams')` to find team ID — **DELETE THIS**, teams table doesn't exist
     2. Updates `supabase.from('profiles')` with `team_id` — **CHANGE** to `supabase.from('platform_users')` with `team` (text value directly)
