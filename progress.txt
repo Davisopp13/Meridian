@@ -1016,3 +1016,39 @@ Learnings for future iterations:
   - useDashboardStats.js is the best reference for Supabase query patterns in this codebase
   - Build test is npm run build; chunk size warning is expected and not an error
 ---
+
+## Iteration ActivityLog-3 - Task 3 (ActivityLog PRD): Connect hook to ActivityLog component
+- Replaced mock MOCK_ENTRIES with live data from useActivityData({ userId, rangeDays })
+- rangeDays derived from RANGES.find(r => r.key === range)?.days ?? 0
+- loading state: dims feed to 50% opacity via opacity prop on feed container
+- error state: shows "Could not load activity" centered in textMuted color
+- "No activity yet" empty state guarded with !loading to avoid flash on initial load
+- Count badges already used the entries array — now reflect live data automatically
+- npm run build passes — 738 modules, 0 errors
+
+Files changed:
+  src/components/ActivityLog.jsx (import added, mock entries replaced with hook, feed updated)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - rangeDays lookup via RANGES.find avoids hardcoding the mapping — safe if RANGES array changes
+  - Empty state guard `!loading` prevents "No activity yet" flash before first fetch completes
+  - Feed container opacity handles loading state without a spinner — matches PRD spec exactly
+---
+
+## Iteration ActivityLog-4 - Task 4 (ActivityLog PRD): Add ActivityLog to dashboard page
+- Imported ActivityLog into Dashboard.jsx
+- Inserted <ActivityLog userId={user.id} /> above the stat cards section
+- Wrapped in a div with marginBottom: 20px per PRD spec
+- Did not touch period tabs, stat cards, table, or chart below
+- npm run build passes — 0 errors
+
+Files changed:
+  src/components/Dashboard.jsx (import added, ActivityLog inserted above stat cards)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - Dashboard.jsx receives user prop — use user.id directly for userId; no auth context import needed
+  - ActivityLog sits between period tabs and stat cards (line ~178 in Dashboard.jsx)
+  - 20px margin achieved with a wrapper div {marginBottom: 20} around ActivityLog
+---

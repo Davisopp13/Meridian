@@ -118,7 +118,7 @@ Both sources should be normalized into this shape before passing to `ActivityLog
 
 ### Phase 3: Dashboard integration
 
-- [ ] **Task 4: Add ActivityLog to the dashboard page**
+- [x] **Task 4: Add ActivityLog to the dashboard page**
   - Find the existing dashboard page component (likely `src/pages/DashboardPage.jsx` or `src/App.jsx`)
   - Import `ActivityLog` and place it directly above the CT stats cards section
   - Pass `userId` from the authenticated user context (use whatever auth pattern exists in the codebase)

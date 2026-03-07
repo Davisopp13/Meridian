@@ -5,6 +5,7 @@ import DashboardStatCard from './DashboardStatCard.jsx';
 import DashboardTable from './DashboardTable.jsx';
 import DashboardChart from './DashboardChart.jsx';
 import BookmarkletModal from './BookmarkletModal.jsx';
+import ActivityLog from './ActivityLog.jsx';
 
 const C = {
   bg: 'var(--bg-card)',
@@ -172,6 +173,11 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
               {p.label}
             </button>
           ))}
+        </div>
+
+        {/* Activity Log */}
+        <div style={{ marginBottom: 20 }}>
+          <ActivityLog userId={user.id} />
         </div>
 
         {/* Stat cards */}
