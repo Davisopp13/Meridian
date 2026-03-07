@@ -97,7 +97,7 @@ Both sources should be normalized into this shape before passing to `ActivityLog
 
 ### Phase 2: Supabase data hook
 
-- [ ] **Task 2: Create useActivityData hook**
+- [x] **Task 2: Create useActivityData hook**
   - Create `src/hooks/useActivityData.js`
   - Hook signature: `useActivityData({ userId, rangeDays })` → `{ entries, loading, error }`
   - Queries both `ct_sessions` and `mpl_sessions` filtered by `user_id` and `created_at >= cutoff`

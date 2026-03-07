@@ -995,3 +995,24 @@ Learnings for future iterations:
   - `activeFilters` is a Set; React does not detect Set mutation — always create `new Set(prev)` in setter
   - For Task 2: hook signature is `useActivityData({ userId, rangeDays })` → { entries, loading, error }
   - PRD table names ct_sessions/mpl_sessions — check actual table names in useDashboardStats.js before querying
+
+## Iteration N - Task 2: Create useActivityData hook
+- Created src/hooks/useActivityData.js
+- Hook signature: useActivityData({ userId, rangeDays }) → { entries, loading, error }
+- Queries ct_sessions and mpl_sessions filtered by user_id and created_at >= cutoff
+- Cutoff uses America/New_York timezone, set to 00:00:00 of (today - rangeDays)
+- Normalizes ct_sessions rows: action_type → type, time_spent → dur, is_rfc → rfc
+- Normalizes mpl_sessions rows: type = "Process", src = "process", rfc = false
+- Merges and sorts by ts descending (newest first)
+- Uses cancellation flag to prevent stale state updates
+- npm run build passes — 0 errors
+
+Files changed:
+  src/hooks/useActivityData.js (new)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - Existing codebase uses case_events + mpl_entries for stats; ActivityLog PRD uses ct_sessions + mpl_sessions (separate tables)
+  - useDashboardStats.js is the best reference for Supabase query patterns in this codebase
+  - Build test is npm run build; chunk size warning is expected and not an error
+---
