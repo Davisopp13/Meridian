@@ -82,7 +82,31 @@ export function useActivityData({ userId, rangeDays }) {
     }
 
     fetchData();
-    return () => { cancelled = true; };
+
+    const channel = supabase
+      .channel(`activity-${userId}-${rangeDays}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ct_sessions', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const entry = normalizeCt(payload.new);
+          setEntries((prev) => [entry, ...prev]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'mpl_sessions', filter: `user_id=eq.${userId}` },
+        (payload) => {
+          const entry = normalizeMpl(payload.new);
+          setEntries((prev) => [entry, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [userId, rangeDays]);
 
   return { entries, loading, error };

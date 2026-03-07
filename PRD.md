@@ -128,7 +128,7 @@ Both sources should be normalized into this shape before passing to `ActivityLog
 
 ### Phase 4: Real-time updates
 
-- [ ] **Task 5: Subscribe to live inserts**
+- [x] **Task 5: Subscribe to live inserts**
   - In `useActivityData`, add a Supabase realtime subscription on both `ct_sessions` and `mpl_sessions`
   - Filter subscription to `user_id=eq.{userId}`
   - On INSERT event: prepend new entry to the top of the entries list (no full refetch)
