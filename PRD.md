@@ -108,7 +108,7 @@ Both sources should be normalized into this shape before passing to `ActivityLog
   - Use the existing Supabase client from wherever it's initialized in the codebase (do not create a new one)
   - Test: `npm run typecheck` passes; verify in browser that data loads for today
 
-- [ ] **Task 3: Connect hook to ActivityLog component**
+- [x] **Task 3: Connect hook to ActivityLog component**
   - Replace mock `ENTRIES` in `ActivityLog.jsx` with data from `useActivityData`
   - Accept `userId` as a prop (passed from parent)
   - Show a subtle loading state while fetching: dim the feed to 50% opacity, no spinner needed

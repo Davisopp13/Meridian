@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useActivityData } from '../hooks/useActivityData';
 
 const C = {
   bg: '#0f1117',
@@ -300,8 +301,8 @@ export default function ActivityLog({ userId }) {
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [range, setRange] = useState('today');
 
-  // For Task 1, entries come from mock data. Task 3 will replace this with live data.
-  const entries = MOCK_ENTRIES;
+  const rangeDays = RANGES.find(r => r.key === range)?.days ?? 0;
+  const { entries, loading, error } = useActivityData({ userId, rangeDays });
 
   // Count badges reflect total count for range regardless of other active filters
   const typeCounts = useMemo(() => {
@@ -435,8 +436,19 @@ export default function ActivityLog({ userId }) {
       </div>
 
       {/* Feed */}
-      <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-        {entries.length === 0 ? (
+      <div style={{ maxHeight: 400, overflowY: 'auto', opacity: loading ? 0.5 : 1, transition: 'opacity 200ms' }}>
+        {error ? (
+          <div
+            style={{
+              padding: '32px 16px',
+              textAlign: 'center',
+              color: C.textMuted,
+              fontSize: 13,
+            }}
+          >
+            Could not load activity
+          </div>
+        ) : entries.length === 0 && !loading ? (
           <div
             style={{
               padding: '32px 16px',
