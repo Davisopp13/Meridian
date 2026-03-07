@@ -969,3 +969,29 @@ Learnings for future iterations:
   - CSS variables from index.css are NOT available in the PiP window — always use hardcoded values in PiP components
   - `npm run typecheck` runs `vite build` — passes cleanly after fix
 ---
+---
+
+## Iteration ActivityLog-1 - Task 1 (ActivityLog PRD): Create ActivityLog.jsx with mock data
+- Created src/components/ActivityLog.jsx
+- Component accepts `userId` prop (ready for Task 3 wire-up)
+- Mock MOCK_ENTRIES array: 7 entries spanning Resolved/Reclassified/Call/Process/Not a Case types
+- Multi-select filter Set: clicking a type tab adds/removes it; "All" button and "Clear all" reset to empty Set
+- Filtered-out entries dim to 15% opacity (not hidden — layout stays stable)
+- Count badges on filter tabs reflect total entry count per type, regardless of other active filters
+- Range selector (Today/2 Days/This Week/Month) tracks state only — will trigger Supabase query in Task 2/3
+- Row structure: 3px accent bar | ● Type RFC? | · | case# or Manual | · | Category... | dur | HH:MM:SS | ✎ on hover
+- Type label col 110px, case# col 96px, category flex-grows with ellipsis, time 68px monospace right-aligned
+- Edit icon console.log on click (no-op per PRD Out of Scope)
+- FilterTab and EntryRow defined outside ActivityLog (avoids hooks-in-loop)
+- `npm run build` passes — 738 modules, 0 errors
+
+Files changed:
+  src/components/ActivityLog.jsx (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - ActivityLog uses its own local C object with PRD-specific color tokens (different from constants.js)
+  - TYPE_STYLE map {color, bg, border} per type eliminates need for hexToRgb helper
+  - `activeFilters` is a Set; React does not detect Set mutation — always create `new Set(prev)` in setter
+  - For Task 2: hook signature is `useActivityData({ userId, rangeDays })` → { entries, loading, error }
+  - PRD table names ct_sessions/mpl_sessions — check actual table names in useDashboardStats.js before querying

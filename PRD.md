@@ -1,105 +1,160 @@
-# MPL UX Fixes PRD
+# Meridian Activity Log — PRD
 
 ## Project Overview
-
-Apply four UX fixes to the MPL (Manual Process Log) PWA widget. These changes address core interaction issues in the logging tray: timer trigger logic, manual entry flow, category navigation, and a contrast bug. The widget lives inside the HL Suite PiP toolbar. All changes are UI/UX only — no schema changes required.
+Add the `ActivityLog` component to the Meridian PWA dashboard. This is a new panel that sits above the existing CT stats cards section. It shows the agent's logged cases and manual processes in a unified, filterable feed. The component design is fully finalized — this task is purely integration work: wire it to Supabase, drop it into the dashboard layout, and make the data real.
 
 ## Architecture & Key Decisions
+- Framework: React (Vite or CRA — match whatever Meridian uses)
+- Database: Supabase (`ct_sessions` and `mpl_sessions` tables, shared schema)
+- Styling: Inline styles only — no Tailwind, no CSS modules (match existing Meridian pattern)
+- State: Local component state only (`useState`, `useMemo`) — no new context or global store
+- The finalized UI component is at `/src/components/ActivityLog.jsx` (Ralph creates this file)
+- Do NOT modify the existing CT stats cards or daily summary table below it
 
-- Framework: React (existing MPL codebase)
-- Database: Supabase — no schema changes in this PRD
-- Styling: Tailwind CSS
-- Widget surface: Document Picture-in-Picture (PiP) window — fixed height, no resizing
-- Entry source tracking: `source` field on mpl_entries — values: `'bookmarklet'` | `'manual'`
-- The `+` button and bookmarklet trigger are the two and only entry points into the logging flow
-- Do NOT change the bookmarklet, relay iframe, or Supabase realtime subscription logic
-- Do NOT modify Case Tracker (CT) components or the orange pill flow
+## Color Tokens
+These are locked — do not deviate:
+```js
+bg: "#0f1117"
+bgCard: "#1a1d27"
+bgHover: "#1e2130"
+border: "rgba(255,255,255,0.07)"
+orange: "#E8540A"
+green: "#22c55e"  greenBg: "rgba(34,197,94,0.12)"   greenBorder: "rgba(34,197,94,0.28)"
+red: "#ef4444"    redBg: "rgba(239,68,68,0.12)"     redBorder: "rgba(239,68,68,0.28)"
+blue: "#38bdf8"   blueBg: "rgba(56,189,248,0.12)"   blueBorder: "rgba(56,189,248,0.28)"
+purple: "#a78bfa" purpleBg: "rgba(167,139,250,0.12)" purpleBorder: "rgba(167,139,250,0.28)"
+textPrimary: "#f1f5f9"
+textSecondary: "#94a3b8"
+textMuted: "#4b5563"
+```
 
-## Environment & Setup
+## Data Model
+### ct_sessions (Case Tracker entries)
+Relevant columns:
+- `id` — uuid
+- `user_id` — uuid (filter by current user)
+- `case_number` — text
+- `action_type` — text: "Resolved" | "Reclassified" | "Call" | "Awaiting" | "Not a Case"
+- `category` — text (e.g. "Inland / Inland Precarriage")
+- `time_spent` — integer (seconds)
+- `is_rfc` — boolean
+- `created_at` — timestamptz
 
-- NEXT_PUBLIC_SUPABASE_URL: set in .env.local
-- NEXT_PUBLIC_SUPABASE_ANON_KEY: set in .env.local
-- Existing codebase — read the file structure before making changes
+### mpl_sessions (Manual Process Log entries)
+Relevant columns:
+- `id` — uuid
+- `user_id` — uuid
+- `category` — text (e.g. "Work Order Creation")
+- `duration` — integer (seconds)
+- `created_at` — timestamptz
+
+### Unified shape for the component
+Both sources should be normalized into this shape before passing to `ActivityLog`:
+```ts
+{
+  id: string
+  type: "Resolved" | "Reclassified" | "Call" | "Awaiting" | "Not a Case" | "Process"
+  src: "case" | "process"
+  case_number: string | null   // null for process entries
+  category: string
+  dur: number                  // seconds — format in component as "6s", "2m 14s"
+  rfc: boolean
+  ts: Date
+}
+```
+
+## Filter Behavior
+- **Filters:** Resolved · Reclassified · Calls · Processes (multi-select Set)
+- **All** button clears the selection (shows everything)
+- **Range:** Today | 2 Days | This Week | Month — controls the date cutoff for the Supabase query
+- Filtered-out entries dim to 15% opacity (do NOT hide/remove from DOM — keep layout stable)
+- Count badges on each tab reflect total count for the active range, regardless of other active filters
+
+## Row Structure (single flat line per entry)
+```
+[3px accent bar] [● Type  RFC?] · [case # or "Manual"] · [Category…] [dur] [HH:MM:SS] [✎ on hover]
+```
+- Type label column: 110px fixed width
+- Case # column: 96px fixed width
+- Category: flex-grows, truncates with ellipsis
+- Duration: plain text, no pill/chip
+- Time: monospace, 68px fixed width, right-aligned
+- Edit icon: appears on hover only (supervisor time correction — wire to no-op for now)
 
 ---
 
 ## Tasks
 
-### Phase 1: Fix Timer Trigger Logic
+### Phase 1: Component file
 
-- [x] **Task 1: Bookmarklet-only live timer**
-  - What: The blue MPL pill + live timer must ONLY start when a `MERIDIAN_PROCESS_START` message is received from the bookmarklet relay. The `+` button must NOT start a timer or create a pill.
-  - Files to modify: The component that handles the `+` button click and the component that listens for `MERIDIAN_PROCESS_START` messages (likely `App.jsx` or `MplWidget.jsx` or similar — read the codebase first).
-  - Behaviour change:
-    - `MERIDIAN_PROCESS_START` received → blue pill appears, timer starts (no change from current)
-    - `+` button clicked → open the manual entry form directly (see Task 2), no pill, no timer
-  - Acceptance criteria: Clicking `+` shows the manual entry form immediately. No pill appears. Bookmarklet trigger still creates a pill with a running timer.
-  - Test: `npm run typecheck` passes + manual smoke test both paths
+- [x] **Task 1: Create ActivityLog.jsx with mock data**
+  - Create `src/components/ActivityLog.jsx`
+  - Copy the finalized component code exactly as designed (see reference below)
+  - Replace the hardcoded `ENTRIES` array with the mock data provided in this PRD
+  - Verify the component renders correctly in isolation with `npm run dev`
+  - Acceptance: component mounts without errors, all 4 filter tabs work, range selector works, multi-select works, "Clear all" resets filters
+  - Test: `npm run typecheck` (or `npm run build` if no typecheck script)
 
-### Phase 2: Manual Entry Form
+### Phase 2: Supabase data hook
 
-- [x] **Task 2: Build manual entry form**
-  - What: When `+` is tapped, show a fixed-height form tray (same container as the existing LOG PROCESS tray) with:
-    1. **Duration picker** at the top — pill-style buttons: `5 min`, `10 min`, `15 min`, `20 min`, `30 min`, `45 min`, `60 min`, plus a `Custom` option that reveals a number input (minutes). One must be selected before logging is allowed.
-    2. **Category list** below the duration picker — same list of categories as the bookmarklet-triggered flow (see Task 3 for the drill-down).
-  - The duration picker stays visible when the user drills into subcategories (Task 3).
-  - On final log: save entry with `source: 'manual'`, `duration_minutes: [selected]`, `logged_at: now()`, and the selected category/subcategory.
-  - Files to create/modify: New component `ManualEntryForm.jsx` (or similar). Wire it into the `+` button handler.
-  - Acceptance criteria: Duration + category + subcategory (if applicable) can be selected and logged. Entry appears in today's log with correct duration and `source: 'manual'`.
-  - Test: `npm run typecheck` passes
+- [ ] **Task 2: Create useActivityData hook**
+  - Create `src/hooks/useActivityData.js`
+  - Hook signature: `useActivityData({ userId, rangeDays })` → `{ entries, loading, error }`
+  - Queries both `ct_sessions` and `mpl_sessions` filtered by `user_id` and `created_at >= cutoff`
+  - Cutoff: `new Date()` minus `rangeDays` days, time set to 00:00:00
+  - Normalizes both result sets into the unified shape defined above
+  - Merges and sorts by `ts` descending (newest first)
+  - Format duration: `dur < 60 ? "${dur}s" : "${Math.floor(dur/60)}m ${dur%60}s"` (omit seconds if 0)
+  - Use the existing Supabase client from wherever it's initialized in the codebase (do not create a new one)
+  - Test: `npm run typecheck` passes; verify in browser that data loads for today
 
-### Phase 3: Drill-Down Category Navigation
+- [ ] **Task 3: Connect hook to ActivityLog component**
+  - Replace mock `ENTRIES` in `ActivityLog.jsx` with data from `useActivityData`
+  - Accept `userId` as a prop (passed from parent)
+  - Show a subtle loading state while fetching: dim the feed to 50% opacity, no spinner needed
+  - On error: show a single centered text line "Could not load activity" in `textMuted` color
+  - Count badges on filter tabs must update to reflect live data counts
+  - Test: `npm run typecheck` + verify in browser that real entries appear
 
-- [x] **Task 3: Replace expand-in-place with drill-down navigation**
-  - What: The LOG PROCESS tray currently expands downward when a category is selected, showing subcategories below it. Replace this with a full screen swap (slide-in replacement) so the widget height never changes.
-  - New flow:
-    1. **Category screen** — shows the list of categories for the user's team (CH or MH). Full-width tap targets.
-    2. User taps a category:
-       - **Category HAS subcategories** → subcategory screen slides in, replacing the category screen entirely. A `← Back` button at the top returns to the category screen.
-       - **Category has NO subcategories** → log immediately, close tray.
-    3. User taps a subcategory → log entry, close tray.
-  - This drill-down applies to BOTH bookmarklet-triggered flow (pill tap → category screen) AND manual entry form (after duration is selected, same drill-down for category/subcategory).
-  - The widget/tray height must remain fixed at every step — no vertical expansion.
-  - Files to modify: The existing category/subcategory selection component. Extract into a `CategoryDrillDown.jsx` component that can be used by both flows.
-  - Acceptance criteria:
-    - Tapping a category with subcategories replaces the category list with subcategory list (no expansion)
-    - Back arrow returns to category list
-    - Tapping a category with no subcategories logs immediately
-    - Widget height does not change at any point during the flow
-  - Test: `npm run typecheck` passes
+### Phase 3: Dashboard integration
 
-### Phase 4: Category Button Contrast Fix
+- [ ] **Task 4: Add ActivityLog to the dashboard page**
+  - Find the existing dashboard page component (likely `src/pages/DashboardPage.jsx` or `src/App.jsx`)
+  - Import `ActivityLog` and place it directly above the CT stats cards section
+  - Pass `userId` from the authenticated user context (use whatever auth pattern exists in the codebase)
+  - Margin between ActivityLog and the stats cards below: `20px`
+  - Do not alter anything below the ActivityLog insertion point
+  - Test: `npm run build` succeeds with no errors; dashboard renders with ActivityLog above stats cards
 
-- [x] **Task 4: Fix white-on-white category button contrast**
-  - What: Category buttons in the LOG PROCESS tray currently render white text on a white/near-white background, making them unreadable. Fix the contrast so buttons are clearly legible.
-  - Target style: buttons should use a dark surface background (e.g. `bg-[#2a2d3e]` or `bg-slate-700`) with white text, OR a light gray background (e.g. `bg-slate-100`) with dark text (`text-slate-800`). Match whichever fits the existing tray design language.
-  - The tray background is dark (`#1a1a2e` or similar navy). Buttons should contrast clearly against this.
-  - Files to modify: The category button component / class definitions in the LOG PROCESS tray.
-  - Acceptance criteria: All category buttons are clearly readable. No white-on-white or near-white-on-white combinations.
-  - Test: Visual check via `npm run dev` — category list must be legible
+### Phase 4: Real-time updates
+
+- [ ] **Task 5: Subscribe to live inserts**
+  - In `useActivityData`, add a Supabase realtime subscription on both `ct_sessions` and `mpl_sessions`
+  - Filter subscription to `user_id=eq.{userId}`
+  - On INSERT event: prepend new entry to the top of the entries list (no full refetch)
+  - Unsubscribe on hook cleanup (`useEffect` return)
+  - Test: log a case via the PiP bar and verify it appears in the feed without a page refresh
 
 ---
 
 ## Testing Strategy
-
-- Primary: `npm run typecheck`
-- Secondary: `npm run build`
-- Visual: `npm run dev` — manually test both `+` button flow and bookmarklet flow end-to-end
+- Primary: `npm run typecheck` after every task
+- Secondary: `npm run build` before marking Phase 3 complete
+- Manual: open dashboard in browser, verify ActivityLog renders above CT section, filters work, real data loads
 
 ## Out of Scope
-
-- No bookmarklet changes
-- No relay iframe changes
-- No Supabase schema changes
-- No Case Tracker (CT / orange pill) changes
-- No supervisor dashboard work
-- No changes to auth, team switching, or settings
-- No new Supabase tables or columns (the `source` field should already exist on mpl_entries — if it doesn't, add it as a nullable text column in a migration, but do not change anything else)
+- Do NOT add pagination (the maxHeight + scroll handles this for now)
+- Do NOT add search input (future task)
+- Do NOT modify ct_sessions or mpl_sessions schema
+- Do NOT touch the CT stats cards, period selector, or daily summary table below
+- Do NOT add day-group collapsing (future task)
+- Do NOT build the edit/time correction modal — wire the edit icon to `console.log` for now
 
 ## Notes for Ralph
-
-- The widget runs inside a Document Picture-in-Picture window — fixed dimensions, no scrolling. Every UI decision must respect this constraint. If content doesn't fit, reduce it — don't expand the container.
-- The two entry paths (bookmarklet vs `+` button) must remain clearly separated in the code. Don't merge them into a single ambiguous flow.
-- `CategoryDrillDown` should be a self-contained component that accepts `categories`, `onLog`, and optionally `headerSlot` (for the duration picker in manual mode) as props. Both flows can then use it without duplication.
-- The taxonomy (CH and MH categories/subcategories) is already seeded in Supabase. Fetch from the DB — do not hardcode.
-- Read the existing codebase structure before touching any files. The component names above are illustrative — match whatever naming convention is already in place.
+- The Supabase client is already initialized somewhere in the codebase — find it and import from there, do not instantiate a new one
+- `ct_sessions.action_type` maps to the unified `type` field; `mpl_sessions` entries always get `type: "Process"` and `src: "process"`
+- The `is_rfc` field only exists on `ct_sessions` — set `rfc: false` for all process entries
+- The component uses inline styles throughout — do not introduce className or Tailwind
+- `FilterTab` must be defined outside `ActivityLog` to avoid hooks-in-loop (already done in reference code)
+- The range selector controls the Supabase query date cutoff — it does NOT filter client-side after load; changing range should trigger a new query
+- `Today` = 0 days back (from 00:00:00 today), `2 Days` = 1 day back, `This Week` = 6 days back, `Month` = 29 days back
