@@ -11,10 +11,11 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
     flex: 1,
     height: 130,
     borderRadius: 16,
-    background: isActive ? color : 'var(--card-bg-subtle)',
+    background: color,
+    opacity: isActive ? 1 : 0.85,
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    border: `1px solid ${isActive ? 'transparent' : 'var(--border)'}`,
+    border: `2px solid ${isActive ? 'rgba(255,255,255,0.6)' : 'transparent'}`,
     padding: 16,
     cursor: 'pointer',
     position: 'relative',
@@ -23,7 +24,7 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
     flexDirection: 'column',
     justifyContent: 'space-between',
     boxSizing: 'border-box',
-    boxShadow: isActive ? `0 8px 16px ${color}40` : 'var(--shadow-subtle)',
+    boxShadow: `0 8px 16px ${color}40`,
     transform: pressed ? 'scale(0.97)' : hovered ? 'scale(1.02) translateY(-2px)' : 'scale(1)',
     transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
   };
@@ -36,7 +37,7 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
   };
 
   const labelStyle = {
-    color: isActive ? '#fff' : 'var(--text-sec)',
+    color: '#fff',
     fontSize: 10,
     fontWeight: 800,
     textTransform: 'uppercase',
@@ -51,12 +52,12 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
     fontSize: 18,
     flexShrink: 0,
     lineHeight: 1,
-    color: isActive ? '#fff' : color,
+    color: '#fff',
     transition: 'color 0.2s',
   };
 
   const valueStyle = {
-    color: isActive ? '#fff' : 'var(--text-pri)',
+    color: '#fff',
     fontSize: 42,
     fontWeight: 800,
     lineHeight: 1,

@@ -557,9 +557,9 @@ export default function App() {
   }
 
   async function handleCall() {
-    if (!focusedCaseId || !user) return
+    if (!user) return
     const ok = await safeWrite(supabase.from('case_events').insert({
-      session_id: focusedCaseId,
+      session_id: focusedCaseId || null,
       user_id: user.id,
       type: 'call',
       excluded: false,

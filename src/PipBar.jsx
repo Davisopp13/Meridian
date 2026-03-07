@@ -158,8 +158,7 @@ export default function PipBar({
         <StatButton
           label={`${stats.calls} Calls`}
           color={C.calls}
-          disabled={!hasFocused}
-          onClick={() => hasFocused && onCall && onCall()}
+          onClick={() => onCall && onCall()}
           title="Call"
         />
         <StatButton
