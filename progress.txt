@@ -1052,3 +1052,21 @@ Learnings for future iterations:
   - ActivityLog sits between period tabs and stat cards (line ~178 in Dashboard.jsx)
   - 20px margin achieved with a wrapper div {marginBottom: 20} around ActivityLog
 ---
+
+## Iteration N - Task 5: Subscribe to live inserts
+- Added Supabase realtime subscription to useActivityData.js
+- Two `.on('postgres_changes', ...)` listeners: one for ct_sessions, one for mpl_sessions
+- Both filtered by `user_id=eq.${userId}`
+- On INSERT: normalizes payload.new and prepends to entries state (no full refetch)
+- Channel named `activity-${userId}-${rangeDays}` to allow multiple concurrent ranges
+- Cleanup: `supabase.removeChannel(channel)` in useEffect return
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useActivityData.js
+
+Learnings for future iterations:
+  - Supabase realtime uses `.channel(name).on('postgres_changes', {...}, cb).subscribe()`
+  - Cleanup requires `supabase.removeChannel(channel)` not channel.unsubscribe()
+  - Channel name should be unique per userId+rangeDays to avoid conflicts
+---
