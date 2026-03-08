@@ -14,8 +14,9 @@ import SwimlaneTray from './components/SwimlaneTray.jsx'
 import RFCPrompt from './components/overlays/RFCPrompt.jsx'
 import ProcessPicker from './components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from './components/ManualEntryForm.jsx'
+import { getNewYorkDateKey, getNewYorkDayRange } from './lib/timezone.js'
 
-const MERIDIAN_HOST = import.meta.env.VITE_APP_URL || window.location.origin
+const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
 function getBarSize(cases, processes, trayOpen, overlayOpen) {
   if (overlayOpen) return 'overlay'
@@ -24,6 +25,34 @@ function getBarSize(cases, processes, trayOpen, overlayOpen) {
   if (cases.length > 0) return 'caseActive'
   if (processes.length > 0) return 'processActive'
   return 'idle'
+}
+
+function getPipStateStorageKey(userId, dateKey) {
+  return `${PIP_STATE_STORAGE_PREFIX}:${userId}:${dateKey}`
+}
+
+function getElapsedFromTimestamps(startedAt, stoppedAt = null) {
+  if (!startedAt) return 0
+
+  const startMs = new Date(startedAt).getTime()
+  const stopMs = stoppedAt ? new Date(stoppedAt).getTime() : Date.now()
+  if (Number.isNaN(startMs) || Number.isNaN(stopMs)) return 0
+
+  return Math.max(0, Math.floor((stopMs - startMs) / 1000))
+}
+
+function restoreCaseFromRow(row) {
+  const awaiting = row.status === 'awaiting'
+  return {
+    id: row.id,
+    caseNum: row.case_number,
+    elapsed: Math.max(
+      Number(row.duration_s) || 0,
+      getElapsedFromTimestamps(row.created_at, awaiting ? row.awaiting_since : null)
+    ),
+    paused: awaiting,
+    awaiting,
+  }
 }
 
 export default function App() {
@@ -47,6 +76,8 @@ export default function App() {
   const [pipToast, setPipToast] = useState(null)
   const [pendingTrigger, setPendingTrigger] = useState(null) // queued trigger when PiP not open
   const [manualEntryOpen, setManualEntryOpen] = useState(false)
+  const restoredStateKeyRef = useRef(null)
+  const hasHydratedPipStateRef = useRef(false)
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -99,6 +130,32 @@ export default function App() {
     delete processTimers.current[id]
   }
 
+  function syncTimers(nextCases, nextProcesses) {
+    Object.values(caseTimers.current).forEach(clearInterval)
+    caseTimers.current = {}
+    Object.values(processTimers.current).forEach(clearInterval)
+    processTimers.current = {}
+
+    nextCases.forEach(c => {
+      if (!c.paused && !c.awaiting) startCaseTimer(c.id)
+    })
+
+    nextProcesses.forEach(p => {
+      if (!p.paused) startProcessTimer(p.id)
+    })
+  }
+
+  function mountPipWindow(pw) {
+    const existing = pw.document.getElementById('meridian-pip-root')
+    if (existing) existing.remove()
+
+    const container = pw.document.createElement('div')
+    container.id = 'meridian-pip-root'
+    pw.document.body.appendChild(container)
+    pipRootRef.current = ReactDOM.createRoot(container)
+    pipRootRef.current.render(buildPipBar())
+  }
+
   // ── bar_sessions tracking ─────────────────────────────────────────────────
   // Ref always has latest values so the isOpen effect avoids stale closures
   const closeBarRef = useRef(null)
@@ -109,7 +166,6 @@ export default function App() {
     const wasOpen = prevIsOpenRef.current
     prevIsOpenRef.current = isOpen
     if (wasOpen && !isOpen) {
-      // Close bar_sessions row
       if (closeBarRef.current.barSessionId) {
         const { barSessionId: bsId, cases: c, processes: p } = closeBarRef.current
         supabase.from('bar_sessions')
@@ -121,23 +177,7 @@ export default function App() {
           .eq('id', bsId)
           .then()
       }
-      // Reset all active state — PiP was closed externally
-      Object.values(caseTimers.current).forEach(clearInterval)
-      caseTimers.current = {}
-      Object.values(processTimers.current).forEach(clearInterval)
-      processTimers.current = {}
-      setCases([])
-      setProcesses([])
-      setFocusedCaseId(null)
-      setTrayOpen(false)
-      setIsMinimized(false)
-      setOverlayOpen(false)
-      setRfcPending(null)
-      setPickerPending(null)
-      setManualEntryOpen(false)
-      setLastTrigger('cases')
       setBarSessionId(null)
-      setPipToast(null)
     }
   }, [isOpen])
 
@@ -207,6 +247,94 @@ export default function App() {
     }
   }, [cases.length, processes.length])
 
+  useEffect(() => {
+    if (!user?.id) return
+
+    const dateKey = getNewYorkDateKey()
+    const storageKey = getPipStateStorageKey(user.id, dateKey)
+    if (!hasHydratedPipStateRef.current || restoredStateKeyRef.current !== storageKey) return
+
+    if (cases.length === 0 && processes.length === 0) {
+      localStorage.removeItem(storageKey)
+      return
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify({
+      dateKey,
+      cases,
+      processes,
+      focusedCaseId,
+      trayOpen,
+      lastTrigger,
+      savedAt: new Date().toISOString(),
+    }))
+  }, [user?.id, cases, processes, focusedCaseId, trayOpen, lastTrigger])
+
+  useEffect(() => {
+    if (!user?.id) {
+      restoredStateKeyRef.current = null
+      hasHydratedPipStateRef.current = false
+      return
+    }
+
+    const { dateKey, start, end } = getNewYorkDayRange()
+    const storageKey = getPipStateStorageKey(user.id, dateKey)
+    if (restoredStateKeyRef.current === storageKey) return
+
+    restoredStateKeyRef.current = storageKey
+
+    async function restoreActiveState() {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          const restoredCases = Array.isArray(parsed.cases) ? parsed.cases : []
+          const restoredProcesses = Array.isArray(parsed.processes) ? parsed.processes : []
+          const nextFocusedCaseId = restoredCases.some(c => c.id === parsed.focusedCaseId)
+            ? parsed.focusedCaseId
+            : restoredCases[0]?.id || null
+
+          setCases(restoredCases)
+          setProcesses(restoredProcesses)
+          setFocusedCaseId(nextFocusedCaseId)
+          setTrayOpen(Boolean(parsed.trayOpen) || restoredCases.length > 2 || restoredProcesses.length > 2)
+          setLastTrigger(parsed.lastTrigger || 'cases')
+          syncTimers(restoredCases, restoredProcesses)
+          hasHydratedPipStateRef.current = true
+          return
+        } catch (error) {
+          console.warn('[Meridian] Failed to restore PiP state snapshot', error)
+          localStorage.removeItem(storageKey)
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('ct_cases')
+        .select('id, case_number, status, awaiting_since, created_at, duration_s')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'awaiting'])
+        .is('ended_at', null)
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString())
+
+      if (error) {
+        console.error('[Meridian] Failed to restore active cases', error)
+        return
+      }
+
+      const restoredCases = (data || []).map(restoreCaseFromRow)
+      setCases(restoredCases)
+      setProcesses([])
+      setFocusedCaseId(restoredCases[0]?.id || null)
+      setTrayOpen(restoredCases.length > 2)
+      setLastTrigger(restoredCases.length > 0 ? 'cases' : 'processes')
+      syncTimers(restoredCases, [])
+      hasHydratedPipStateRef.current = true
+    }
+
+    restoreActiveState()
+  }, [user?.id])
+
   // ── Ensure PiP window is open; restore if minimized ──────────────────────
   async function ensurePipOpen() {
     if (isMinimized) {
@@ -215,10 +343,7 @@ export default function App() {
     if (!isOpen) {
       const pw = await openPip()
       if (!pw) return false
-      const container = pw.document.createElement('div')
-      pw.document.body.appendChild(container)
-      pipRootRef.current = ReactDOM.createRoot(container)
-      pipRootRef.current.render(buildPipBar())
+      mountPipWindow(pw)
       if (user) createBarSession(user.id)
     }
     return true
@@ -228,7 +353,7 @@ export default function App() {
 
   async function handleCaseStart({ caseNumber, accountId, caseType, caseSubtype }) {
     if (!user) return
-    if (!isOpen) {
+    if (!pipRootRef.current) {
       // PiP not open — queue the trigger so the banner can handle it
       setPendingTrigger({ type: 'case', data: { caseNumber, accountId, caseType, caseSubtype } })
       return
@@ -268,7 +393,7 @@ export default function App() {
 
   async function handleProcessStart() {
     if (!user || !profile?.onboarding_complete) return
-    if (!isOpen) {
+    if (!pipRootRef.current) {
       // PiP not open — queue the trigger
       setPendingTrigger({ type: 'process', data: {} })
       return
@@ -375,10 +500,7 @@ export default function App() {
     const pw = await openPip()
     if (!pw) return
 
-    const container = pw.document.createElement('div')
-    pw.document.body.appendChild(container)
-    pipRootRef.current = ReactDOM.createRoot(container)
-    pipRootRef.current.render(buildPipBar())
+    mountPipWindow(pw)
     if (user) createBarSession(user.id)
   }
 
@@ -390,10 +512,7 @@ export default function App() {
     const pw = await openPip()
     if (!pw) return
 
-    const container = pw.document.createElement('div')
-    pw.document.body.appendChild(container)
-    pipRootRef.current = ReactDOM.createRoot(container)
-    pipRootRef.current.render(buildPipBar())
+    mountPipWindow(pw)
     if (user) createBarSession(user.id)
 
     // Now process the queued trigger — PiP is open so it won't queue again
@@ -430,14 +549,19 @@ export default function App() {
     setFocusedCaseId(id)
   }
 
-  function handlePauseCase(id) {
+  async function handlePauseCase(id) {
+    const ok = await safeWrite(supabase.from('ct_cases')
+      .update({ status: 'awaiting', awaiting_since: new Date().toISOString() })
+      .eq('id', id))
+    if (!ok) return
+
     stopCaseTimer(id)
-    setCases(prev => prev.map(c => c.id === id ? { ...c, paused: true } : c))
+    setCases(prev => prev.map(c => c.id === id ? { ...c, paused: true, awaiting: true } : c))
   }
 
   async function handleResumeCase(id) {
     await supabase.from('ct_cases')
-      .update({ status: 'active' })
+      .update({ status: 'active', awaiting_since: null })
       .eq('id', id)
     setCases(prev => prev.map(c => c.id === id ? { ...c, paused: false, awaiting: false } : c))
     startCaseTimer(id)
