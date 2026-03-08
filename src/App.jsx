@@ -402,17 +402,13 @@ export default function App() {
 
     const id = crypto.randomUUID()
     const newProcess = { id, elapsed: 0, paused: false }
-
-    setProcesses(prev => {
-      const next = [...prev, newProcess]
-      if (next.length > 2) setTrayOpen(true)
-      return next
-    })
+    const nextProcesses = [...processes, newProcess]
+    const willOpenTray = nextProcesses.length > 2
+    setProcesses(nextProcesses)
+    if (willOpenTray) setTrayOpen(true)
     setLastTrigger('processes')
-    setPickerPending({ processId: id, elapsed: 0 })
-    setOverlayOpen(true)
     startProcessTimer(id)
-    resizeAndPin('categoryScreen')
+    resizeAndPin(willOpenTray ? 'trayOpen' : getBarSize(cases, nextProcesses, trayOpen, false))
   }
 
   usePendingTriggers(user?.id, { handleCaseStart, handleProcessStart })
@@ -692,8 +688,15 @@ export default function App() {
     if (ok) refetch()
   }
 
-  // `+` button — opens manual entry form directly, no pill or timer created
   function handleNewProcess() {
+    if (processes.length > 0) {
+      const latest = processes[processes.length - 1]
+      setPickerPending({ processId: latest.id, elapsed: latest.elapsed })
+      setOverlayOpen(true)
+      resizeAndPin('categoryScreen')
+      return
+    }
+
     setManualEntryOpen(true)
     setOverlayOpen(true)
     resizeAndPin('manualEntryForm')
