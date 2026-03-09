@@ -33,7 +33,7 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
       const title = isCase
         ? `Case ${trigger.data.caseNumber} received`
         : 'Process trigger received'
-      const body = 'Click to open Meridian and launch the widget'
+      const body = 'Click to open Meridian Widget and process the queued activity'
 
       try {
         const notification = new Notification(title, {
@@ -101,7 +101,7 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
           {label}
         </div>
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
-          Click to launch the widget and start tracking
+          Click to open Meridian Widget and continue
         </div>
       </div>
 
@@ -120,7 +120,7 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
           whiteSpace: 'nowrap',
         }}
       >
-        Launch
+        Open Widget
       </button>
 
       {/* Dismiss */}

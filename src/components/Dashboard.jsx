@@ -152,10 +152,10 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
               transition: 'all 150ms',
             }}
           >
-            ⚡ Bookmarklet
+            ⚡ Bookmarklets
           </button>
           <button style={launchBtnStyle} onClick={onLaunchPip}>
-            🚀 Launch Widget
+            🚀 Meridian Widget
           </button>
         </div>
       </div>
