@@ -10,19 +10,28 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
     <div style={{
       background: C.bg,
       borderTop: `1px solid ${C.divider}`,
-      padding: '10px 12px',
       display: 'flex',
       flexDirection: 'column',
-      gap: 8,
-      height: 'calc(100% - 36px)',
+      height: 'calc(100% - 60px)',
       minHeight: 0,
       boxSizing: 'border-box',
     }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 10, fontWeight: 700, color: C.textSec, letterSpacing: '0.07em' }}>
-          LOG PROCESS
-        </span>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '12px 14px 10px',
+        borderBottom: `1px solid ${C.divider}`,
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: C.textSec, letterSpacing: '0.07em' }}>
+            LOG PROCESS
+          </span>
+          <span style={{ fontSize: 11, color: C.textPri, fontVariantNumeric: 'tabular-nums' }}>
+            Timer: {Math.max(1, Math.round(elapsed / 60))} min
+          </span>
+        </div>
         <button
           onClick={onCancel}
           style={{
@@ -36,6 +45,7 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
         categories={categories}
         onSelect={handleSelect}
         onScreenChange={onScreenChange}
+        contentPadding="14px"
       />
     </div>
   )
