@@ -162,6 +162,11 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
 
       {/* Body */}
       <div style={bodyStyle}>
+        {/* Activity Log */}
+        <div style={{ marginBottom: 20 }}>
+          <ActivityLog userId={user.id} />
+        </div>
+
         {/* Period tabs */}
         <div style={periodTabsStyle}>
           {PERIODS.map(p => (
@@ -173,11 +178,6 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
               {p.label}
             </button>
           ))}
-        </div>
-
-        {/* Activity Log */}
-        <div style={{ marginBottom: 20 }}>
-          <ActivityLog userId={user.id} />
         </div>
 
         {/* Stat cards */}
