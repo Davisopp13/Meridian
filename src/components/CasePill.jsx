@@ -72,14 +72,14 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '0 10px', height: 32, borderRadius: 8,
-        background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(0,0,0,0.04)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.06)',
         fontSize: 12, fontWeight: 500, color: C.textSec,
         fontFamily: '"Inter", system-ui, sans-serif',
         cursor: 'pointer', flexShrink: 0,
         transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = C.textPri; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = C.textSec; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.color = C.textPri; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.color = C.textSec; }}
     >
       <span style={{ color: C.activeDot }}>●</span>
       <span>{caseNumber}</span>

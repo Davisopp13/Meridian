@@ -62,10 +62,10 @@ export default function PipBar({
         onClick={() => onRestore && onRestore()}
         style={{
           height: 32,
-          background: 'rgba(26,26,46,0.85)',
+          background: 'rgba(255,255,255,0.9)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '1px solid rgba(0,0,0,0.1)',
           borderRadius: 8,
           display: 'flex',
           alignItems: 'center',
@@ -74,11 +74,11 @@ export default function PipBar({
           cursor: 'pointer',
           userSelect: 'none',
           fontFamily: '"Inter", system-ui, sans-serif',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(36,36,66,0.85)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(26,26,46,0.7)'; }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.9)'; }}
       >
         <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
         <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px' }}>Meridian</span>

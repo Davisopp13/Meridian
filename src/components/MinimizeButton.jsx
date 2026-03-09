@@ -14,10 +14,10 @@ export default function MinimizeButton({ onClick }) {
   const style = {
     width: 28,
     height: 28,
-    background: hovered ? 'rgba(255,255,255,0.12)' : 'transparent',
+    background: hovered ? 'rgba(0,0,0,0.05)' : 'transparent',
     backdropFilter: hovered ? 'blur(8px)' : 'none',
     WebkitBackdropFilter: hovered ? 'blur(8px)' : 'none',
-    border: hovered ? '1px solid rgba(255,255,255,0.08)' : '1px solid transparent',
+    border: hovered ? '1px solid rgba(0,0,0,0.05)' : '1px solid transparent',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
