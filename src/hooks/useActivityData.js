@@ -9,27 +9,35 @@ function getCutoff(rangeDays) {
   return ny;
 }
 
-function normalizeCt(row) {
+const TYPE_LABEL = {
+  resolved: 'Resolved',
+  reclassified: 'Reclassified',
+  call: 'Call',
+  not_a_case: 'Not a Case',
+  rfc: 'RFC',
+};
+
+function normalizeCaseEvent(row) {
   return {
     id: row.id,
-    type: row.action_type,
+    type: TYPE_LABEL[row.type] || row.type,
     src: 'case',
-    case_number: row.case_number || null,
-    category: row.category || '',
-    dur: row.time_spent || 0,
-    rfc: row.is_rfc || false,
-    ts: new Date(row.created_at),
+    case_number: row.ct_cases?.case_number || null,
+    category: '',
+    dur: row.ct_cases?.duration_s || 0,
+    rfc: row.rfc || false,
+    ts: new Date(row.timestamp || row.created_at),
   };
 }
 
-function normalizeMpl(row) {
+function normalizeMplEntry(row) {
   return {
     id: row.id,
     type: 'Process',
     src: 'process',
     case_number: null,
-    category: row.category || '',
-    dur: row.duration || 0,
+    category: row.mpl_categories?.name || '',
+    dur: (row.minutes || 0) * 60,
     rfc: false,
     ts: new Date(row.created_at),
   };
@@ -51,31 +59,31 @@ export function useActivityData({ userId, rangeDays }) {
 
       const cutoff = getCutoff(rangeDays);
 
-      const [ctResult, mplResult] = await Promise.all([
+      const [caseResult, mplResult] = await Promise.all([
         supabase
-          .from('ct_sessions')
-          .select('id, case_number, action_type, category, time_spent, is_rfc, created_at')
+          .from('case_events')
+          .select('id, type, rfc, timestamp, ct_cases(case_number, duration_s)')
           .eq('user_id', userId)
-          .gte('created_at', cutoff.toISOString()),
+          .gte('timestamp', cutoff.toISOString()),
         supabase
-          .from('mpl_sessions')
-          .select('id, category, duration, created_at')
+          .from('mpl_entries')
+          .select('id, minutes, created_at, mpl_categories(name)')
           .eq('user_id', userId)
           .gte('created_at', cutoff.toISOString()),
       ]);
 
       if (cancelled) return;
 
-      if (ctResult.error || mplResult.error) {
-        setError(ctResult.error || mplResult.error);
+      if (caseResult.error || mplResult.error) {
+        setError(caseResult.error || mplResult.error);
         setLoading(false);
         return;
       }
 
-      const ctEntries  = (ctResult.data  || []).map(normalizeCt);
-      const mplEntries = (mplResult.data || []).map(normalizeMpl);
+      const caseEntries = (caseResult.data || []).map(normalizeCaseEvent);
+      const mplEntries  = (mplResult.data  || []).map(normalizeMplEntry);
 
-      const merged = [...ctEntries, ...mplEntries].sort((a, b) => b.ts - a.ts);
+      const merged = [...caseEntries, ...mplEntries].sort((a, b) => b.ts - a.ts);
 
       setEntries(merged);
       setLoading(false);
@@ -87,19 +95,13 @@ export function useActivityData({ userId, rangeDays }) {
       .channel(`activity-${userId}-${rangeDays}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ct_sessions', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const entry = normalizeCt(payload.new);
-          setEntries((prev) => [entry, ...prev]);
-        }
+        { event: 'INSERT', schema: 'public', table: 'case_events', filter: `user_id=eq.${userId}` },
+        () => { fetchData(); }
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'mpl_sessions', filter: `user_id=eq.${userId}` },
-        (payload) => {
-          const entry = normalizeMpl(payload.new);
-          setEntries((prev) => [entry, ...prev]);
-        }
+        { event: 'INSERT', schema: 'public', table: 'mpl_entries', filter: `user_id=eq.${userId}` },
+        () => { fetchData(); }
       )
       .subscribe();
 

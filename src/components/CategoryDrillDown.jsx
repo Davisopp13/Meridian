@@ -125,6 +125,7 @@ export default function CategoryDrillDown({
         overflowY: 'auto',
         flex: 1,
         minHeight: 0,
+        maxHeight: '100%',
         paddingLeft: contentPadding,
         paddingRight: contentPadding,
         paddingBottom: 12,

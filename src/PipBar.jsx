@@ -176,7 +176,11 @@ export default function PipBar({
       </div>
 
       {/* Tray / overlay slot */}
-      {children}
+      {children ? (
+        <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          {children}
+        </div>
+      ) : null}
 
       {/* PiP toast — fixed bottom, auto-dismisses after 2s */}
       {pipToast && (
