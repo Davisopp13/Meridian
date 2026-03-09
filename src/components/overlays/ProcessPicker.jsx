@@ -12,7 +12,7 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
       borderTop: `1px solid ${C.divider}`,
       display: 'flex',
       flexDirection: 'column',
-      height: 'calc(100% - 60px)',
+      flex: 1,
       minHeight: 0,
       boxSizing: 'border-box',
     }}>
