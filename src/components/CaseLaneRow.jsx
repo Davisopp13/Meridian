@@ -33,7 +33,7 @@ export default function CaseLaneRow({
   const [expanded, setExpanded] = useState(false)
   const [showRFC, setShowRFC] = useState(false)
 
-  const { id, caseNum, elapsed, awaiting } = caseSession
+  const { id, caseNum, elapsed, awaiting, previouslyResolved } = caseSession
 
   function handleRowClick() {
     onFocus(id)
@@ -44,14 +44,13 @@ export default function CaseLaneRow({
     e.stopPropagation()
     onResolve(id)
     setExpanded(false)
-    setShowRFC(true)
+    if (previouslyResolved) setShowRFC(true)
   }
 
   function handleReclass(e) {
     e.stopPropagation()
     onReclass(id)
     setExpanded(false)
-    setShowRFC(true)
   }
 
   function handleRFCYes() {
