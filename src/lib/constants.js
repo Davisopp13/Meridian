@@ -21,15 +21,15 @@ export const C = {
 }
 
 export const SIZES = {
-  idle:              { width: 680, height: 60 },
-  caseActive:        { width: 680, height: 60 },
-  processActive:     { width: 680, height: 60 },
-  bothActive:        { width: 680, height: 60 },
-  trayOpen:          { width: 680, height: 360 },
-  categoryScreen:    { width: 680, height: 380 },
-  subcategoryScreen: { width: 680, height: 380 },
-  manualEntryForm:   { width: 680, height: 360 },
-  overlay:           { width: 680, height: 280 },
+  idle:              { width: 680, height: 68 },
+  caseActive:        { width: 680, height: 68 },
+  processActive:     { width: 680, height: 68 },
+  bothActive:        { width: 680, height: 68 },
+  trayOpen:          { width: 680, height: 368 },
+  categoryScreen:    { width: 680, height: 392 },
+  subcategoryScreen: { width: 680, height: 392 },
+  manualEntryForm:   { width: 680, height: 368 },
+  overlay:           { width: 680, height: 292 },
   minimized:         { width: 160, height: 32 },
 }
 
