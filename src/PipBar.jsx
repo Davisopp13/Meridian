@@ -1,4 +1,4 @@
-import { C } from './lib/constants.js';
+import { C, formatElapsed } from './lib/constants.js';
 import MButton from './components/MButton.jsx';
 import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
@@ -57,11 +57,66 @@ export default function PipBar({
 }) {
   // ── Minimized restore strip ──────────────────────────────────────────────
   if (isMinimized) {
+    const focusedCase = focusedCaseId ? cases.find(c => c.id === focusedCaseId) : null;
+
+    let minContent;
+    if (focusedCase) {
+      // Active Case Focus
+      minContent = (
+        <>
+          <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
+          <span style={{ color: C.textPri, fontSize: 12, fontWeight: 600 }}>#{focusedCase.caseNum}</span>
+          <span style={{ color: C.textSec, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+            ({formatElapsed(focusedCase.elapsed)})
+          </span>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (focusedCase.paused) {
+                onResumeCase && onResumeCase(focusedCase.id);
+              } else {
+                onPauseCase && onPauseCase(focusedCase.id);
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '2px 6px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: 'auto', // push to right
+              color: focusedCase.paused ? '#10b981' : '#f59e0b',
+              fontSize: 12,
+            }}
+          >
+            {focusedCase.paused ? '▶' : '⏸'}
+          </button>
+        </>
+      );
+    } else {
+      // Summary Stats
+      minContent = (
+        <>
+          <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
+          <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px' }}>Meridian</span>
+          <div style={{ width: 1, height: 12, background: C.divider, margin: '0 4px', marginLeft: 'auto' }} />
+          <div style={{ display: 'flex', gap: 6, fontSize: 11, fontWeight: 600, color: C.textSec }}>
+            <span style={{ color: C.resolved }}>{stats.resolved} ✓</span>
+            <span style={{ color: C.calls }}>{stats.calls} 📞</span>
+          </div>
+        </>
+      );
+    }
+
     return (
       <div
         onClick={() => onRestore && onRestore()}
         style={{
           height: 32,
+          padding: '0 12px',
           background: 'rgba(255,255,255,0.9)',
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
@@ -69,7 +124,6 @@ export default function PipBar({
           borderRadius: 8,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
           gap: 8,
           cursor: 'pointer',
           userSelect: 'none',
@@ -80,8 +134,7 @@ export default function PipBar({
         onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.9)'; }}
       >
-        <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
-        <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px' }}>Meridian</span>
+        {minContent}
       </div>
     );
   }
