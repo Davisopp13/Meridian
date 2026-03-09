@@ -60,7 +60,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
       display: 'flex',
       flexDirection: 'column',
       gap: 6,
-      height: 'calc(100% - 36px)',
+      flex: 1,
       minHeight: 0,
       boxSizing: 'border-box',
       fontFamily: '"Inter", system-ui, sans-serif',
