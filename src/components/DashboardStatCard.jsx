@@ -12,7 +12,7 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
     height: 130,
     borderRadius: 16,
     background: color,
-    opacity: isActive ? 1 : 0.85,
+    opacity: isActive ? 1 : 0.9,
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
     border: `2px solid ${isActive ? 'rgba(255,255,255,0.6)' : 'transparent'}`,

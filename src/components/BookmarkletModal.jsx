@@ -1,11 +1,11 @@
 import React from 'react';
 
 const C = {
-  bg:      '#1a1a2e',
-  mBtn:    '#003087',
+  bg: '#1a1a2e',
+  mBtn: '#003087',
   textPri: 'rgba(255,255,255,0.93)',
-  textSec: 'rgba(255,255,255,0.45)',
-  border:  'rgba(255,255,255,0.12)',
+  textSec: 'rgba(255,255,255,0.75)',
+  border: 'rgba(255,255,255,0.12)',
 };
 
 const instructions = [

@@ -20,31 +20,31 @@ const C = {
   purpleBg: 'rgba(167,139,250,0.12)',
   purpleBorder: 'rgba(167,139,250,0.28)',
   textPrimary: '#f1f5f9',
-  textSecondary: '#94a3b8',
-  textMuted: '#4b5563',
+  textSecondary: '#cbd5e1',
+  textMuted: '#94a3b8',
 };
 
 const TYPE_STYLE = {
-  Resolved:     { color: C.green,  bg: C.greenBg,  border: C.greenBorder  },
-  Reclassified: { color: C.red,    bg: C.redBg,    border: C.redBorder    },
-  Call:         { color: C.blue,   bg: C.blueBg,   border: C.blueBorder   },
-  Process:      { color: C.purple, bg: C.purpleBg, border: C.purpleBorder },
-  Awaiting:     { color: C.orange, bg: 'rgba(232,84,10,0.12)', border: 'rgba(232,84,10,0.28)' },
+  Resolved: { color: C.green, bg: C.greenBg, border: C.greenBorder },
+  Reclassified: { color: C.red, bg: C.redBg, border: C.redBorder },
+  Call: { color: C.blue, bg: C.blueBg, border: C.blueBorder },
+  Process: { color: C.purple, bg: C.purpleBg, border: C.purpleBorder },
+  Awaiting: { color: C.orange, bg: 'rgba(232,84,10,0.12)', border: 'rgba(232,84,10,0.28)' },
   'Not a Case': { color: C.textMuted, bg: 'rgba(75,85,99,0.12)', border: 'rgba(75,85,99,0.28)' },
 };
 
 const FILTER_TABS = [
-  { key: 'Resolved',     label: 'Resolved'     },
+  { key: 'Resolved', label: 'Resolved' },
   { key: 'Reclassified', label: 'Reclassified' },
-  { key: 'Call',         label: 'Calls'        },
-  { key: 'Process',      label: 'Processes'    },
+  { key: 'Call', label: 'Calls' },
+  { key: 'Process', label: 'Processes' },
 ];
 
 const RANGES = [
-  { key: 'today', label: 'Today',     days: 0  },
-  { key: '2days', label: '2 Days',    days: 1  },
-  { key: 'week',  label: 'This Week', days: 6  },
-  { key: 'month', label: 'Month',     days: 29 },
+  { key: 'today', label: 'Today', days: 0 },
+  { key: '2days', label: '2 Days', days: 1 },
+  { key: 'week', label: 'This Week', days: 6 },
+  { key: 'month', label: 'Month', days: 29 },
 ];
 
 const MOCK_ENTRIES = [

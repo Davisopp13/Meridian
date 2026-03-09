@@ -128,8 +128,8 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
             onClick={async () => { await supabase.auth.signOut() }}
             style={{
               height: 36, padding: '0 16px', borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: 'transparent', color: 'rgba(255,255,255,0.45)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              background: 'transparent', color: 'rgba(255,255,255,0.8)',
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
               transition: 'all 150ms',
             }}
@@ -142,9 +142,9 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
               height: 36,
               padding: '0 14px',
               borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.12)',
+              border: '1px solid rgba(255,255,255,0.2)',
               background: 'transparent',
-              color: 'rgba(255,255,255,0.55)',
+              color: 'rgba(255,255,255,0.85)',
               fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',

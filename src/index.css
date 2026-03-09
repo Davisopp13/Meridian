@@ -26,8 +26,8 @@
 
   /* Text Colors */
   --text-pri: rgba(255, 255, 255, 0.95);
-  --text-sec: rgba(255, 255, 255, 0.55);
-  --text-dim: rgba(255, 255, 255, 0.3);
+  --text-sec: rgba(255, 255, 255, 0.75);
+  --text-dim: rgba(255, 255, 255, 0.55);
 
   /* Shadows & Effects */
   --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.15);

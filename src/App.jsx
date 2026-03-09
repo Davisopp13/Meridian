@@ -354,9 +354,12 @@ export default function App() {
   async function handleCaseStart({ caseNumber, accountId, caseType, caseSubtype }) {
     if (!user) return
     if (!pipRootRef.current) {
-      // PiP not open — queue the trigger so the banner can handle it
-      setPendingTrigger({ type: 'case', data: { caseNumber, accountId, caseType, caseSubtype } })
-      return
+      const opened = await ensurePipOpen()
+      if (!opened || !pipRootRef.current) {
+        // PiP open blocked — queue the trigger so the banner can handle it
+        setPendingTrigger({ type: 'case', data: { caseNumber, accountId, caseType, caseSubtype } })
+        return
+      }
     }
     if (isMinimized) setIsMinimized(false)
 
@@ -394,9 +397,12 @@ export default function App() {
   async function handleProcessStart() {
     if (!user || !profile?.onboarding_complete) return
     if (!pipRootRef.current) {
-      // PiP not open — queue the trigger
-      setPendingTrigger({ type: 'process', data: {} })
-      return
+      const opened = await ensurePipOpen()
+      if (!opened || !pipRootRef.current) {
+        // PiP open blocked — queue the trigger
+        setPendingTrigger({ type: 'process', data: {} })
+        return
+      }
     }
     if (isMinimized) setIsMinimized(false)
 
