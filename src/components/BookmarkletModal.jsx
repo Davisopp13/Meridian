@@ -10,8 +10,8 @@ const C = {
 
 const instructions = [
   'Show your bookmarks bar — press Ctrl+Shift+B (Windows) or Cmd+Shift+B (Mac)',
-  'Drag the buttons below up to your bookmarks bar',
-  'Use Log to Meridian to capture work. Use Meridian Widget if you need to open the Meridian app/widget first.',
+  'Drag the orange button below up to your bookmarks bar',
+  'Click it on a Salesforce page to log a case, or any other page to log a process',
 ];
 
 export default function BookmarkletModal({ onClose, user }) {
@@ -28,8 +28,6 @@ export default function BookmarkletModal({ onClose, user }) {
   // 5. The trigger code sends SUPABASE_INSERT_TRIGGER to the relay, which proxies to Supabase
   // 6. Shows a toast confirmation
   const bmHref = `javascript:(function(){var UID='${userId}';if(!UID){alert('Meridian: Bookmarklet not configured. Re-install from Meridian.');return;}var HOST='${host}';var RELAY_ID='meridian-relay-iframe';var ex=document.getElementById(RELAY_ID);if(ex)ex.remove();var rf=document.createElement('iframe');rf.id=RELAY_ID;rf.src=HOST+'/meridian-relay.html?load=trigger&t='+Date.now();rf.style.cssText='display:none;position:fixed;width:0;height:0;border:none;z-index:-1';document.body.appendChild(rf);window.addEventListener('message',function h(e){if(e.data&&e.data.meridianTriggerCode){window.removeEventListener('message',h);try{(new Function('MERIDIAN_PAYLOAD',e.data.meridianTriggerCode))({userId:UID,relayFrame:rf.contentWindow})}catch(err){console.error('[Meridian] trigger exec error:',err);rf.remove()}}if(e.data&&e.data.meridianTriggerError){window.removeEventListener('message',h);rf.remove();alert('Meridian: '+e.data.meridianTriggerError)}});setTimeout(function(){var el=document.getElementById(RELAY_ID);if(el)el.remove()},15000)})();`;
-  const widgetHref = `javascript:(function(){var HOST='${host}';window.open(HOST,'_blank','noopener,noreferrer');})();`;
-
   return (
     <div
       style={{
@@ -66,10 +64,10 @@ export default function BookmarkletModal({ onClose, user }) {
 
         {/* Heading */}
         <h2 style={{ color: C.textPri, fontSize: 20, fontWeight: 800, margin: '0 0 6px' }}>
-          Install Bookmarklets
+          Install the Bookmarklet
         </h2>
         <p style={{ color: C.textSec, fontSize: 13, margin: '0 0 28px' }}>
-          Drag these to your bookmarks bar
+          Drag the button below to your bookmarks bar
         </p>
 
         {/* Instructions */}
@@ -88,49 +86,27 @@ export default function BookmarkletModal({ onClose, user }) {
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '20px auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <a
-              href={bmHref}
-              draggable="true"
-              style={{
-                display: 'inline-block',
-                background: '#E8540A',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: 14,
-                padding: '10px 24px',
-                borderRadius: 20,
-                cursor: 'grab',
-                userSelect: 'none',
-                textDecoration: 'none',
-              }}
-              onClick={e => e.preventDefault()}
-            >
-              Log to Meridian
-            </a>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <a
-              href={widgetHref}
-              draggable="true"
-              style={{
-                display: 'inline-block',
-                background: '#003087',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: 14,
-                padding: '10px 24px',
-                borderRadius: 20,
-                cursor: 'grab',
-                userSelect: 'none',
-                textDecoration: 'none',
-              }}
-              onClick={e => e.preventDefault()}
-            >
-              Meridian Widget
-            </a>
-          </div>
+        {/* Bookmarklet anchor */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px auto' }}>
+          <a
+            href={bmHref}
+            draggable="true"
+            style={{
+              display: 'inline-block',
+              background: '#E8540A',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 14,
+              padding: '10px 24px',
+              borderRadius: 20,
+              cursor: 'grab',
+              userSelect: 'none',
+              textDecoration: 'none',
+            }}
+            onClick={e => e.preventDefault()}
+          >
+            ⚡ Meridian
+          </a>
         </div>
 
         {/* Info callout */}

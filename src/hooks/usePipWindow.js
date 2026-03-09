@@ -20,6 +20,7 @@ export function usePipWindow() {
         height: SIZES.idle.height,
       });
 
+      pw.document.title = 'Meridian';
       pw.document.body.style.cssText =
         'margin:0;padding:0;overflow:hidden;background:transparent;font-family:"Inter",system-ui,sans-serif';
 

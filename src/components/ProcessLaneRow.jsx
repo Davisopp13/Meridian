@@ -121,7 +121,7 @@ export default function ProcessLaneRow({
 
       {/* Step 1: Category list */}
       {categories.length > 0 ? (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6, maxHeight: 90, overflowY: 'auto' }}>
           {categories.map(cat => (
             <button
               key={cat.id}
@@ -146,7 +146,7 @@ export default function ProcessLaneRow({
 
       {/* Step 2: Subcategory list */}
       {selectedCategory && (selectedCategory.mpl_subcategories || []).length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6, maxHeight: 72, overflowY: 'auto' }}>
           {(selectedCategory.mpl_subcategories || []).map(sub => (
             <button
               key={sub.id}

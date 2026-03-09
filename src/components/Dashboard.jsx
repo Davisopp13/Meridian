@@ -45,8 +45,6 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
   const [activeMetric, setActiveMetric] = useState('resolved');
   const [chartType, setChartType] = useState('bar');
   const [showBookmarkletModal, setShowBookmarkletModal] = useState(false);
-  const host = import.meta.env.VITE_APP_URL || window.location.origin;
-  const widgetHref = `javascript:(function(){window.open('${host}','_blank','noopener,noreferrer');})();`;
 
   const stats = useDashboardStats({ userId: user.id, period });
 
@@ -154,10 +152,10 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
               transition: 'all 150ms',
             }}
           >
-            ⚡ Bookmarklets
+            ⚡ Bookmarklet
           </button>
           <button style={launchBtnStyle} onClick={onLaunchPip}>
-            🚀 Meridian Widget
+            🚀 Launch Widget
           </button>
         </div>
       </div>
@@ -175,52 +173,6 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
               {p.label}
             </button>
           ))}
-        </div>
-
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          marginBottom: 20,
-          padding: '14px 16px',
-          borderRadius: 14,
-          border: `1px solid ${C.border}`,
-          background: 'rgba(255,255,255,0.04)',
-        }}>
-          <div>
-            <div style={{ color: C.textPri, fontSize: 14, fontWeight: 700 }}>
-              Meridian Widget Bookmarklet
-            </div>
-            <div style={{ color: C.textSec, fontSize: 12, marginTop: 4 }}>
-              Drag this to your bookmarks bar if you want a quick way to open Meridian before launching the widget.
-            </div>
-          </div>
-          <a
-            href={widgetHref}
-            draggable="true"
-            onClick={e => e.preventDefault()}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: 150,
-              height: 38,
-              padding: '0 18px',
-              borderRadius: 999,
-              background: C.mBtn,
-              color: '#fff',
-              textDecoration: 'none',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'grab',
-              userSelect: 'none',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
-            Meridian Widget
-          </a>
         </div>
 
         {/* Activity Log */}
