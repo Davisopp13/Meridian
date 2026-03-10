@@ -51,7 +51,6 @@ export default function CategoryDrillDown({
           width: '100%',
           textAlign: 'left',
           padding: '11px 12px',
-          marginBottom: 8,
           borderRadius: 8,
           border: '1px solid rgba(255,255,255,0.18)',
           cursor: 'pointer',
@@ -130,12 +129,14 @@ export default function CategoryDrillDown({
         paddingRight: contentPadding,
         paddingBottom: 12,
       }}>
-        {screen === 'category'
-          ? categories.map(cat => itemBtn(cat, handleSelectCat))
-          : (activeCat?.mpl_subcategories || []).map(sub =>
-              itemBtn(sub, s => onSelect(activeCat, s))
-            )
-        }
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {screen === 'category'
+            ? categories.map(cat => itemBtn(cat, handleSelectCat))
+            : (activeCat?.mpl_subcategories || []).map(sub =>
+                itemBtn(sub, s => onSelect(activeCat, s))
+              )
+          }
+        </div>
       </div>
     </div>
   )
