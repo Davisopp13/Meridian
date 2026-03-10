@@ -21,6 +21,7 @@ function getInitials(name) {
 
 export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletModal }) {
     const [isLaunchHovered, setIsLaunchHovered] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
 
     const containerStyle = {
         height: 72,
@@ -65,16 +66,55 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
         gap: 12,
     };
 
+    const userChipWrapperStyle = {
+        position: 'relative',
+        marginRight: 8,
+    };
+
     const userChipStyle = {
         height: 40,
         padding: '0 14px 0 6px',
         borderRadius: 20,
-        border: `1px solid ${C.border}`,
-        background: 'rgba(255, 255, 255, 0.05)',
+        border: `1px solid ${showUserMenu ? 'rgba(255, 255, 255, 0.25)' : C.border}`,
+        background: showUserMenu ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        marginRight: 8,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+    };
+
+    const dropdownStyle = {
+        position: 'absolute',
+        top: 'calc(100% + 8px)',
+        right: 0,
+        minWidth: 180,
+        background: 'rgba(30, 30, 52, 0.95)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: `1px solid ${C.border}`,
+        borderRadius: 12,
+        padding: '6px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+        zIndex: 200,
+    };
+
+    const dropdownItemStyle = {
+        width: '100%',
+        padding: '10px 14px',
+        border: 'none',
+        background: 'transparent',
+        color: C.textPri,
+        fontSize: 13,
+        fontWeight: 500,
+        cursor: 'pointer',
+        borderRadius: 8,
+        textAlign: 'left',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        transition: 'background 0.15s ease',
+        boxSizing: 'border-box',
     };
 
     const initialAvatarStyle = {
@@ -155,22 +195,77 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
 
             <div style={actionsSectionStyle}>
                 {profile?.full_name && (
-                    <div style={userChipStyle}>
-                        <div style={initialAvatarStyle}>
-                            {getInitials(profile.full_name)}
+                    <div style={userChipWrapperStyle}>
+                        <div
+                            style={userChipStyle}
+                            onClick={() => setShowUserMenu(!showUserMenu)}
+                            onMouseOver={(e) => {
+                                if (!showUserMenu) {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                                }
+                            }}
+                            onMouseOut={(e) => {
+                                if (!showUserMenu) {
+                                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                    e.currentTarget.style.borderColor = C.border;
+                                }
+                            }}
+                        >
+                            <div style={initialAvatarStyle}>
+                                {getInitials(profile.full_name)}
+                            </div>
+                            <span style={usernameStyle}>{profile.full_name.toLowerCase()}</span>
+                            <span style={{
+                                fontSize: 10,
+                                color: C.textSec,
+                                marginLeft: 2,
+                                transition: 'transform 0.2s ease',
+                                transform: showUserMenu ? 'rotate(180deg)' : 'none',
+                            }}>▼</span>
                         </div>
-                        <span style={usernameStyle}>{profile.full_name.toLowerCase()}</span>
+
+                        {showUserMenu && (
+                            <>
+                                <div
+                                    style={{ position: 'fixed', inset: 0, zIndex: 199 }}
+                                    onClick={() => setShowUserMenu(false)}
+                                />
+                                <div style={dropdownStyle}>
+                                    <button
+                                        style={dropdownItemStyle}
+                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                                        onClick={() => {
+                                            setShowUserMenu(false);
+                                            // TODO: open settings
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 15 }}>&#9881;</span>
+                                        Settings
+                                    </button>
+                                    <div style={{
+                                        height: 1,
+                                        background: C.border,
+                                        margin: '4px 8px',
+                                    }} />
+                                    <button
+                                        style={{ ...dropdownItemStyle, color: '#ef4444' }}
+                                        onMouseOver={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                        onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                                        onClick={() => {
+                                            setShowUserMenu(false);
+                                            supabase.auth.signOut();
+                                        }}
+                                    >
+                                        <span style={{ fontSize: 15 }}>&#10140;</span>
+                                        Sign Out
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
-
-                <button
-                    onClick={() => supabase.auth.signOut()}
-                    style={secondaryBtnStyle}
-                    onMouseOver={hoverOn}
-                    onMouseOut={hoverOff}
-                >
-                    Sign Out
-                </button>
 
                 <button
                     onClick={() => setShowBookmarkletModal(true)}
