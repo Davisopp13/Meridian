@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase.js';
+import Navbar from './Navbar.jsx';
 import { useDashboardStats } from '../hooks/useDashboardStats.js';
 import DashboardStatCard from './DashboardStatCard.jsx';
 import DashboardTable from './DashboardTable.jsx';
@@ -48,18 +48,6 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
 
   const stats = useDashboardStats({ userId: user.id, period });
 
-  const topBarStyle = {
-    height: 64,
-    background: C.bg,
-    borderBottom: `1px solid ${C.border}`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 24px',
-    flexShrink: 0,
-    boxSizing: 'border-box',
-  };
-
   const bodyStyle = {
     maxWidth: 1200,
     margin: '0 auto',
@@ -98,67 +86,10 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
     };
   }
 
-  const launchBtnStyle = {
-    background: C.mBtn,
-    color: '#fff',
-    border: 'none',
-    borderLeft: `3px solid ${C.mMark}`,
-    borderRadius: 10,
-    height: 40,
-    padding: '0 20px',
-    fontSize: 14,
-    fontWeight: 700,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  };
-
   return (
     <div style={{ background: C.bgDeep, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      {/* Top bar */}
-      <div style={topBarStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/meridian-mark-192.png" alt="Meridian" style={{ width: 32, height: 32, borderRadius: 6 }} />
-          <span style={{ color: '#fff', fontSize: 17, fontWeight: 800 }}>Meridian</span>
-          {profile?.full_name && (
-            <span style={{ color: C.textSec, fontSize: 13 }}>{profile.full_name}</span>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={async () => { await supabase.auth.signOut() }}
-            style={{
-              height: 36, padding: '0 16px', borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'transparent', color: 'rgba(255,255,255,0.8)',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              transition: 'all 150ms',
-            }}
-          >
-            Sign Out
-          </button>
-          <button
-            onClick={() => setShowBookmarkletModal(true)}
-            style={{
-              height: 36,
-              padding: '0 14px',
-              borderRadius: 8,
-              border: '1px solid rgba(255,255,255,0.2)',
-              background: 'transparent',
-              color: 'rgba(255,255,255,0.85)',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              marginRight: 10,
-              transition: 'all 150ms',
-            }}
-          >
-            ⚡ Bookmarklet
-          </button>
-          <button style={launchBtnStyle} onClick={onLaunchPip}>
-            🚀 Launch Widget
-          </button>
-        </div>
-      </div>
+      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} setShowBookmarkletModal={setShowBookmarkletModal} />
+
 
       {/* Body */}
       <div style={bodyStyle}>

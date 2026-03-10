@@ -112,7 +112,7 @@ export function usePipWindow() {
       const y = window.screen.availHeight - size.height - PIP_MARGIN;
       pipWindow.moveTo(x, y);
     } catch (e) {
-      console.warn('[Meridian] PiP resize/move skipped (no user activation):', mode);
+      console.warn('[Meridian] PiP resize/move skipped (no user activation):', mode, e);
     }
   }, [pipWindow]);
 

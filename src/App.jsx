@@ -379,6 +379,11 @@ export default function App() {
     }
     if (isMinimized) setIsMinimized(false)
 
+    // Pre-compute target size before first DB await (user activation intact)
+    const willOpenTray = cases.length + 1 > 2
+    if (willOpenTray) setTrayOpen(true)
+    resizeAndPin(willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive'))
+
     const { data, error } = await supabase
       .from('ct_cases')
       .insert({
@@ -409,17 +414,20 @@ export default function App() {
     const newCase = { id: sessionId, caseNum: caseNumber, elapsed: 0, paused: false, awaiting: false, previouslyResolved }
 
     const nextCases = [...cases, newCase]
-    const willOpenTray = nextCases.length > 2
-    if (willOpenTray) setTrayOpen(true)
     setCases(nextCases)
     setFocusedCaseId(sessionId)
     setLastTrigger('cases')
     startCaseTimer(sessionId)
-    resizeAndPin(willOpenTray ? 'trayOpen' : getBarSize(nextCases, processes, trayOpen, false))
   }
 
   async function handleProcessStart() {
     if (!user || !profile?.onboarding_complete) return
+
+    // Pre-compute target size before any potential await (user activation intact)
+    const willOpenTrayEarly = processes.length + 1 > 2
+    if (willOpenTrayEarly) setTrayOpen(true)
+    resizeAndPin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
+
     if (!pipRootRef.current) {
       const opened = await ensurePipOpen()
       if (!opened || !pipRootRef.current) {
@@ -433,12 +441,9 @@ export default function App() {
     const id = crypto.randomUUID()
     const newProcess = { id, elapsed: 0, paused: false }
     const nextProcesses = [...processes, newProcess]
-    const willOpenTray = nextProcesses.length > 2
     setProcesses(nextProcesses)
-    if (willOpenTray) setTrayOpen(true)
     setLastTrigger('processes')
     startProcessTimer(id)
-    resizeAndPin(willOpenTray ? 'trayOpen' : getBarSize(cases, nextProcesses, trayOpen, false))
   }
 
   usePendingTriggers(user?.id, { handleCaseStart, handleProcessStart })
@@ -597,10 +602,16 @@ export default function App() {
     const c = cases.find(x => x.id === id)
     if (!c || !user) return
     stopCaseTimer(id)
+    // Pre-compute target size before await (user activation intact)
+    const remaining = cases.filter(x => x.id !== id)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     await supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: null })
       .eq('id', id)
-    const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)
     if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
     refetch()
@@ -617,10 +628,15 @@ export default function App() {
       setOverlayOpen(true)
       resizeAndPin('overlay')
     } else {
+      const remaining = cases.filter(x => x.id !== id)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
       await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
         .eq('id', id))
-      const remaining = cases.filter(x => x.id !== id)
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()
@@ -647,6 +663,19 @@ export default function App() {
     if (!focusedCaseId || !user) return
     const c = cases.find(x => x.id === focusedCaseId)
     if (!c) return
+    // Pre-compute target size before first await (user activation intact)
+    if (c.previouslyResolved) {
+      setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
+      setOverlayOpen(true)
+      resizeAndPin('overlay')
+    } else {
+      const remaining = cases.filter(x => x.id !== focusedCaseId)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
+    }
     const ok = await safeWrite(supabase.from('case_events').insert({
       session_id: focusedCaseId,
       user_id: user.id,
@@ -654,12 +683,14 @@ export default function App() {
       excluded: false,
       rfc: false,
     }))
-    if (!ok) return
-    if (c.previouslyResolved) {
-      setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
-      setOverlayOpen(true)
-      resizeAndPin('overlay')
-    } else {
+    if (!ok) {
+      // Roll back optimistic state if write failed
+      setRfcPending(null)
+      setOverlayOpen(false)
+      resizeAndPin(getBarSize(cases, processes, trayOpen, false))
+      return
+    }
+    if (!c.previouslyResolved) {
       stopCaseTimer(focusedCaseId)
       await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -676,6 +707,13 @@ export default function App() {
     if (!focusedCaseId || !user) return
     const c = cases.find(x => x.id === focusedCaseId)
     if (!c) return
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = cases.filter(x => x.id !== focusedCaseId)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     const ok = await safeWrite(supabase.from('case_events').insert({
       session_id: focusedCaseId,
       user_id: user.id,
@@ -688,7 +726,6 @@ export default function App() {
     await safeWrite(supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
       .eq('id', focusedCaseId))
-    const remaining = cases.filter(x => x.id !== focusedCaseId)
     setCases(remaining)
     setFocusedCaseId(remaining[0]?.id || null)
     refetch()
@@ -699,6 +736,13 @@ export default function App() {
     if (!rfcPending || !user) return
     const { sessionId, elapsed } = rfcPending
     stopCaseTimer(sessionId)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = cases.filter(x => x.id !== sessionId)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     const ok1 = await safeWrite(supabase.from('case_events').insert({
       session_id: sessionId,
       user_id: user.id,
@@ -710,7 +754,6 @@ export default function App() {
     await safeWrite(supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
       .eq('id', sessionId))
-    const remaining = cases.filter(x => x.id !== sessionId)
     setCases(remaining)
     if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
     setRfcPending(null)
@@ -723,10 +766,16 @@ export default function App() {
     if (!rfcPending || !user) return
     const { sessionId, elapsed } = rfcPending
     stopCaseTimer(sessionId)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = cases.filter(x => x.id !== sessionId)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     await safeWrite(supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
       .eq('id', sessionId))
-    const remaining = cases.filter(x => x.id !== sessionId)
     setCases(remaining)
     if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
     setRfcPending(null)
@@ -769,6 +818,8 @@ export default function App() {
 
   async function handleManualLog(categoryId, subcategoryId, minutes) {
     if (!user) return
+    // Pre-compute target size before await (user activation intact)
+    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
     await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -779,13 +830,19 @@ export default function App() {
     setManualEntryOpen(false)
     setOverlayOpen(false)
     refetch()
-    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
   }
 
   async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
     if (!pickerPending || !user) return
     const { processId } = pickerPending
     stopProcessTimer(processId)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = processes.filter(p => p.id !== processId)
+    if (cases.length === 0 && remaining.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
+    }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -794,16 +851,12 @@ export default function App() {
       source: 'pip',
     }))
     if (!ok) return
-    const remaining = processes.filter(p => p.id !== processId)
     setProcesses(remaining)
     setPickerPending(null)
     setOverlayOpen(false)
     refetch()
     if (cases.length === 0 && remaining.length === 0) {
       setTrayOpen(false)
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
     }
   }
 
@@ -833,6 +886,16 @@ export default function App() {
     if (!user) return
     const c = cases.find(x => x.id === id)
     if (!c) return
+    // Pre-compute target size before first await (user activation intact)
+    // Only resize if case will actually close (not previouslyResolved — those stay open for inline RFC)
+    if (!c.previouslyResolved) {
+      const remaining = cases.filter(x => x.id !== id)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
+    }
     await supabase.from('case_events').insert({
       session_id: id,
       user_id: user.id,
@@ -858,6 +921,14 @@ export default function App() {
     if (!user) return
     const c = cases.find(x => x.id === id)
     if (!c) return
+    stopCaseTimer(id)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = cases.filter(x => x.id !== id)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     await supabase.from('case_events').insert({
       session_id: id,
       user_id: user.id,
@@ -865,11 +936,9 @@ export default function App() {
       excluded: false,
       rfc: false,
     })
-    stopCaseTimer(id)
     await supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
       .eq('id', id)
-    const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)
     if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
     refetch()
@@ -904,6 +973,13 @@ export default function App() {
     const c = cases.find(x => x.id === id)
     if (!c) return
     stopCaseTimer(id)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = cases.filter(x => x.id !== id)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     await supabase.from('case_events').insert({
       session_id: id,
       user_id: user.id,
@@ -914,7 +990,6 @@ export default function App() {
     await supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'abandoned' })
       .eq('id', id)
-    const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)
     if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
     refetch()
@@ -926,6 +1001,13 @@ export default function App() {
     const c = cases.find(x => x.id === id)
     if (!c) return
     stopCaseTimer(id)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = cases.filter(x => x.id !== id)
+    if (remaining.length === 0 && processes.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    }
     await supabase.from('case_events').insert({
       session_id: id,
       user_id: user.id,
@@ -936,7 +1018,6 @@ export default function App() {
     await supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
       .eq('id', id)
-    const remaining = cases.filter(x => x.id !== id)
     setCases(remaining)
     if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
     refetch()
@@ -946,6 +1027,13 @@ export default function App() {
   async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
     if (!user) return
     stopProcessTimer(id)
+    // Pre-compute target size before first await (user activation intact)
+    const remaining = processes.filter(p => p.id !== id)
+    if (cases.length === 0 && remaining.length === 0) {
+      resizeAndPin('idle')
+    } else {
+      resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
+    }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -954,7 +1042,6 @@ export default function App() {
       source: 'pip',
     }))
     if (!ok) return
-    const remaining = processes.filter(p => p.id !== id)
     setProcesses(remaining)
     refetch()
     maybeShrinkToIdle(cases, remaining)
