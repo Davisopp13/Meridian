@@ -10,6 +10,15 @@ const C = {
     mMark: '#E8540A',
 };
 
+// Helper to extract initials
+function getInitials(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletModal }) {
     const [isLaunchHovered, setIsLaunchHovered] = useState(false);
 
@@ -50,17 +59,42 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
         letterSpacing: '-0.02em',
     };
 
-    const userStyle = {
-        color: C.textSec,
-        fontSize: 14,
-        fontWeight: 500,
-        marginLeft: 4,
-    };
-
     const actionsSectionStyle = {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
+    };
+
+    const userChipStyle = {
+        height: 40,
+        padding: '0 14px 0 6px',
+        borderRadius: 20,
+        border: `1px solid ${C.border}`,
+        background: 'rgba(255, 255, 255, 0.05)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginRight: 8,
+    };
+
+    const initialAvatarStyle = {
+        width: 28,
+        height: 28,
+        borderRadius: '50%',
+        background: `linear-gradient(135deg, ${C.mBtn}, #1e40af)`,
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+    };
+
+    const usernameStyle = {
+        color: C.textPri,
+        fontSize: 13,
+        fontWeight: 500,
     };
 
     const secondaryBtnStyle = {
@@ -99,32 +133,41 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
         alignItems: 'center',
         gap: 8,
         transform: isLaunchHovered ? 'translateY(-1px)' : 'none',
+        marginLeft: 8,
+    };
+
+    const hoverOn = (e) => {
+        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+    };
+
+    const hoverOff = (e) => {
+        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+        e.currentTarget.style.borderColor = C.border;
     };
 
     return (
         <nav style={containerStyle}>
             <div style={logoSectionStyle}>
                 <img src="/meridian-mark-192.png" alt="Meridian" style={logoStyle} />
-                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-                    <span style={brandStyle}>Meridian</span>
-                    {profile?.full_name && (
-                        <span style={userStyle}>{profile.full_name.toLowerCase()}</span>
-                    )}
-                </div>
+                <span style={brandStyle}>Meridian</span>
             </div>
 
             <div style={actionsSectionStyle}>
+                {profile?.full_name && (
+                    <div style={userChipStyle}>
+                        <div style={initialAvatarStyle}>
+                            {getInitials(profile.full_name)}
+                        </div>
+                        <span style={usernameStyle}>{profile.full_name.toLowerCase()}</span>
+                    </div>
+                )}
+
                 <button
                     onClick={() => supabase.auth.signOut()}
                     style={secondaryBtnStyle}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                        e.currentTarget.style.borderColor = C.border;
-                    }}
+                    onMouseOver={hoverOn}
+                    onMouseOut={hoverOff}
                 >
                     Sign Out
                 </button>
@@ -132,14 +175,8 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
                 <button
                     onClick={() => setShowBookmarkletModal(true)}
                     style={secondaryBtnStyle}
-                    onMouseOver={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                    }}
-                    onMouseOut={(e) => {
-                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                        e.currentTarget.style.borderColor = C.border;
-                    }}
+                    onMouseOver={hoverOn}
+                    onMouseOut={hoverOff}
                 >
                     <span>⚡</span>
                     <span>Bookmarklet</span>

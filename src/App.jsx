@@ -423,11 +423,6 @@ export default function App() {
   async function handleProcessStart() {
     if (!user || !profile?.onboarding_complete) return
 
-    // Pre-compute target size before any potential await (user activation intact)
-    const willOpenTrayEarly = processes.length + 1 > 2
-    if (willOpenTrayEarly) setTrayOpen(true)
-    resizeAndPin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
-
     if (!pipRootRef.current) {
       const opened = await ensurePipOpen()
       if (!opened || !pipRootRef.current) {
@@ -437,6 +432,11 @@ export default function App() {
       }
     }
     if (isMinimized) setIsMinimized(false)
+
+    // Pre-compute target size (PiP is guaranteed open at this point)
+    const willOpenTrayEarly = processes.length + 1 > 2
+    if (willOpenTrayEarly) setTrayOpen(true)
+    resizeAndPin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
 
     const id = crypto.randomUUID()
     const newProcess = { id, elapsed: 0, paused: false }

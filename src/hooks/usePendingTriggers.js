@@ -16,6 +16,67 @@ export function usePendingTriggers(userId, handlers) {
   useEffect(() => {
     if (!userId) return
 
+    // Process a single trigger row — shared by poll and realtime
+    async function consumeTrigger(trigger) {
+      if (!trigger) return
+
+      console.log('[Meridian] Processing trigger:', trigger.type, trigger)
+
+      try {
+        if (trigger.type === 'MERIDIAN_CASE_START' && trigger.case_number) {
+          handlersRef.current.handleCaseStart({
+            caseNumber: trigger.case_number,
+            accountId: trigger.account_id,
+            caseType: trigger.case_type,
+            caseSubtype: trigger.case_subtype,
+          })
+        } else if (trigger.type === 'MERIDIAN_PROCESS_START') {
+          handlersRef.current.handleProcessStart()
+        }
+      } catch (err) {
+        console.error('[Meridian] Error handling trigger:', err)
+      }
+
+      // Delete the consumed trigger row
+      try {
+        await supabase
+          .from('pending_triggers')
+          .delete()
+          .eq('id', trigger.id)
+      } catch (err) {
+        console.error('[Meridian] Error deleting consumed trigger:', err)
+      }
+    }
+
+    // Poll for any triggers already in the DB (inserted before subscription)
+    async function pollExisting() {
+      try {
+        const { data, error } = await supabase
+          .from('pending_triggers')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: true })
+
+        if (error) {
+          console.error('[Meridian] Failed to poll pending_triggers:', error)
+          return
+        }
+
+        for (const trigger of (data || [])) {
+          await consumeTrigger(trigger)
+        }
+      } catch (err) {
+        console.error('[Meridian] Error polling pending_triggers:', err)
+      }
+    }
+
+    // Initial poll for missed triggers
+    pollExisting()
+
+    // Periodic poll as safety net (every 5s)
+    const pollInterval = setInterval(pollExisting, 5000)
+
+    // Realtime subscription for instant response
     const channel = supabase
       .channel('pending-triggers-' + userId)
       .on(
@@ -26,43 +87,14 @@ export function usePendingTriggers(userId, handlers) {
           table: 'pending_triggers',
           filter: 'user_id=eq.' + userId,
         },
-        async (payload) => {
-          const trigger = payload.new
-          if (!trigger) return
-
-          console.log('[Meridian] Realtime trigger received:', trigger.type, trigger)
-
-          try {
-            if (trigger.type === 'MERIDIAN_CASE_START' && trigger.case_number) {
-              handlersRef.current.handleCaseStart({
-                caseNumber: trigger.case_number,
-                accountId: trigger.account_id,
-                caseType: trigger.case_type,
-                caseSubtype: trigger.case_subtype,
-              })
-            } else if (trigger.type === 'MERIDIAN_PROCESS_START') {
-              handlersRef.current.handleProcessStart()
-            }
-          } catch (err) {
-            console.error('[Meridian] Error handling trigger:', err)
-          }
-
-          // Delete the consumed trigger row
-          try {
-            await supabase
-              .from('pending_triggers')
-              .delete()
-              .eq('id', trigger.id)
-          } catch (err) {
-            console.error('[Meridian] Error deleting consumed trigger:', err)
-          }
-        }
+        (payload) => consumeTrigger(payload.new)
       )
       .subscribe((status) => {
         console.log('[Meridian] Realtime subscription status:', status)
       })
 
     return () => {
+      clearInterval(pollInterval)
       supabase.removeChannel(channel)
     }
   }, [userId])

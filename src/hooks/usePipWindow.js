@@ -7,6 +7,8 @@ export function usePipWindow() {
   const [pipWindow, setPipWindow] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const pipRootRef = useRef(null);
+  // Ref always holds the latest pipWindow so resizeAndPin never uses a stale closure
+  const pipWindowRef = useRef(null);
 
   const openPip = useCallback(async () => {
     if (!window.documentPictureInPicture) {
@@ -70,11 +72,13 @@ export function usePipWindow() {
 
       pw.addEventListener('pagehide', () => {
         setPipWindow(null);
+        pipWindowRef.current = null;
         setIsOpen(false);
         pipRootRef.current = null;
       });
 
       setPipWindow(pw);
+      pipWindowRef.current = pw;
       setIsOpen(true);
       return pw;
     } catch (err) {
@@ -84,20 +88,23 @@ export function usePipWindow() {
   }, []);
 
   const closePip = useCallback(() => {
-    if (pipWindow) {
+    const pw = pipWindowRef.current;
+    if (pw) {
       try {
-        pipWindow.close();
+        pw.close();
       } catch (err) {
         console.warn('Error closing PiP window:', err);
       }
       setPipWindow(null);
+      pipWindowRef.current = null;
       setIsOpen(false);
       pipRootRef.current = null;
     }
-  }, [pipWindow]);
+  }, []);
 
   const resizeAndPin = useCallback((mode) => {
-    if (!pipWindow) {
+    const pw = pipWindowRef.current;
+    if (!pw) {
       console.warn('resizeAndPin called but pipWindow is null');
       return;
     }
@@ -107,14 +114,14 @@ export function usePipWindow() {
       return;
     }
     try {
-      pipWindow.resizeTo(size.width, size.height);
+      pw.resizeTo(size.width, size.height);
       const x = window.screen.availWidth - size.width - PIP_MARGIN;
       const y = window.screen.availHeight - size.height - PIP_MARGIN;
-      pipWindow.moveTo(x, y);
+      pw.moveTo(x, y);
     } catch (e) {
       console.warn('[Meridian] PiP resize/move skipped (no user activation):', mode, e);
     }
-  }, [pipWindow]);
+  }, []);
 
   return {
     pipWindow,
