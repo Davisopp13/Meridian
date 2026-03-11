@@ -68,7 +68,6 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
 
     const userChipWrapperStyle = {
         position: 'relative',
-        marginRight: 8,
     };
 
     const userChipStyle = {
@@ -173,7 +172,6 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
         alignItems: 'center',
         gap: 8,
         transform: isLaunchHovered ? 'translateY(-1px)' : 'none',
-        marginLeft: 8,
     };
 
     const hoverOn = (e) => {
@@ -194,6 +192,26 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
             </div>
 
             <div style={actionsSectionStyle}>
+                <button
+                    onClick={() => setShowBookmarkletModal(true)}
+                    style={secondaryBtnStyle}
+                    onMouseOver={hoverOn}
+                    onMouseOut={hoverOff}
+                >
+                    <span>⚡</span>
+                    <span>Bookmarklet</span>
+                </button>
+
+                <button
+                    style={launchBtnStyle}
+                    onClick={onLaunchPip}
+                    onMouseEnter={() => setIsLaunchHovered(true)}
+                    onMouseLeave={() => setIsLaunchHovered(false)}
+                >
+                    <span style={{ fontSize: 18 }}>🚀</span>
+                    <span>Launch Widget</span>
+                </button>
+
                 {profile?.full_name && (
                     <div style={userChipWrapperStyle}>
                         <div
@@ -266,26 +284,6 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
                         )}
                     </div>
                 )}
-
-                <button
-                    onClick={() => setShowBookmarkletModal(true)}
-                    style={secondaryBtnStyle}
-                    onMouseOver={hoverOn}
-                    onMouseOut={hoverOff}
-                >
-                    <span>⚡</span>
-                    <span>Bookmarklet</span>
-                </button>
-
-                <button
-                    style={launchBtnStyle}
-                    onClick={onLaunchPip}
-                    onMouseEnter={() => setIsLaunchHovered(true)}
-                    onMouseLeave={() => setIsLaunchHovered(false)}
-                >
-                    <span style={{ fontSize: 18 }}>🚀</span>
-                    <span>Launch Widget</span>
-                </button>
             </div>
         </nav>
     );

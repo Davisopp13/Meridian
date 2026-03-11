@@ -172,7 +172,18 @@ export default function PipBar({
         }}
       >
         {/* M° button */}
-        <MButton onClick={() => onOpenDashboard && onOpenDashboard()} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <MButton onClick={() => onOpenDashboard && onOpenDashboard()} />
+          <span style={{
+            color: C.textPri,
+            fontSize: 16,
+            fontWeight: 800,
+            letterSpacing: '-0.02em',
+            fontFamily: '"Inter", system-ui, sans-serif'
+          }}>
+            Meridian
+          </span>
+        </div>
 
         {divider}
 
@@ -191,41 +202,11 @@ export default function PipBar({
           onToggleTray={onToggleTray}
         />
 
-        {divider}
-
-        {/* Stat buttons */}
-        <StatButton
-          label={`${stats.resolved} Resolved`}
-          color={C.resolved}
-          disabled={!hasFocused}
-          onClick={() => hasFocused && onResolve && onResolve()}
-          title="Resolved"
-        />
-        <StatButton
-          label={`${stats.reclass} Reclassified`}
-          color={C.reclass}
-          disabled={!hasFocused}
-          onClick={() => hasFocused && onReclass && onReclass()}
-          title="Reclassified"
-        />
-        <StatButton
-          label={`${stats.calls} Calls`}
-          color={C.calls}
-          onClick={() => onCall && onCall()}
-          title="Call"
-        />
-        <StatButton
-          label={hasActiveProcess ? 'Process' : `${stats.processes} Process`}
-          color={C.process}
-          active={hasActiveProcess}
-          onClick={() => onNewProcess && onNewProcess()}
-          title="Processes"
-        />
-
-        {divider}
+        <div style={{ flex: 1 }} />
 
         {/* Minimize button */}
         <MinimizeButton onClick={() => onMinimize && onMinimize()} />
+
       </div>
 
       {/* Tray / overlay slot */}
