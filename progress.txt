@@ -1195,3 +1195,34 @@ Learnings for future iterations:
   - hasPendingActivity is hardcoded false for now — Task 12 adds the real state
   - onProcessPause/Resume/Log/Discard wired in Tasks 8-10; pass as optional props for now
 ---
+
+## Iteration N - Task 8: Wire process pause/resume from minimized strip
+- Added `handleProcessPause(id)` and `handleProcessResume(id)` to App.jsx — purely local: stopProcessTimer/setProcesses paused:true, startProcessTimer/setProcesses paused:false (no Supabase write since processes are local until confirmed)
+- Passed `onProcessPause` and `onProcessResume` as props to PipBar in `buildPipBar()`
+- Updated MinimizedStrip "process only" dot color to amber `#fbbf24` when `activeProcess.paused` is true
+- `npm run build` passes
+
+Files changed:
+  src/App.jsx — added handlers, passed props
+  src/components/MinimizedStrip.jsx — amber dot when paused
+
+Learnings for future iterations:
+  - Processes are purely local state until "log" is confirmed — pause/resume needs no Supabase write
+  - MinimizedStrip already had onProcessPause/onProcessResume wired up; only App.jsx handlers and prop-passing were missing
+---
+
+## Iteration 24 - Task 9: Wire process log action from minimized strip
+- Added `pendingProcessLog` state (processId | null) to App.jsx
+- Added `handleProcessLogFromStrip(processId)` that sets `pendingProcessLog` then calls `handleRestore()`
+- Added `useEffect([pendingProcessLog, isMinimized])` that fires `handleLogProcess(id)` + clears the flag once the widget is restored (isMinimized === false)
+- Passed `onProcessLog={handleProcessLogFromStrip}` in `buildPipBar()` — PipBar already threads it to MinimizedStrip
+- `npm run build` passes
+
+Files changed:
+  src/App.jsx — pendingProcessLog state, handleProcessLogFromStrip, useEffect, prop passed
+
+Learnings for future iterations:
+  - Two-step pattern: (1) set a pending flag + restore synchronously in the click handler (user activation survives), (2) useEffect opens the picker once isMinimized flips to false
+  - PipBar already had onProcessLog prop and threaded it to MinimizedStrip — only App.jsx wiring was needed
+  - MinimizedStrip log button already called onProcessLog?.(activeProcess.id) — no component changes needed
+---

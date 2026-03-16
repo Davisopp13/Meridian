@@ -79,6 +79,7 @@ export default function App() {
   const [manualEntryOpen, setManualEntryOpen] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected') // 'connected' | 'degraded' | 'offline'
   const [minimizedStripView, setMinimizedStripView] = useState('auto') // 'auto' | 'case' | 'process'
+  const [pendingProcessLog, setPendingProcessLog] = useState(null) // processId | null
   const restoredStateKeyRef = useRef(null)
   const hasHydratedPipStateRef = useRef(false)
   const resolvingCaseIds = useRef(new Set())
@@ -273,6 +274,14 @@ export default function App() {
       setMinimizedStripView('auto')
     }
   }, [cases.length, processes.length])
+
+  // Open process picker when restored after tapping log from minimized strip
+  useEffect(() => {
+    if (pendingProcessLog && !isMinimized) {
+      handleLogProcess(pendingProcessLog)
+      setPendingProcessLog(null)
+    }
+  }, [pendingProcessLog, isMinimized])
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const { resolved, reclass, calls, processes: processCount, refetch } = useStats()
@@ -547,6 +556,7 @@ export default function App() {
         hasPendingActivity={false}
         onProcessPause={handleProcessPause}
         onProcessResume={handleProcessResume}
+        onProcessLog={handleProcessLogFromStrip}
       >
         {rfcPending ? (
           <RFCPrompt
@@ -725,6 +735,11 @@ export default function App() {
     setPickerPending({ processId: id, elapsed: p.elapsed })
     setOverlayOpen(true)
     resizeAndPin('categoryScreen')
+  }
+
+  function handleProcessLogFromStrip(processId) {
+    setPendingProcessLog(processId)
+    handleRestore()
   }
 
   function handleCloseProcess(id) {

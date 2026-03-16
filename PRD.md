@@ -157,7 +157,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Pause button stops process timer; resume button restarts it; dot color reflects paused state; no restore triggered
   - Test command: `npm run build` completes
 
-- [ ] **Task 9: Wire process log action from minimized strip**
+- [x] **Task 9: Wire process log action from minimized strip**
   - What to build: The log icon button in `MinimizedStrip` should: (1) call `onRestore()` to expand the widget back to full size, and (2) immediately set a new `App.jsx` state flag `pendingProcessLog: true`. When the PiP bar renders after restore and detects `pendingProcessLog === true`, it should immediately open the `ProcessPicker` overlay for the active process (same as if the agent had clicked "Log" from the full bar), then clear the flag.
   - Files to create/modify:
     - Modify `src/App.jsx` — add `pendingProcessLog` state, handle in PiP render effect
