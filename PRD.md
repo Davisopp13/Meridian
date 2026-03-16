@@ -54,7 +54,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Rapid double-clicks on resolve/RFC do not result in duplicate DB writes; single writes complete normally
   - Test command: `npm run build` completes
 
-- [ ] **Task 4: Deduplicate RFC logic**
+- [x] **Task 4: Deduplicate RFC logic**
   - What to build: RFC prompt logic currently exists in two places — the full `RFCPrompt` overlay and inline inside `CaseLaneRow`. Remove the inline RFC logic from `CaseLaneRow` entirely. Instead, when RFC needs to fire from the tray lane row, call the same `handleRFCRequired(caseId)` callback in `App.jsx` that triggers the full `RFCPrompt` overlay. This ensures one RFC code path only.
   - Files to create/modify:
     - Modify `src/components/CaseLaneRow.jsx` — remove local RFC state and inline prompt, add `onRFCRequired` prop call instead
@@ -136,10 +136,13 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
     .swap-dot-pulse { animation: meridian-pulse 1.4s ease-in-out infinite; }
     ```
 
+    **Pending activity hint:**
+    When a bookmarklet trigger arrives while the widget is minimized, the PiP cannot auto-restore (no user activation). The case/process is still created in the background. To signal this to the agent, accept a `hasPendingActivity` boolean prop. When `true`, apply a subtle pulse animation to the logo zone (add `.swap-dot-pulse` class to the `<img>` wrapper, or pulse the logo zone background to `rgba(232,84,10,0.15)`). This tells the agent something new arrived and they should tap to restore.
+
   - Files to create/modify:
     - Create `src/components/MinimizedStrip.jsx`
-    - Modify `src/App.jsx` — replace existing minimized strip render with `<MinimizedStrip>`, pass all required props: `focusedCase`, `activeProcess`, `activeStripSession`, `connectionStatus`, `todayScorecard`, `onRestore`, `onOpenDashboard`, `onStripSwap`, `onCasePause`, `onProcessPause`, `onProcessLog`, `onProcessDiscard`
-  - Acceptance criteria: All 5 strip states render correctly; logo tap and strip tap are independent; swap dot only appears when both sessions active; action buttons don't trigger restore; scorecard always visible
+    - Modify `src/App.jsx` — replace existing minimized strip render with `<MinimizedStrip>`, pass all required props: `focusedCase`, `activeProcess`, `activeStripSession`, `connectionStatus`, `todayScorecard`, `hasPendingActivity`, `onRestore`, `onOpenDashboard`, `onStripSwap`, `onCasePause`, `onProcessPause`, `onProcessLog`, `onProcessDiscard`
+  - Acceptance criteria: All 5 strip states render correctly; logo tap and strip tap are independent; swap dot only appears when both sessions active; action buttons don't trigger restore; scorecard always visible; logo pulses when `hasPendingActivity` is true
   - Test command: `npm run build` completes
 
 ---
@@ -181,13 +184,48 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Pulse animation renders correctly inside PiP window; no animation in host page (style is scoped to PiP document)
   - Test command: `npm run build` completes
 
-- [ ] **Task 12: Wire minimized strip into PiP resize logic**
-  - What to build: When `isMinimized` is true, `resizeTo(220, 32)` must be called synchronously in the same handler that sets `isMinimized = true` (the minimize button click handler). When restoring (`handleRestore()`), `resizeTo` must be called synchronously with the correct size from `getBarSize()` before clearing `isMinimized`. Verify these resize calls are already synchronous (in event handlers, not `useEffect`). If any resize calls are currently in a `useEffect`, move them to the appropriate synchronous handler. Also ensure `moveTo` is called alongside `resizeTo` to pin the widget to the bottom-right corner (use existing `resizeAndPin` helper if it exists, or create it following the established pattern).
+- [ ] **Task 12: Fix bookmarklet-while-minimized and remove dead resize code**
+
+  **Background (from Opus audit + confirmed manual test):**
+  An Opus audit and live console test confirmed three resize issues in `App.jsx`:
+  1. `handleCaseStart` and `handleProcessStart` are called from a Realtime/postMessage callback — no user activation. Both `requestWindow` and `resizeTo` fail silently with `NotAllowedError`. Confirmed in console.
+  2. `maybeShrinkToIdle()` is called after `await` in 11 places — always fails silently. The pre-await `resizeAndPin` call in each of those same functions already sets the correct size, making `maybeShrinkToIdle` pure dead code.
+  3. `handleResolve` calls `resizeAndPin` in its error rollback branch (after `await safeWrite` fails) — also unreachable/silent.
+
+  **Do NOT change:** `resizeAndPin` helper in `usePipWindow.js` is correct. `SIZES` constant in `constants.js` is correct. `handleMinimize` and `handleRestore` are already synchronous and safe.
+
+  **What to build — 4 targeted changes to `App.jsx` only:**
+
+  **Change A — Fix `handleCaseStart` and `handleProcessStart`:**
+  In both functions, find the block that checks `if (isMinimized)` and calls `setIsMinimized(false)` + `resizeAndPin`. Replace with: only create the case/process data and update state as normal, but do NOT call `setIsMinimized(false)` and do NOT call `resizeAndPin`. Instead, set a new state variable `hasPendingActivity: true`. The existing `handleRestore` onClick will fire when the agent taps the strip, which provides user activation and calls `resizeAndPin` with the correct size. Clear `hasPendingActivity` inside `handleRestore`.
+
+  **Change B — Fix `ensurePipOpen`:**
+  Remove the `if (isMinimized) setIsMinimized(false)` block from `ensurePipOpen`. Callers handle minimize state themselves per Change A above.
+
+  **Change C — Remove `maybeShrinkToIdle` and its 11 callers:**
+  Delete the `maybeShrinkToIdle` function (lines 922–929). Remove all 11 post-await calls to it. IMPORTANT: `maybeShrinkToIdle` also calls `setTrayOpen(false)` when all sessions end — this logic must be preserved. Before removing each call site, check if the pre-await block in that same function already handles `setTrayOpen(false)`. If not, add `if (cases.length === 0) setTrayOpen(false)` to the pre-await block alongside the existing `resizeAndPin('idle')` call. The 11 affected functions are: `handleCloseCase`, `handleBarPillClose`, `handleResolve`, `handleReclass`, `handleRFCYes`, `handleRFCNo`, `handleResolveCase`, `handleReclassCase`, `handleNotACase`, `handleRFC`, `handleConfirmProcess`.
+
+  **Change D — Remove dead rollback resize in `handleResolve`:**
+  Find the error branch in `handleResolve` (after `await safeWrite` fails, around line 717). Remove the `resizeAndPin(...)` call from this branch only. Leave all other logic in the error branch intact.
+
   - Files to create/modify:
-    - Modify `src/App.jsx` — audit and fix all minimize/restore resize call sites
-    - Modify `src/hooks/usePipWindow.js` if `resizeAndPin` helper needs updating
-  - Acceptance criteria: Widget correctly resizes to 220×32 on minimize; correctly resizes back to full size on restore; widget stays anchored to bottom-right through all transitions; no `NotAllowedError` thrown in console
-  - Test command: `npm run build` completes; manual verify in browser — no console errors on minimize/restore
+    - Modify `src/App.jsx` only — Changes A, B, C, D as described above
+    - No changes to `usePipWindow.js`, `constants.js`, or any component files
+  - Acceptance criteria:
+    - Bookmarklet trigger while minimized: case/process is created, widget stays at 220×32, logo pulses (`hasPendingActivity = true`)
+    - Tapping strip after bookmarklet: widget restores to correct full size with new session visible, `hasPendingActivity` clears
+    - Resolve/reclass/RFC from tray: no `[Meridian] PiP resize/move skipped` warnings in console
+    - Normal minimize/restore: still works correctly, no `NotAllowedError`
+    - `maybeShrinkToIdle` no longer exists in codebase
+    - Tray closes when last session ends (verify `setTrayOpen(false)` preserved)
+  - Test command: `npm run build` completes; open DevTools console and trigger bookmarklet while minimized — confirm no `NotAllowedError`, confirm `hasPendingActivity` pulse appears on strip
+
+- [ ] **Task 13: Verify PendingTriggerBanner resize path**
+  - What to build: The `PendingTriggerBanner` calls `handleCaseStart`/`handleProcessStart` after a user clicks the banner button, which calls `openPip()` (an `await`). Manual testing confirmed that user activation does NOT survive through `await openPip()` — `requestWindow` and `resizeTo` both fail. Fix: in `handlePendingTriggerLaunch` (or equivalent), call `resizeAndPin` with the correct target size BEFORE the `await openPip()` call if the PiP is already open, or accept that a fresh `openPip()` call opens at the requested dimensions via `requestWindow({width, height})` which sets the initial size without needing `resizeTo`. Investigate whether `requestWindow` with explicit dimensions correctly sizes the new window — if so, no `resizeTo` is needed after open. If not, restructure so the banner button click calls `resizeAndPin` synchronously before any `await`.
+  - Files to create/modify:
+    - Modify `src/App.jsx` — `handlePendingTriggerLaunch` function only
+  - Acceptance criteria: Clicking the `PendingTriggerBanner` opens the PiP at the correct full size with no `NotAllowedError` in console
+  - Test command: `npm run build` completes; manual test — close PiP, trigger bookmarklet, click banner button, confirm PiP opens at correct size
 
 ---
 
@@ -195,7 +233,8 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
 
 - Primary: `npm run build` — must complete with zero errors for every task
 - Secondary: `npm run dev` — manual visual check of minimized strip in all 5 states
-- For Task 12 specifically: open Chrome DevTools console, minimize and restore the widget multiple times — confirm no `NotAllowedError` appears
+- For Tasks 12–13: open Chrome DevTools console and confirm zero `NotAllowedError` and zero `[Meridian] PiP resize/move skipped` warnings during normal operation
+- Specific scenario for Task 12: trigger bookmarklet while minimized → strip should pulse, widget should stay 220×32 → tap strip → widget restores at correct full size
 - No automated test suite exists — Ralph should rely on build success + acceptance criteria checks
 
 ---
@@ -210,16 +249,20 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
 - No new npm dependencies
 - Do not modify `ct_cases`, `mpl_entries`, or any other Supabase table structure
 - Do not change authentication or RLS policies
+- Do not modify `resizeAndPin` in `usePipWindow.js` — it is correct as-is per Opus audit
+- Do not modify `SIZES` in `constants.js` — all needed keys already exist including `minimized: { width: 220, height: 32 }`
 
 ---
 
 ## Notes for Ralph
 
-- **`resizeTo()` is the most dangerous call in this codebase.** It throws `NotAllowedError` if called outside a synchronous user activation context. Never move resize calls into `useEffect`, `setTimeout`, or async functions. If you're unsure whether a call site is synchronous, leave it and flag it in `progress.txt`.
-- **All PiP component styles must be inline.** CSS modules, Tailwind, and external stylesheets do not apply inside the PiP window. The only exception is the `<style>` block injected into the PiP document head in `usePipWindow.js` — this is where the pulse animation lives.
+- **`resizeTo()` is the most dangerous call in this codebase.** It throws `NotAllowedError` if called outside a synchronous user activation context. Realtime callbacks, postMessage handlers, and any code after an `await` all lack user activation. This has been confirmed with live console testing on this project.
+- **`resizeAndPin` in `usePipWindow.js` is correct — do not touch it.** It already null-checks, uses a ref (not stale closure), and wraps in try/catch. The problems are all at the call sites in `App.jsx`.
+- **`handleMinimize` and `handleRestore` are already safe** — both are synchronous onClick handlers. Do not restructure them.
+- **`maybeShrinkToIdle` is dead code** — every caller already calls `resizeAndPin` with the correct size before the first `await`. The post-await `maybeShrinkToIdle` call always fails silently. Remove it and its 11 callers, but preserve the `setTrayOpen(false)` logic it contained.
+- **All PiP component styles must be inline.** CSS modules, Tailwind, and external stylesheets do not apply inside the PiP window. The only exception is the `<style>` block injected into the PiP document head in `usePipWindow.js`.
 - **The logo asset** `meridian-icon-512.png` should already be in the `public/` directory. Use `<img src="/meridian-icon-512.png" />` — do not import it as a module.
-- **`stopPropagation` is critical** on every action button inside `MinimizedStrip`. Without it, button taps will bubble up to the strip restore handler and expand the widget unexpectedly.
-- **State lives in `App.jsx`** — `MinimizedStrip` is a pure presentational component (props in, callbacks out). Do not add local state to it beyond what's needed for UI-only concerns (e.g. hover state).
-- **`todayScorecard` timezone:** Use `America/New_York` for the midnight boundary — this is already the established pattern for daily boundaries in this codebase.
-- The existing `handleProcessPause` / `handleProcessResume` / process cancel handlers in `App.jsx` should already exist — find and reuse them rather than creating new ones.
-- If `resizeAndPin` helper does not exist yet, create it as a synchronous function that calls both `pipWindow.resizeTo(w, h)` and `pipWindow.moveTo(screenX, screenY)` where `screenX/Y` pins to bottom-right: `screen.availWidth - w - 16` and `screen.availHeight - h - 16`.
+- **`stopPropagation` is critical** on every action button inside `MinimizedStrip`. Without it, button taps bubble up to the strip restore handler and expand the widget unexpectedly.
+- **State lives in `App.jsx`** — `MinimizedStrip` is a pure presentational component (props in, callbacks out). Do not add local state to it beyond UI-only concerns (e.g. hover state).
+- **`todayScorecard` timezone:** Use `America/New_York` for the midnight boundary — established pattern in this codebase.
+- The existing `handleProcessPause` / `handleProcessResume` / process cancel handlers in `App.jsx` already exist — find and reuse them rather than creating new ones.

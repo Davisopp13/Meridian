@@ -13,6 +13,7 @@ export default function CasesLane({
   onNotACase,
   onRFC,
   onCloseSession,
+  onRFCRequired,
 }) {
   const headingStyle = {
     fontSize: 9,
@@ -58,6 +59,7 @@ export default function CasesLane({
               onNotACase={onNotACase}
               onRFC={onRFC}
               onCloseSession={onCloseSession}
+              onRFCRequired={onRFCRequired}
             />
           ))
         )}

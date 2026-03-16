@@ -17,6 +17,7 @@ export default function SwimlaneTray({
   onNotACase,
   onRFC,
   onCloseSession,
+  onRFCRequired,
   // processes props
   processes,
   categories,
@@ -71,6 +72,7 @@ export default function SwimlaneTray({
           onNotACase={onNotACase}
           onRFC={onRFC}
           onCloseSession={onCloseSession}
+          onRFCRequired={onRFCRequired}
         />
       </div>
       <div style={dividerStyle} />

@@ -532,6 +532,7 @@ export default function App() {
             onNotACase={handleNotACase}
             onRFC={handleRFC}
             onCloseSession={handleCloseCase}
+            onRFCRequired={handleRFCRequired}
             processes={processes}
             categories={categories}
             onConfirmProcess={handleConfirmProcess}
@@ -930,6 +931,14 @@ export default function App() {
 
   // ── Tray-specific handlers ─────────────────────────────────────────────────
 
+  function handleRFCRequired(id) {
+    const c = cases.find(x => x.id === id)
+    if (!c) return
+    setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
+    setOverlayOpen(true)
+    resizeAndPin('overlay')
+  }
+
   async function handleResolveCase(id) {
     if (!user) return
     if (resolvingCaseIds.current.has(id)) return
@@ -938,7 +947,7 @@ export default function App() {
     resolvingCaseIds.current.add(id)
     try {
       // Pre-compute target size before first await (user activation intact)
-      // Only resize if case will actually close (not previouslyResolved — those stay open for inline RFC)
+      // Only resize if case will actually close (not previouslyResolved — those open RFC overlay)
       if (!c.previouslyResolved) {
         const remaining = cases.filter(x => x.id !== id)
         if (remaining.length === 0 && processes.length === 0) {
@@ -965,7 +974,6 @@ export default function App() {
         maybeShrinkToIdle(remaining, processes)
       }
       refetch()
-      // If previouslyResolved, CaseLaneRow shows inline RFC prompt; onRFC or onCloseSession handles close
     } finally {
       resolvingCaseIds.current.delete(id)
     }

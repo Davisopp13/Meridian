@@ -31,40 +31,28 @@ export default function CaseLaneRow({
   onAwaiting,     // (id) — sets awaiting
   onResume,       // (id) — resumes from awaiting
   onNotACase,     // (id) — logs 'not_a_case' excluded:true, removes
-  onRFC,          // (id) — logs 'rfc', closes session
-  onCloseSession, // (id) — closes session without RFC
+  onRFCRequired,  // (id) — triggers RFCPrompt overlay in App.jsx
 }) {
   const [expanded, setExpanded] = useState(false)
-  const [showRFC, setShowRFC] = useState(false)
 
   const { id, caseNum, elapsed, awaiting, previouslyResolved } = caseSession
 
   function handleRowClick() {
     onFocus(id)
-    if (!awaiting && !showRFC) setExpanded(e => !e)
+    if (!awaiting) setExpanded(e => !e)
   }
 
   function handleResolve(e) {
     e.stopPropagation()
     onResolve(id)
     setExpanded(false)
-    if (previouslyResolved) setShowRFC(true)
+    if (previouslyResolved) onRFCRequired(id)
   }
 
   function handleReclass(e) {
     e.stopPropagation()
     onReclass(id)
     setExpanded(false)
-  }
-
-  function handleRFCYes() {
-    onRFC(id)
-    setShowRFC(false)
-  }
-
-  function handleRFCNo() {
-    onCloseSession(id)
-    setShowRFC(false)
   }
 
   const rowBg = awaiting
@@ -110,21 +98,6 @@ export default function CaseLaneRow({
           >
             <Play size={10} strokeWidth={3} /> Resume
           </button>
-        </div>
-      </div>
-    )
-  }
-
-  // ── RFC inline prompt ───────────────────────────────────────────────────────
-  if (showRFC) {
-    return (
-      <div style={{ ...rowStyle, cursor: 'default', background: isFocused ? C.rowFocus : 'rgba(255,255,255,0.04)' }}>
-        <div style={{ ...labelStyle, color: C.textPri, marginBottom: 7 }}>
-          Was this a Re-Filed Case?
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button style={actionBtn(C.awaiting)} onClick={handleRFCYes}>Yes — RFC</button>
-          <button style={actionBtn(C.textSec, true)} onClick={handleRFCNo}>No, done</button>
         </div>
       </div>
     )
