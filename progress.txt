@@ -1107,3 +1107,21 @@ Learnings for future iterations:
   - `degraded` state is available but not triggered by the health-check (only connected/offline); future task can add latency-based degraded detection if needed
   - PipBar.jsx is at src/PipBar.jsx (not src/components/PipBar.jsx as PRD suggests)
 ---
+
+## Iteration N - Task 3: Fix RFC concurrent write race condition
+- Added `resolvingCaseIds` ref (a `Set`) to App.jsx
+- Guarded 8 case resolution functions with set-check / add / finally-delete pattern:
+  - handleBarPillClose, handleResolve, handleReclass, handleRFCYes, handleRFCNo,
+    handleResolveCase, handleReclassCase, handleRFC, handleNotACase
+- Each function checks `resolvingCaseIds.current.has(id)` at entry, returns early if true
+- Adds id to set before first async write, removes in `finally` block
+- `npm run build` passes with no errors
+
+Files changed:
+  src/App.jsx
+
+Learnings for future iterations:
+  - The resolvingCaseIds ref uses the case session ID (not case number) as the key
+  - try/finally wraps the entire function body after the guard check so cleanup always fires
+  - handleRFCYes and handleRFCNo use rfcPending.sessionId (not a parameter) as the guard key
+---

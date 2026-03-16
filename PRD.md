@@ -47,7 +47,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Dot renders in all three color states; health-check fires every 30s; does not cause re-renders of the whole tree (use a dedicated state slice)
   - Test command: `npm run build` completes
 
-- [ ] **Task 3: Fix RFC concurrent write race condition**
+- [x] **Task 3: Fix RFC concurrent write race condition**
   - What to build: Prevent the race condition where rapid resolve + RFC prompt clicks could corrupt a `ct_cases` row. Add a `resolvingCaseIds` ref (a `Set`) in `App.jsx`. Before any resolve/RFC write, check if the case ID is already in the set — if so, return early. Add the ID on write start, remove it on write completion (success or error) in a `finally` block.
   - Files to create/modify:
     - Modify `src/App.jsx` — add `resolvingCaseIds` ref, guard all `ct_cases` status update calls

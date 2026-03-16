@@ -80,6 +80,7 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState('connected') // 'connected' | 'degraded' | 'offline'
   const restoredStateKeyRef = useRef(null)
   const hasHydratedPipStateRef = useRef(false)
+  const resolvingCaseIds = useRef(new Set())
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -637,27 +638,33 @@ export default function App() {
 
   // Bar pill × — pause timer, open RFC overlay only if previously resolved
   async function handleBarPillClose(id) {
+    if (resolvingCaseIds.current.has(id)) return
     const c = cases.find(x => x.id === id)
     if (!c) return
-    stopCaseTimer(id)
-    if (c.previouslyResolved) {
-      setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
-      setOverlayOpen(true)
-      resizeAndPin('overlay')
-    } else {
-      const remaining = cases.filter(x => x.id !== id)
-      if (remaining.length === 0 && processes.length === 0) {
-        resizeAndPin('idle')
+    resolvingCaseIds.current.add(id)
+    try {
+      stopCaseTimer(id)
+      if (c.previouslyResolved) {
+        setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
+        setOverlayOpen(true)
+        resizeAndPin('overlay')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        const remaining = cases.filter(x => x.id !== id)
+        if (remaining.length === 0 && processes.length === 0) {
+          resizeAndPin('idle')
+        } else {
+          resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        }
+        await safeWrite(supabase.from('ct_cases')
+          .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
+          .eq('id', id))
+        setCases(remaining)
+        if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
+        refetch()
+        maybeShrinkToIdle(remaining, processes)
       }
-      await safeWrite(supabase.from('ct_cases')
-        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
-        .eq('id', id))
-      setCases(remaining)
-      if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
-      refetch()
-      maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(id)
     }
   }
 
@@ -678,127 +685,151 @@ export default function App() {
 
   async function handleResolve() {
     if (!focusedCaseId || !user) return
+    if (resolvingCaseIds.current.has(focusedCaseId)) return
     const c = cases.find(x => x.id === focusedCaseId)
     if (!c) return
-    // Pre-compute target size before first await (user activation intact)
-    if (c.previouslyResolved) {
-      setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
-      setOverlayOpen(true)
-      resizeAndPin('overlay')
-    } else {
+    resolvingCaseIds.current.add(focusedCaseId)
+    try {
+      // Pre-compute target size before first await (user activation intact)
+      if (c.previouslyResolved) {
+        setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
+        setOverlayOpen(true)
+        resizeAndPin('overlay')
+      } else {
+        const remaining = cases.filter(x => x.id !== focusedCaseId)
+        if (remaining.length === 0 && processes.length === 0) {
+          resizeAndPin('idle')
+        } else {
+          resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        }
+      }
+      const ok = await safeWrite(supabase.from('case_events').insert({
+        session_id: focusedCaseId,
+        user_id: user.id,
+        type: 'resolved',
+        excluded: false,
+        rfc: false,
+      }))
+      if (!ok) {
+        // Roll back optimistic state if write failed
+        setRfcPending(null)
+        setOverlayOpen(false)
+        resizeAndPin(getBarSize(cases, processes, trayOpen, false))
+        return
+      }
+      if (!c.previouslyResolved) {
+        stopCaseTimer(focusedCaseId)
+        await safeWrite(supabase.from('ct_cases')
+          .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
+          .eq('id', focusedCaseId))
+        const remaining = cases.filter(x => x.id !== focusedCaseId)
+        setCases(remaining)
+        setFocusedCaseId(remaining[0]?.id || null)
+        refetch()
+        maybeShrinkToIdle(remaining, processes)
+      }
+    } finally {
+      resolvingCaseIds.current.delete(focusedCaseId)
+    }
+  }
+
+  async function handleReclass() {
+    if (!focusedCaseId || !user) return
+    if (resolvingCaseIds.current.has(focusedCaseId)) return
+    const c = cases.find(x => x.id === focusedCaseId)
+    if (!c) return
+    resolvingCaseIds.current.add(focusedCaseId)
+    try {
+      // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== focusedCaseId)
       if (remaining.length === 0 && processes.length === 0) {
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
       }
-    }
-    const ok = await safeWrite(supabase.from('case_events').insert({
-      session_id: focusedCaseId,
-      user_id: user.id,
-      type: 'resolved',
-      excluded: false,
-      rfc: false,
-    }))
-    if (!ok) {
-      // Roll back optimistic state if write failed
-      setRfcPending(null)
-      setOverlayOpen(false)
-      resizeAndPin(getBarSize(cases, processes, trayOpen, false))
-      return
-    }
-    if (!c.previouslyResolved) {
+      const ok = await safeWrite(supabase.from('case_events').insert({
+        session_id: focusedCaseId,
+        user_id: user.id,
+        type: 'reclassified',
+        excluded: false,
+        rfc: false,
+      }))
+      if (!ok) return
       stopCaseTimer(focusedCaseId)
       await safeWrite(supabase.from('ct_cases')
-        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
+        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
         .eq('id', focusedCaseId))
-      const remaining = cases.filter(x => x.id !== focusedCaseId)
       setCases(remaining)
       setFocusedCaseId(remaining[0]?.id || null)
       refetch()
       maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(focusedCaseId)
     }
-  }
-
-  async function handleReclass() {
-    if (!focusedCaseId || !user) return
-    const c = cases.find(x => x.id === focusedCaseId)
-    if (!c) return
-    // Pre-compute target size before first await (user activation intact)
-    const remaining = cases.filter(x => x.id !== focusedCaseId)
-    if (remaining.length === 0 && processes.length === 0) {
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
-    }
-    const ok = await safeWrite(supabase.from('case_events').insert({
-      session_id: focusedCaseId,
-      user_id: user.id,
-      type: 'reclassified',
-      excluded: false,
-      rfc: false,
-    }))
-    if (!ok) return
-    stopCaseTimer(focusedCaseId)
-    await safeWrite(supabase.from('ct_cases')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
-      .eq('id', focusedCaseId))
-    setCases(remaining)
-    setFocusedCaseId(remaining[0]?.id || null)
-    refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   async function handleRFCYes() {
     if (!rfcPending || !user) return
     const { sessionId, elapsed } = rfcPending
-    stopCaseTimer(sessionId)
-    // Pre-compute target size before first await (user activation intact)
-    const remaining = cases.filter(x => x.id !== sessionId)
-    if (remaining.length === 0 && processes.length === 0) {
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    if (resolvingCaseIds.current.has(sessionId)) return
+    resolvingCaseIds.current.add(sessionId)
+    try {
+      stopCaseTimer(sessionId)
+      // Pre-compute target size before first await (user activation intact)
+      const remaining = cases.filter(x => x.id !== sessionId)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
+      const ok1 = await safeWrite(supabase.from('case_events').insert({
+        session_id: sessionId,
+        user_id: user.id,
+        type: 'rfc',
+        excluded: false,
+        rfc: true,
+      }))
+      if (!ok1) return
+      await safeWrite(supabase.from('ct_cases')
+        .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
+        .eq('id', sessionId))
+      setCases(remaining)
+      if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
+      setRfcPending(null)
+      setOverlayOpen(false)
+      refetch()
+      maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(sessionId)
     }
-    const ok1 = await safeWrite(supabase.from('case_events').insert({
-      session_id: sessionId,
-      user_id: user.id,
-      type: 'rfc',
-      excluded: false,
-      rfc: true,
-    }))
-    if (!ok1) return
-    await safeWrite(supabase.from('ct_cases')
-      .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
-      .eq('id', sessionId))
-    setCases(remaining)
-    if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
-    setRfcPending(null)
-    setOverlayOpen(false)
-    refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   async function handleRFCNo() {
     if (!rfcPending || !user) return
     const { sessionId, elapsed } = rfcPending
-    stopCaseTimer(sessionId)
-    // Pre-compute target size before first await (user activation intact)
-    const remaining = cases.filter(x => x.id !== sessionId)
-    if (remaining.length === 0 && processes.length === 0) {
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    if (resolvingCaseIds.current.has(sessionId)) return
+    resolvingCaseIds.current.add(sessionId)
+    try {
+      stopCaseTimer(sessionId)
+      // Pre-compute target size before first await (user activation intact)
+      const remaining = cases.filter(x => x.id !== sessionId)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
+      await safeWrite(supabase.from('ct_cases')
+        .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
+        .eq('id', sessionId))
+      setCases(remaining)
+      if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
+      setRfcPending(null)
+      setOverlayOpen(false)
+      refetch()
+      maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(sessionId)
     }
-    await safeWrite(supabase.from('ct_cases')
-      .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
-      .eq('id', sessionId))
-    setCases(remaining)
-    if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
-    setRfcPending(null)
-    setOverlayOpen(false)
-    refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   async function handleCall() {
@@ -901,65 +932,77 @@ export default function App() {
 
   async function handleResolveCase(id) {
     if (!user) return
+    if (resolvingCaseIds.current.has(id)) return
     const c = cases.find(x => x.id === id)
     if (!c) return
-    // Pre-compute target size before first await (user activation intact)
-    // Only resize if case will actually close (not previouslyResolved — those stay open for inline RFC)
-    if (!c.previouslyResolved) {
+    resolvingCaseIds.current.add(id)
+    try {
+      // Pre-compute target size before first await (user activation intact)
+      // Only resize if case will actually close (not previouslyResolved — those stay open for inline RFC)
+      if (!c.previouslyResolved) {
+        const remaining = cases.filter(x => x.id !== id)
+        if (remaining.length === 0 && processes.length === 0) {
+          resizeAndPin('idle')
+        } else {
+          resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        }
+      }
+      await supabase.from('case_events').insert({
+        session_id: id,
+        user_id: user.id,
+        type: 'resolved',
+        excluded: false,
+        rfc: false,
+      })
+      if (!c.previouslyResolved) {
+        stopCaseTimer(id)
+        await supabase.from('ct_cases')
+          .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
+          .eq('id', id)
+        const remaining = cases.filter(x => x.id !== id)
+        setCases(remaining)
+        if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
+        maybeShrinkToIdle(remaining, processes)
+      }
+      refetch()
+      // If previouslyResolved, CaseLaneRow shows inline RFC prompt; onRFC or onCloseSession handles close
+    } finally {
+      resolvingCaseIds.current.delete(id)
+    }
+  }
+
+  async function handleReclassCase(id) {
+    if (!user) return
+    if (resolvingCaseIds.current.has(id)) return
+    const c = cases.find(x => x.id === id)
+    if (!c) return
+    resolvingCaseIds.current.add(id)
+    try {
+      stopCaseTimer(id)
+      // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
       }
-    }
-    await supabase.from('case_events').insert({
-      session_id: id,
-      user_id: user.id,
-      type: 'resolved',
-      excluded: false,
-      rfc: false,
-    })
-    if (!c.previouslyResolved) {
-      stopCaseTimer(id)
+      await supabase.from('case_events').insert({
+        session_id: id,
+        user_id: user.id,
+        type: 'reclassified',
+        excluded: false,
+        rfc: false,
+      })
       await supabase.from('ct_cases')
-        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
+        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
         .eq('id', id)
-      const remaining = cases.filter(x => x.id !== id)
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
+      refetch()
       maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(id)
     }
-    refetch()
-    // If previouslyResolved, CaseLaneRow shows inline RFC prompt; onRFC or onCloseSession handles close
-  }
-
-  async function handleReclassCase(id) {
-    if (!user) return
-    const c = cases.find(x => x.id === id)
-    if (!c) return
-    stopCaseTimer(id)
-    // Pre-compute target size before first await (user activation intact)
-    const remaining = cases.filter(x => x.id !== id)
-    if (remaining.length === 0 && processes.length === 0) {
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
-    }
-    await supabase.from('case_events').insert({
-      session_id: id,
-      user_id: user.id,
-      type: 'reclassified',
-      excluded: false,
-      rfc: false,
-    })
-    await supabase.from('ct_cases')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
-      .eq('id', id)
-    setCases(remaining)
-    if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
-    refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   async function handleCallCase(id) {
@@ -987,58 +1030,70 @@ export default function App() {
 
   async function handleNotACase(id) {
     if (!user) return
+    if (resolvingCaseIds.current.has(id)) return
     const c = cases.find(x => x.id === id)
     if (!c) return
-    stopCaseTimer(id)
-    // Pre-compute target size before first await (user activation intact)
-    const remaining = cases.filter(x => x.id !== id)
-    if (remaining.length === 0 && processes.length === 0) {
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    resolvingCaseIds.current.add(id)
+    try {
+      stopCaseTimer(id)
+      // Pre-compute target size before first await (user activation intact)
+      const remaining = cases.filter(x => x.id !== id)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
+      await supabase.from('case_events').insert({
+        session_id: id,
+        user_id: user.id,
+        type: 'not_a_case',
+        excluded: true,
+        rfc: false,
+      })
+      await supabase.from('ct_cases')
+        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'abandoned' })
+        .eq('id', id)
+      setCases(remaining)
+      if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
+      refetch()
+      maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(id)
     }
-    await supabase.from('case_events').insert({
-      session_id: id,
-      user_id: user.id,
-      type: 'not_a_case',
-      excluded: true,
-      rfc: false,
-    })
-    await supabase.from('ct_cases')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'abandoned' })
-      .eq('id', id)
-    setCases(remaining)
-    if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
-    refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   async function handleRFC(id) {
     if (!user) return
+    if (resolvingCaseIds.current.has(id)) return
     const c = cases.find(x => x.id === id)
     if (!c) return
-    stopCaseTimer(id)
-    // Pre-compute target size before first await (user activation intact)
-    const remaining = cases.filter(x => x.id !== id)
-    if (remaining.length === 0 && processes.length === 0) {
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+    resolvingCaseIds.current.add(id)
+    try {
+      stopCaseTimer(id)
+      // Pre-compute target size before first await (user activation intact)
+      const remaining = cases.filter(x => x.id !== id)
+      if (remaining.length === 0 && processes.length === 0) {
+        resizeAndPin('idle')
+      } else {
+        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      }
+      await supabase.from('case_events').insert({
+        session_id: id,
+        user_id: user.id,
+        type: 'rfc',
+        excluded: false,
+        rfc: true,
+      })
+      await supabase.from('ct_cases')
+        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
+        .eq('id', id)
+      setCases(remaining)
+      if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
+      refetch()
+      maybeShrinkToIdle(remaining, processes)
+    } finally {
+      resolvingCaseIds.current.delete(id)
     }
-    await supabase.from('case_events').insert({
-      session_id: id,
-      user_id: user.id,
-      type: 'rfc',
-      excluded: false,
-      rfc: true,
-    })
-    await supabase.from('ct_cases')
-      .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
-      .eq('id', id)
-    setCases(remaining)
-    if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
-    refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
