@@ -79,6 +79,7 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
       <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
       <Tooltip
+        cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
         contentStyle={{ background: 'var(--bg-card)', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
         labelStyle={{ color: C.textSec }}
       />
@@ -97,6 +98,7 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
       <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
       <Tooltip
+        cursor={{ fill: 'rgba(255,255,255,0.05)' }}
         contentStyle={{ background: 'var(--bg-card)', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
         labelStyle={{ color: C.textSec }}
       />
