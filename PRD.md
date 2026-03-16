@@ -177,7 +177,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
 
 ### Phase 4: PiP Window Integration & Resize
 
-- [ ] **Task 11: Inject pulse animation CSS into PiP window**
+- [x] **Task 11: Inject pulse animation CSS into PiP window**
   - What to build: The `meridian-pulse` keyframe animation used by the swap dots in `MinimizedStrip` must be injected into the PiP window's `<head>` — CSS from the host page does not inherit. In `usePipWindow.js`, where the existing `:root` CSS variable `<style>` block is injected into the PiP document head, append the pulse keyframe and `.swap-dot-pulse` class to that same style block.
   - Files to create/modify:
     - Modify `src/hooks/usePipWindow.js`

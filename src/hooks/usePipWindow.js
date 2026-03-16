@@ -67,6 +67,11 @@ export function usePipWindow() {
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes meridian-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.45; transform: scale(0.75); }
+        }
+        .swap-dot-pulse { animation: meridian-pulse 1.4s ease-in-out infinite; }
       `;
       pw.document.head.appendChild(style);
 
