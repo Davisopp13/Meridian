@@ -6,6 +6,7 @@ import { useContextFocus } from './hooks/useContextFocus.js'
 import { usePendingTriggers } from './hooks/usePendingTriggers.js'
 import { supabase } from './lib/supabase.js'
 import PipBar from './PipBar.jsx'
+import { PipErrorBoundary } from './components/PipErrorBoundary.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import PendingTriggerBanner from './components/PendingTriggerBanner.jsx'
@@ -153,7 +154,7 @@ export default function App() {
     container.id = 'meridian-pip-root'
     pw.document.body.appendChild(container)
     pipRootRef.current = ReactDOM.createRoot(container)
-    pipRootRef.current.render(buildPipBar())
+    pipRootRef.current.render(<PipErrorBoundary>{buildPipBar()}</PipErrorBoundary>)
   }
 
   // ── bar_sessions tracking ─────────────────────────────────────────────────
@@ -451,7 +452,7 @@ export default function App() {
   // ── Re-render PipBar into PiP window on every state change ────────────────
   useEffect(() => {
     if (!pipRootRef.current) return
-    pipRootRef.current.render(buildPipBar())
+    pipRootRef.current.render(<PipErrorBoundary>{buildPipBar()}</PipErrorBoundary>)
   })
 
   // ── Build PipBar element with current state + handlers ────────────────────

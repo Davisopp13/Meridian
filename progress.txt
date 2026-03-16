@@ -1070,3 +1070,22 @@ Learnings for future iterations:
   - Cleanup requires `supabase.removeChannel(channel)` not channel.unsubscribe()
   - Channel name should be unique per userId+rangeDays to avoid conflicts
 ---
+
+## Iteration PRD2-1 - Task 1 (Minimized Strip PRD): Add error boundary to PiP window
+- Created src/components/PipErrorBoundary.jsx — React class component ErrorBoundary
+- Fallback: 680×68 dark bar with Meridian logo + "Widget error — click to reload" (onClick: window.location.reload())
+- Modified src/App.jsx — wrapped both pipRootRef.current.render() calls with <PipErrorBoundary>
+- Import added: `import { PipErrorBoundary } from './components/PipErrorBoundary.jsx'`
+- `npm run build` passes — 2456 modules, 0 errors
+
+Files changed:
+  src/components/PipErrorBoundary.jsx (created)
+  src/App.jsx (import + two render site wraps)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - The actual createRoot().render() calls live in App.jsx (mountPipWindow + re-render useEffect), NOT in usePipWindow.js — PRD description was slightly off
+  - Two render sites: (1) mountPipWindow() at line ~157 (initial mount), (2) useEffect at line ~455 (every re-render)
+  - Both sites must be wrapped identically so the error boundary persists across re-renders
+  - ErrorBoundary must be a class component (no functional equivalent for componentDidCatch)
+---
