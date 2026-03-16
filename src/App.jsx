@@ -78,6 +78,7 @@ export default function App() {
   const [pendingTrigger, setPendingTrigger] = useState(null) // queued trigger when PiP not open
   const [manualEntryOpen, setManualEntryOpen] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected') // 'connected' | 'degraded' | 'offline'
+  const [minimizedStripView, setMinimizedStripView] = useState('auto') // 'auto' | 'case' | 'process'
   const restoredStateKeyRef = useRef(null)
   const hasHydratedPipStateRef = useRef(false)
   const resolvingCaseIds = useRef(new Set())
@@ -236,6 +237,42 @@ export default function App() {
 
   // ── Context focus (derived) ────────────────────────────────────────────────
   const { laneSplit } = useContextFocus(cases, processes, lastTrigger)
+
+  // ── Minimized strip derived values ─────────────────────────────────────────
+  const focusedCase = cases.find(c => c.id === focusedCaseId) || cases[0] || null
+  const activeProcess = processes[0] || null
+
+  // Determines which session the minimized strip shows
+  const activeStripSession = (() => {
+    if (minimizedStripView === 'case') return focusedCase ? { type: 'case', session: focusedCase } : null
+    if (minimizedStripView === 'process') return activeProcess ? { type: 'process', session: activeProcess } : null
+    // 'auto': use lastTrigger to pick the most recently started session
+    if (focusedCase && !activeProcess) return { type: 'case', session: focusedCase }
+    if (activeProcess && !focusedCase) return { type: 'process', session: activeProcess }
+    if (focusedCase && activeProcess) {
+      return lastTrigger === 'processes'
+        ? { type: 'process', session: activeProcess }
+        : { type: 'case', session: focusedCase }
+    }
+    return null
+  })()
+
+  function handleStripSwap() {
+    if (!focusedCase || !activeProcess) return
+    setMinimizedStripView(prev => {
+      if (prev === 'case') return 'process'
+      if (prev === 'process') return 'case'
+      // 'auto': flip from the current auto-derived view
+      return lastTrigger === 'processes' ? 'case' : 'process'
+    })
+  }
+
+  // Reset strip view when either session type is fully gone
+  useEffect(() => {
+    if (cases.length === 0 || processes.length === 0) {
+      setMinimizedStripView('auto')
+    }
+  }, [cases.length, processes.length])
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const { resolved, reclass, calls, processes: processCount, refetch } = useStats()

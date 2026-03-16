@@ -1125,3 +1125,38 @@ Learnings for future iterations:
   - try/finally wraps the entire function body after the guard check so cleanup always fires
   - handleRFCYes and handleRFCNo use rfcPending.sessionId (not a parameter) as the guard key
 ---
+
+## Iteration N - Task 4: Deduplicate RFC logic
+- Removed inline `showRFC` state, `handleRFCYes`, `handleRFCNo`, and inline RFC prompt render from `CaseLaneRow`
+- Added `handleRFCRequired(id)` to App.jsx — sets `rfcPending`, `overlayOpen`, and calls `resizeAndPin('overlay')`
+- Added `onRFCRequired` prop to CaseLaneRow; `handleResolve` now calls `onRFCRequired(id)` instead of `setShowRFC(true)`
+- Threaded `onRFCRequired` prop through SwimlaneTray → CasesLane → CaseLaneRow
+- Updated `handleResolveCase` comment: removed "inline RFC prompt" reference
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/CaseLaneRow.jsx, src/components/CasesLane.jsx, src/components/SwimlaneTray.jsx, src/App.jsx, PRD.md
+
+Learnings for future iterations:
+  - PRD.md was found with tasks 1-3 unchecked despite being implemented — updated before starting task 4
+  - `handleRFCRequired` is a synchronous function (no async) — it only sets state and calls resizeAndPin
+  - CaseLaneRow.handleResolve calls `onResolve(id)` (async, not awaited) then `onRFCRequired(id)` synchronously — this is intentional; the DB write happens in background while overlay shows immediately
+  - `onRFC` and `onCloseSession` props remain in SwimlaneTray/CasesLane prop chain (not removed, kept for compatibility)
+---
+
+## Iteration N - Task 5: minimizedStripView state and swap logic
+- Added `minimizedStripView` state ('auto' | 'case' | 'process') to App.jsx
+- Added `focusedCase` and `activeProcess` derived values (from cases/processes arrays)
+- Added `activeStripSession` derived value (IIFE) that returns `{ type, session }` or null
+- Added `handleStripSwap()` that toggles between 'case' and 'process' when both are active
+- Added useEffect that resets minimizedStripView to 'auto' when either session type is gone
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx
+
+Learnings for future iterations:
+  - Use lastTrigger ('cases'|'processes') to determine which session is most recent in 'auto' mode
+  - Reset minimizedStripView via useEffect watching cases.length/processes.length — cleaner than touching every session-end handler
+  - focusedCase = cases.find(c => c.id === focusedCaseId) || cases[0] || null
+---

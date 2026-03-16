@@ -67,7 +67,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
 
 ### Phase 2: Minimized Strip — Core Redesign
 
-- [ ] **Task 5: Add `minimizedStripView` state and swap logic to App.jsx**
+- [x] **Task 5: Add `minimizedStripView` state and swap logic to App.jsx**
   - What to build: Add a new state variable `minimizedStripView` to `App.jsx` — values: `'auto' | 'case' | 'process'`. Default is `'auto'`. Add a derived value `activeStripSession` computed from this state: when `'auto'`, compare `focusedCase?.created_at` vs `activeProcess?.startedAt` and return whichever is more recent (or whichever exists if only one is active). When `'case'` or `'process'`, return that session directly. Add a `handleStripSwap()` callback that toggles between `'case'` and `'process'` when both are active, and resets to `'auto'` when either session ends.
   - Files to create/modify:
     - Modify `src/App.jsx`
