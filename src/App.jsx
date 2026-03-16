@@ -542,6 +542,9 @@ export default function App() {
         onNewProcess={handleNewProcess}
         connectionStatus={connectionStatus}
         todayScorecard={todayScorecard}
+        activeStripSession={activeStripSession}
+        onStripSwap={handleStripSwap}
+        hasPendingActivity={false}
       >
         {rfcPending ? (
           <RFCPrompt

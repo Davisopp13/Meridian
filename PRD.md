@@ -81,7 +81,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: All three counts fetch correctly; refresh after new entries; passed as prop to PiP components
   - Test command: `npm run build` completes
 
-- [ ] **Task 7: Rebuild MinimizedStrip component**
+- [x] **Task 7: Rebuild MinimizedStrip component**
   - What to build: Replace the existing minimized strip render with a new `MinimizedStrip` component. The strip is always 220×32px with glassmorphism styling (`background: rgba(255,255,255,0.12)`, `backdrop-filter: blur(24px)`, `border: 0.5px solid rgba(255,255,255,0.18)`, `border-radius: 10px`). Layout has three zones:
 
     **Zone 1 — Logo (left, 32×32px fixed):**

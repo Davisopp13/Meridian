@@ -3,6 +3,7 @@ import MButton from './components/MButton.jsx';
 import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
 import MinimizeButton from './components/MinimizeButton.jsx';
+import MinimizedStrip from './components/MinimizedStrip.jsx';
 import { Check, Phone } from 'lucide-react';
 
 /**
@@ -55,92 +56,41 @@ export default function PipBar({
   onNewProcess,
   pipToast = null,
   connectionStatus = 'connected',
+  todayScorecard = { resolved: 0, calls: 0, processEntries: 0 },
+  activeStripSession = null,
+  onStripSwap,
+  hasPendingActivity = false,
+  onProcessPause,
+  onProcessResume,
+  onProcessLog,
+  onProcessDiscard,
   children,
 }) {
   const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
   const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
   // ── Minimized restore strip ──────────────────────────────────────────────
   if (isMinimized) {
-    const focusedCase = focusedCaseId ? cases.find(c => c.id === focusedCaseId) : null;
-
-    let minContent;
-    if (focusedCase) {
-      // Active Case Focus
-      minContent = (
-        <>
-          <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
-          <span style={{ color: C.textPri, fontSize: 12, fontWeight: 600 }}>#{focusedCase.caseNum}</span>
-          <span style={{ color: C.textSec, fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
-            ({formatElapsed(focusedCase.elapsed)})
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (focusedCase.paused) {
-                onResumeCase && onResumeCase(focusedCase.id);
-              } else {
-                onPauseCase && onPauseCase(focusedCase.id);
-              }
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              padding: '2px 6px',
-              borderRadius: 4,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginLeft: 'auto', // push to right
-              color: focusedCase.paused ? '#10b981' : '#f59e0b',
-              fontSize: 12,
-            }}
-          >
-            {focusedCase.paused ? '▶' : '⏸'}
-          </button>
-        </>
-      );
-    } else {
-      // Summary Stats
-      minContent = (
-        <>
-          <span style={{ color: C.textSec, fontSize: 10, transition: 'transform 0.2s ease' }} className="restore-arrow">▲</span>
-          <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px' }}>Meridian</span>
-          <div style={{ width: 1, height: 12, background: C.divider, margin: '0 4px', marginLeft: 'auto' }} />
-          <div style={{ display: 'flex', gap: 6, fontSize: 11, fontWeight: 600, color: C.textSec }}>
-            <span style={{ color: C.resolved, display: 'flex', alignItems: 'center', gap: 2 }}>{stats.resolved} <Check size={12} strokeWidth={3} /></span>
-            <span style={{ color: C.calls, display: 'flex', alignItems: 'center', gap: 2 }}>{stats.calls} <Phone size={12} strokeWidth={3} /></span>
-          </div>
-        </>
-      );
-    }
-
+    const focusedCase = focusedCaseId ? cases.find(c => c.id === focusedCaseId) : (cases[0] || null)
+    const activeProcess = processes[0] || null
     return (
-      <div
-        onClick={() => onRestore && onRestore()}
-        style={{
-          height: 32,
-          padding: '0 12px',
-          background: 'rgba(255,255,255,0.9)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          border: '1px solid rgba(0,0,0,0.1)',
-          borderRadius: 8,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          cursor: 'pointer',
-          userSelect: 'none',
-          fontFamily: '"Inter", system-ui, sans-serif',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.9)'; }}
-      >
-        {minContent}
-      </div>
-    );
+      <MinimizedStrip
+        focusedCase={focusedCase}
+        activeProcess={activeProcess}
+        activeStripSession={activeStripSession}
+        connectionStatus={connectionStatus}
+        todayScorecard={todayScorecard}
+        hasPendingActivity={hasPendingActivity}
+        onRestore={onRestore}
+        onOpenDashboard={onOpenDashboard}
+        onStripSwap={onStripSwap}
+        onPauseCase={onPauseCase}
+        onResumeCase={onResumeCase}
+        onProcessPause={onProcessPause}
+        onProcessResume={onProcessResume}
+        onProcessLog={onProcessLog}
+        onProcessDiscard={onProcessDiscard}
+      />
+    )
   }
 
   // ── Stat button disabled: no focused case ────────────────────────────────

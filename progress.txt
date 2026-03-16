@@ -1177,3 +1177,21 @@ Learnings for future iterations:
   - processEntries maps to stats.processes (mpl_entries count from useStats)
   - PipBar receives todayScorecard prop; MinimizedStrip (Task 7) will consume it from PipBar
 ---
+
+## Iteration 47 - Task 7: Rebuild MinimizedStrip component
+- Created src/components/MinimizedStrip.jsx — pure presentational, all 5 strip states
+- Modified src/PipBar.jsx — replaced inline minimized strip logic with <MinimizedStrip>, added new props (activeStripSession, onStripSwap, hasPendingActivity, onProcess*)
+- Modified src/App.jsx — added activeStripSession, onStripSwap, hasPendingActivity={false} to buildPipBar()
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/MinimizedStrip.jsx (created)
+  src/PipBar.jsx
+  src/App.jsx
+
+Learnings for future iterations:
+  - MinimizedStrip uses className="swap-dot-pulse" for pulse dots — CSS animation injected in Task 11 (usePipWindow.js)
+  - lucide-react icons (Check, Phone, FileText, Pause, Play, X) work fine in PiP window (render as inline SVG)
+  - hasPendingActivity is hardcoded false for now — Task 12 adds the real state
+  - onProcessPause/Resume/Log/Discard wired in Tasks 8-10; pass as optional props for now
+---
