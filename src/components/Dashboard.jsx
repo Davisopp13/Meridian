@@ -34,10 +34,10 @@ const CHART_PERIODS = new Set(['this_month', 'last_month', 'ytd']);
 const METRICS = [
   { key: 'resolved', label: 'Resolved', color: '#16a34a', icon: <Check size={18} strokeWidth={2.5} /> },
   { key: 'reclass', label: 'Reclassified', color: '#dc2626', icon: <CornerDownLeft size={18} strokeWidth={2.5} /> },
-  { key: 'calls', label: 'Calls', color: '#0284c7', icon: <Phone size={18} strokeWidth={2.5} /> },
+  { key: 'calls', label: 'Calls', color: '#0d9488', icon: <Phone size={18} strokeWidth={2.5} /> },
   { key: 'notACase', label: 'Not a Case', color: '#6b7280', icon: <Minus size={18} strokeWidth={2.5} /> },
   { key: 'casesAndCalls', label: 'Cases & Calls', color: '#003087', icon: <ClipboardList size={18} strokeWidth={2.5} /> },
-  { key: 'processes', label: 'Processes', color: '#8b5cf6', icon: <Timer size={18} strokeWidth={2.5} /> },
+  { key: 'processes', label: 'Processes', color: '#60a5fa', icon: <Timer size={18} strokeWidth={2.5} /> },
   { key: 'totalActivity', label: 'Total Activity', color: '#E8540A', icon: <Zap size={18} strokeWidth={2.5} /> },
 ];
 
