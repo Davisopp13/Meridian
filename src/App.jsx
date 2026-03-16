@@ -16,6 +16,7 @@ import RFCPrompt from './components/overlays/RFCPrompt.jsx'
 import ProcessPicker from './components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from './components/ManualEntryForm.jsx'
 import { getNewYorkDateKey, getNewYorkDayRange } from './lib/timezone.js'
+import { SIZES } from './lib/constants.js'
 
 const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
@@ -622,7 +623,20 @@ export default function App() {
     setPendingTrigger(null)
     if (!trigger) return
 
-    const pw = await openPip()
+    // Compute the correct initial window size from the trigger type so
+    // requestWindow opens at the right dimensions. User activation is lost
+    // after the await, so we can't rely on resizeAndPin — pass the size here.
+    let targetMode
+    if (trigger.type === 'case') {
+      const willOpenTray = cases.length + 1 > 2
+      targetMode = willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive')
+    } else {
+      const willOpenTray = processes.length + 1 > 2
+      targetMode = willOpenTray ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive')
+    }
+    const { width, height } = SIZES[targetMode] || SIZES.idle
+
+    const pw = await openPip({ width, height })
     if (!pw) return
 
     mountPipWindow(pw)

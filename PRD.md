@@ -220,7 +220,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
     - Tray closes when last session ends (verify `setTrayOpen(false)` preserved)
   - Test command: `npm run build` completes; open DevTools console and trigger bookmarklet while minimized — confirm no `NotAllowedError`, confirm `hasPendingActivity` pulse appears on strip
 
-- [ ] **Task 13: Verify PendingTriggerBanner resize path**
+- [x] **Task 13: Verify PendingTriggerBanner resize path**
   - What to build: The `PendingTriggerBanner` calls `handleCaseStart`/`handleProcessStart` after a user clicks the banner button, which calls `openPip()` (an `await`). Manual testing confirmed that user activation does NOT survive through `await openPip()` — `requestWindow` and `resizeTo` both fail. Fix: in `handlePendingTriggerLaunch` (or equivalent), call `resizeAndPin` with the correct target size BEFORE the `await openPip()` call if the PiP is already open, or accept that a fresh `openPip()` call opens at the requested dimensions via `requestWindow({width, height})` which sets the initial size without needing `resizeTo`. Investigate whether `requestWindow` with explicit dimensions correctly sizes the new window — if so, no `resizeTo` is needed after open. If not, restructure so the banner button click calls `resizeAndPin` synchronously before any `await`.
   - Files to create/modify:
     - Modify `src/App.jsx` — `handlePendingTriggerLaunch` function only

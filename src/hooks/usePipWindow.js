@@ -10,7 +10,7 @@ export function usePipWindow() {
   // Ref always holds the latest pipWindow so resizeAndPin never uses a stale closure
   const pipWindowRef = useRef(null);
 
-  const openPip = useCallback(async () => {
+  const openPip = useCallback(async ({ width, height } = {}) => {
     if (!window.documentPictureInPicture) {
       console.warn('Document Picture-in-Picture API not supported in this browser.');
       return null;
@@ -18,8 +18,8 @@ export function usePipWindow() {
 
     try {
       const pw = await window.documentPictureInPicture.requestWindow({
-        width: SIZES.idle.width,
-        height: SIZES.idle.height,
+        width: width ?? SIZES.idle.width,
+        height: height ?? SIZES.idle.height,
       });
 
       pw.document.title = 'Meridian';

@@ -1265,3 +1265,16 @@ Learnings for future iterations:
   - setTrayOpen(false) must be added alongside resizeAndPin('idle') in each pre-await idle block to preserve the tray-close behavior
   - When a bookmarklet fires while minimized (postMessage callback = no user activation), do NOT call resizeTo or setIsMinimized — just set hasPendingActivity and let the agent tap the strip
 ---
+
+## Iteration 14 - Task 13: Verify PendingTriggerBanner resize path
+- Modified openPip in usePipWindow.js to accept optional {width, height} params (defaults to SIZES.idle if omitted)
+- In handlePendingTriggerLaunch: compute correct target mode from trigger type + current state, extract SIZES dimensions, pass to openPip so requestWindow opens at the right size
+- Added SIZES import to App.jsx
+- Files changed: src/hooks/usePipWindow.js, src/App.jsx, PRD.md, progress.txt
+- `npm run build` passes — 0 errors
+
+Learnings for future iterations:
+  - requestWindow({width, height}) sets the INITIAL PiP window size — use it to open at the correct target dimensions rather than relying on a post-await resizeTo call
+  - User activation is lost after any await — any resize must happen synchronously before the first await, OR be baked into requestWindow's initial dimensions
+  - openPip accepting optional {width, height} is the cleanest way to control initial size from the caller without duplicating requestWindow logic
+---
