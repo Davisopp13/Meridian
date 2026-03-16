@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { C, formatElapsed } from '../lib/constants'
+import { Check, CornerDownLeft, Phone, Pause, Minus, Play, Circle } from 'lucide-react'
 
 function actionBtn(color, muted = false) {
   return {
@@ -14,6 +15,9 @@ function actionBtn(color, muted = false) {
     cursor: 'pointer',
     whiteSpace: 'nowrap',
     fontFamily: '"Segoe UI", sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
   }
 }
 
@@ -66,8 +70,8 @@ export default function CaseLaneRow({
   const rowBg = awaiting
     ? C.amberRow
     : isFocused
-    ? C.rowFocus
-    : 'transparent'
+      ? C.rowFocus
+      : 'transparent'
 
   const rowStyle = {
     padding: '5px 8px',
@@ -90,7 +94,7 @@ export default function CaseLaneRow({
     return (
       <div style={rowStyle} onClick={handleRowClick}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-          <span style={{ color: C.awaiting, fontSize: 10 }}>⏸</span>
+          <Pause size={10} strokeWidth={3} color={C.awaiting} />
           <span style={{ ...labelStyle, color: C.awaiting }}>{caseNum}</span>
           <span style={{
             fontSize: 9, color: C.awaiting,
@@ -104,7 +108,7 @@ export default function CaseLaneRow({
             style={actionBtn(C.resolved)}
             onClick={e => { e.stopPropagation(); onResume(id) }}
           >
-            ▶ Resume
+            <Play size={10} strokeWidth={3} /> Resume
           </button>
         </div>
       </div>
@@ -131,7 +135,7 @@ export default function CaseLaneRow({
     <div style={rowStyle} onClick={handleRowClick}>
       {/* Row header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-        <span style={{ color: C.activeDot, fontSize: 8 }}>●</span>
+        <Circle size={6} fill={C.activeDot} color={C.activeDot} />
         <span style={{ ...labelStyle, color: C.textPri }}>{caseNum}</span>
         <span style={{ fontSize: 10, color: C.textSec, fontVariantNumeric: 'tabular-nums', flex: 1 }}>
           {formatElapsed(elapsed)}
@@ -142,25 +146,25 @@ export default function CaseLaneRow({
       {/* Expanded actions */}
       {expanded && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
-          <button style={actionBtn(C.resolved)} onClick={handleResolve}>✓ Resolve</button>
-          <button style={actionBtn(C.reclass)} onClick={handleReclass}>↩ Reclass</button>
+          <button style={actionBtn(C.resolved)} onClick={handleResolve}><Check size={10} strokeWidth={3} /> Resolve</button>
+          <button style={actionBtn(C.reclass)} onClick={handleReclass}><CornerDownLeft size={10} strokeWidth={3} /> Reclass</button>
           <button
             style={actionBtn(C.calls)}
             onClick={e => { e.stopPropagation(); onCall(id) }}
           >
-            📞 Call
+            <Phone size={10} strokeWidth={3} /> Call
           </button>
           <button
             style={actionBtn(C.awaiting)}
             onClick={e => { e.stopPropagation(); onAwaiting(id) }}
           >
-            ⏸ Awaiting
+            <Pause size={10} strokeWidth={3} /> Awaiting
           </button>
           <button
             style={actionBtn(C.textSec, true)}
             onClick={e => { e.stopPropagation(); onNotACase(id) }}
           >
-            — Not a Case
+            <Minus size={10} strokeWidth={3} /> Not a Case
           </button>
         </div>
       )}

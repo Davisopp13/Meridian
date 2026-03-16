@@ -3,6 +3,7 @@ import MButton from './components/MButton.jsx';
 import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
 import MinimizeButton from './components/MinimizeButton.jsx';
+import { Check, Phone } from 'lucide-react';
 
 /**
  * PipBar — rendered into the PiP window via ReactDOM.createRoot.
@@ -104,8 +105,8 @@ export default function PipBar({
           <span style={{ color: C.textPri, fontSize: 12, fontWeight: 700, letterSpacing: '0.5px' }}>Meridian</span>
           <div style={{ width: 1, height: 12, background: C.divider, margin: '0 4px', marginLeft: 'auto' }} />
           <div style={{ display: 'flex', gap: 6, fontSize: 11, fontWeight: 600, color: C.textSec }}>
-            <span style={{ color: C.resolved }}>{stats.resolved} ✓</span>
-            <span style={{ color: C.calls }}>{stats.calls} 📞</span>
+            <span style={{ color: C.resolved, display: 'flex', alignItems: 'center', gap: 2 }}>{stats.resolved} <Check size={12} strokeWidth={3} /></span>
+            <span style={{ color: C.calls, display: 'flex', alignItems: 'center', gap: 2 }}>{stats.calls} <Phone size={12} strokeWidth={3} /></span>
           </div>
         </>
       );
