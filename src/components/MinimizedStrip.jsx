@@ -99,11 +99,12 @@ export default function MinimizedStrip({
       </>
     )
   } else if (!focusedCase && activeProcess) {
-    // Process only — static blue dot (not pulsing, no hidden session)
+    // Process only — static dot (blue normally, amber when paused)
     zone2Content = (
       <>
         <div style={{
-          width: 6, height: 6, borderRadius: '50%', background: '#4da6ff',
+          width: 6, height: 6, borderRadius: '50%',
+          background: activeProcess.paused ? '#fbbf24' : '#4da6ff',
           flexShrink: 0, marginLeft: 8,
         }} />
         <span style={{

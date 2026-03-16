@@ -545,6 +545,8 @@ export default function App() {
         activeStripSession={activeStripSession}
         onStripSwap={handleStripSwap}
         hasPendingActivity={false}
+        onProcessPause={handleProcessPause}
+        onProcessResume={handleProcessResume}
       >
         {rfcPending ? (
           <RFCPrompt
@@ -965,6 +967,16 @@ export default function App() {
     setPickerPending(null)
     setOverlayOpen(false)
     resizeAndPin(getBarSize(cases, processes, trayOpen, false))
+  }
+
+  function handleProcessPause(id) {
+    stopProcessTimer(id)
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: true } : p))
+  }
+
+  function handleProcessResume(id) {
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: false } : p))
+    startProcessTimer(id)
   }
 
   // ── Helper: resize/close tray when all sessions gone ─────────────────────

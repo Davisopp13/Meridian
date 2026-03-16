@@ -149,7 +149,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
 
 ### Phase 3: Process Actions from Minimized Strip
 
-- [ ] **Task 8: Wire process pause/resume from minimized strip**
+- [x] **Task 8: Wire process pause/resume from minimized strip**
   - What to build: The pause/resume button in `MinimizedStrip` (Zone 2, process states) should call the existing `handleProcessPause(processId)` / `handleProcessResume(processId)` callbacks in `App.jsx`. Pass these down as `onProcessPause` and `onProcessResume` props. The pause icon should toggle to a play icon when the process is paused. The process dot should turn amber `#fbbf24` when paused.
   - Files to create/modify:
     - Modify `src/components/MinimizedStrip.jsx` — wire pause/resume toggle
