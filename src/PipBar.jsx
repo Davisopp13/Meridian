@@ -54,8 +54,11 @@ export default function PipBar({
   onCall,
   onNewProcess,
   pipToast = null,
+  connectionStatus = 'connected',
   children,
 }) {
+  const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
+  const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
   // ── Minimized restore strip ──────────────────────────────────────────────
   if (isMinimized) {
     const focusedCase = focusedCaseId ? cases.find(c => c.id === focusedCaseId) : null;
@@ -204,6 +207,9 @@ export default function PipBar({
         />
 
         <div style={{ flex: 1 }} />
+
+        {/* Connection status dot */}
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
 
         {/* Minimize button */}
         <MinimizeButton onClick={() => onMinimize && onMinimize()} />

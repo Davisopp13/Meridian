@@ -77,6 +77,7 @@ export default function App() {
   const [pipToast, setPipToast] = useState(null)
   const [pendingTrigger, setPendingTrigger] = useState(null) // queued trigger when PiP not open
   const [manualEntryOpen, setManualEntryOpen] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('connected') // 'connected' | 'degraded' | 'offline'
   const restoredStateKeyRef = useRef(null)
   const hasHydratedPipStateRef = useRef(false)
 
@@ -217,6 +218,20 @@ export default function App() {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // ── Connection status health-check ────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return
+
+    async function pingConnection() {
+      const { error } = await supabase.from('platform_users').select('id').limit(1)
+      setConnectionStatus(error ? 'offline' : 'connected')
+    }
+
+    pingConnection()
+    const intervalId = setInterval(pingConnection, 30000)
+    return () => clearInterval(intervalId)
+  }, [user])
 
   // ── Context focus (derived) ────────────────────────────────────────────────
   const { laneSplit } = useContextFocus(cases, processes, lastTrigger)
@@ -480,6 +495,7 @@ export default function App() {
         onReclass={handleReclass}
         onCall={handleCall}
         onNewProcess={handleNewProcess}
+        connectionStatus={connectionStatus}
       >
         {rfcPending ? (
           <RFCPrompt

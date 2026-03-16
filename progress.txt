@@ -1089,3 +1089,21 @@ Learnings for future iterations:
   - Both sites must be wrapped identically so the error boundary persists across re-renders
   - ErrorBoundary must be a class component (no functional equivalent for componentDidCatch)
 ---
+
+## Iteration N - Task 2: Add Supabase connection status indicator
+- Added `connectionStatus` state ('connected' | 'degraded' | 'offline') to App.jsx
+- Added `useEffect` with 30s interval pinging `platform_users` table when user is authenticated
+- Passed `connectionStatus` prop through `buildPipBar()` → `PipBar`
+- Rendered 6×6px colored dot in PipBar.jsx before the MinimizeButton (far right of full bar)
+- Colors: connected=#4ade80, degraded=#fbbf24, offline=#f87171
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx — connectionStatus state, pingConnection effect, prop pass-through
+  src/PipBar.jsx — connectionStatus prop, connDotColor derived, dot rendered before minimize button
+
+Learnings for future iterations:
+  - Health-check is guarded by `if (!user) return` in the effect — won't fire when logged out
+  - `degraded` state is available but not triggered by the health-check (only connected/offline); future task can add latency-based degraded detection if needed
+  - PipBar.jsx is at src/PipBar.jsx (not src/components/PipBar.jsx as PRD suggests)
+---

@@ -39,7 +39,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Error boundary renders without crashing; wraps the PiP root correctly
   - Test command: `npm run build` completes with no errors
 
-- [ ] **Task 2: Add Supabase connection status indicator**
+- [x] **Task 2: Add Supabase connection status indicator**
   - What to build: A small connection state dot visible on both the full PiP bar and the minimized strip. Track connection state in `App.jsx` using Supabase's `onAuthStateChange` and a periodic health-check ping (every 30s, `supabase.from('platform_users').select('id').limit(1)`). Three states: `connected` (green `#4ade80`), `degraded` (amber `#fbbf24`), `offline` (red `#f87171`). Dot is 6×6px, positioned at the far right of the full bar (before the minimize button), and also visible on the minimized strip scorecard zone.
   - Files to create/modify:
     - Modify `src/App.jsx` — add `connectionStatus` state, health-check interval, pass as prop
