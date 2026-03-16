@@ -80,6 +80,7 @@ export default function App() {
   const [connectionStatus, setConnectionStatus] = useState('connected') // 'connected' | 'degraded' | 'offline'
   const [minimizedStripView, setMinimizedStripView] = useState('auto') // 'auto' | 'case' | 'process'
   const [pendingProcessLog, setPendingProcessLog] = useState(null) // processId | null
+  const [hasPendingActivity, setHasPendingActivity] = useState(false)
   const restoredStateKeyRef = useRef(null)
   const hasHydratedPipStateRef = useRef(false)
   const resolvingCaseIds = useRef(new Set())
@@ -423,9 +424,6 @@ export default function App() {
 
   // ── Ensure PiP window is open; restore if minimized ──────────────────────
   async function ensurePipOpen() {
-    if (isMinimized) {
-      setIsMinimized(false)
-    }
     if (!isOpen) {
       const pw = await openPip()
       if (!pw) return false
@@ -447,12 +445,14 @@ export default function App() {
         return
       }
     }
-    if (isMinimized) setIsMinimized(false)
-
-    // Pre-compute target size before first DB await (user activation intact)
-    const willOpenTray = cases.length + 1 > 2
-    if (willOpenTray) setTrayOpen(true)
-    resizeAndPin(willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive'))
+    if (isMinimized) {
+      setHasPendingActivity(true)
+    } else {
+      // Pre-compute target size before first DB await (user activation intact)
+      const willOpenTray = cases.length + 1 > 2
+      if (willOpenTray) setTrayOpen(true)
+      resizeAndPin(willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive'))
+    }
 
     const { data, error } = await supabase
       .from('ct_cases')
@@ -501,12 +501,14 @@ export default function App() {
         return
       }
     }
-    if (isMinimized) setIsMinimized(false)
-
-    // Pre-compute target size (PiP is guaranteed open at this point)
-    const willOpenTrayEarly = processes.length + 1 > 2
-    if (willOpenTrayEarly) setTrayOpen(true)
-    resizeAndPin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
+    if (isMinimized) {
+      setHasPendingActivity(true)
+    } else {
+      // Pre-compute target size (PiP is guaranteed open at this point)
+      const willOpenTrayEarly = processes.length + 1 > 2
+      if (willOpenTrayEarly) setTrayOpen(true)
+      resizeAndPin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
+    }
 
     const id = crypto.randomUUID()
     const newProcess = { id, elapsed: 0, paused: false }
@@ -553,7 +555,7 @@ export default function App() {
         todayScorecard={todayScorecard}
         activeStripSession={activeStripSession}
         onStripSwap={handleStripSwap}
-        hasPendingActivity={false}
+        hasPendingActivity={hasPendingActivity}
         onProcessPause={handleProcessPause}
         onProcessResume={handleProcessResume}
         onProcessLog={handleProcessLogFromStrip}
@@ -647,6 +649,7 @@ export default function App() {
 
   function handleRestore() {
     setIsMinimized(false)
+    setHasPendingActivity(false)
     resizeAndPin(getBarSize(cases, processes, trayOpen, overlayOpen))
   }
 
@@ -685,6 +688,7 @@ export default function App() {
     // Pre-compute target size before await (user activation intact)
     const remaining = cases.filter(x => x.id !== id)
     if (remaining.length === 0 && processes.length === 0) {
+      setTrayOpen(false)
       resizeAndPin('idle')
     } else {
       resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -695,7 +699,6 @@ export default function App() {
     setCases(remaining)
     if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
     refetch()
-    maybeShrinkToIdle(remaining, processes)
   }
 
   // Bar pill × — pause timer, open RFC overlay only if previously resolved
@@ -713,6 +716,7 @@ export default function App() {
       } else {
         const remaining = cases.filter(x => x.id !== id)
         if (remaining.length === 0 && processes.length === 0) {
+          setTrayOpen(false)
           resizeAndPin('idle')
         } else {
           resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -723,7 +727,6 @@ export default function App() {
         setCases(remaining)
         if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
         refetch()
-        maybeShrinkToIdle(remaining, processes)
       }
     } finally {
       resolvingCaseIds.current.delete(id)
@@ -765,6 +768,7 @@ export default function App() {
       } else {
         const remaining = cases.filter(x => x.id !== focusedCaseId)
         if (remaining.length === 0 && processes.length === 0) {
+          setTrayOpen(false)
           resizeAndPin('idle')
         } else {
           resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -781,7 +785,6 @@ export default function App() {
         // Roll back optimistic state if write failed
         setRfcPending(null)
         setOverlayOpen(false)
-        resizeAndPin(getBarSize(cases, processes, trayOpen, false))
         return
       }
       if (!c.previouslyResolved) {
@@ -793,7 +796,6 @@ export default function App() {
         setCases(remaining)
         setFocusedCaseId(remaining[0]?.id || null)
         refetch()
-        maybeShrinkToIdle(remaining, processes)
       }
     } finally {
       resolvingCaseIds.current.delete(focusedCaseId)
@@ -810,6 +812,7 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== focusedCaseId)
       if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -829,7 +832,6 @@ export default function App() {
       setCases(remaining)
       setFocusedCaseId(remaining[0]?.id || null)
       refetch()
-      maybeShrinkToIdle(remaining, processes)
     } finally {
       resolvingCaseIds.current.delete(focusedCaseId)
     }
@@ -845,6 +847,7 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== sessionId)
       if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -865,7 +868,6 @@ export default function App() {
       setRfcPending(null)
       setOverlayOpen(false)
       refetch()
-      maybeShrinkToIdle(remaining, processes)
     } finally {
       resolvingCaseIds.current.delete(sessionId)
     }
@@ -881,6 +883,7 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== sessionId)
       if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -893,7 +896,6 @@ export default function App() {
       setRfcPending(null)
       setOverlayOpen(false)
       refetch()
-      maybeShrinkToIdle(remaining, processes)
     } finally {
       resolvingCaseIds.current.delete(sessionId)
     }
@@ -995,16 +997,6 @@ export default function App() {
     startProcessTimer(id)
   }
 
-  // ── Helper: resize/close tray when all sessions gone ─────────────────────
-  function maybeShrinkToIdle(remainingCases, remainingProcesses) {
-    if (remainingCases.length === 0 && remainingProcesses.length === 0) {
-      setTrayOpen(false)
-      resizeAndPin('idle')
-    } else {
-      resizeAndPin(getBarSize(remainingCases, remainingProcesses, trayOpen, false))
-    }
-  }
-
   // ── Tray-specific handlers ─────────────────────────────────────────────────
 
   function handleRFCRequired(id) {
@@ -1027,6 +1019,7 @@ export default function App() {
       if (!c.previouslyResolved) {
         const remaining = cases.filter(x => x.id !== id)
         if (remaining.length === 0 && processes.length === 0) {
+          setTrayOpen(false)
           resizeAndPin('idle')
         } else {
           resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -1047,7 +1040,6 @@ export default function App() {
         const remaining = cases.filter(x => x.id !== id)
         setCases(remaining)
         if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
-        maybeShrinkToIdle(remaining, processes)
       }
       refetch()
     } finally {
@@ -1066,6 +1058,7 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -1083,7 +1076,6 @@ export default function App() {
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()
-      maybeShrinkToIdle(remaining, processes)
     } finally {
       resolvingCaseIds.current.delete(id)
     }
@@ -1123,6 +1115,7 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -1140,7 +1133,6 @@ export default function App() {
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()
-      maybeShrinkToIdle(remaining, processes)
     } finally {
       resolvingCaseIds.current.delete(id)
     }
@@ -1157,6 +1149,7 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
         resizeAndPin('idle')
       } else {
         resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
@@ -1174,7 +1167,6 @@ export default function App() {
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()
-      maybeShrinkToIdle(remaining, processes)
     } finally {
       resolvingCaseIds.current.delete(id)
     }
@@ -1186,6 +1178,7 @@ export default function App() {
     // Pre-compute target size before first await (user activation intact)
     const remaining = processes.filter(p => p.id !== id)
     if (cases.length === 0 && remaining.length === 0) {
+      setTrayOpen(false)
       resizeAndPin('idle')
     } else {
       resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
@@ -1200,7 +1193,6 @@ export default function App() {
     if (!ok) return
     setProcesses(remaining)
     refetch()
-    maybeShrinkToIdle(cases, remaining)
   }
 
   // ── Onboarding complete ───────────────────────────────────────────────────

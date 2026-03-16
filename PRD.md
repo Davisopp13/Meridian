@@ -184,7 +184,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Pulse animation renders correctly inside PiP window; no animation in host page (style is scoped to PiP document)
   - Test command: `npm run build` completes
 
-- [ ] **Task 12: Fix bookmarklet-while-minimized and remove dead resize code**
+- [x] **Task 12: Fix bookmarklet-while-minimized and remove dead resize code**
 
   **Background (from Opus audit + confirmed manual test):**
   An Opus audit and live console test confirmed three resize issues in `App.jsx`:
