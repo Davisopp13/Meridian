@@ -165,7 +165,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: Tapping log from minimized strip restores widget and opens category picker immediately; `pendingProcessLog` flag clears after picker opens
   - Test command: `npm run build` completes
 
-- [ ] **Task 10: Wire process discard action from minimized strip**
+- [x] **Task 10: Wire process discard action from minimized strip**
   - What to build: The discard (×) button in `MinimizedStrip` should call `onProcessDiscard(processId)` which maps to the existing discard/cancel process handler in `App.jsx`. This removes the process from local state without creating an `mpl_entries` row. No confirmation prompt — action fires immediately. Use `stopPropagation` to prevent restore.
   - Files to create/modify:
     - Modify `src/components/MinimizedStrip.jsx` — wire discard button

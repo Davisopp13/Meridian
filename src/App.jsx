@@ -557,6 +557,7 @@ export default function App() {
         onProcessPause={handleProcessPause}
         onProcessResume={handleProcessResume}
         onProcessLog={handleProcessLogFromStrip}
+        onProcessDiscard={handleCloseProcess}
       >
         {rfcPending ? (
           <RFCPrompt
