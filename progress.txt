@@ -1160,3 +1160,20 @@ Learnings for future iterations:
   - Reset minimizedStripView via useEffect watching cases.length/processes.length — cleaner than touching every session-end handler
   - focusedCase = cases.find(c => c.id === focusedCaseId) || cases[0] || null
 ---
+
+## Iteration 46 - Task 6: Add today's scorecard counts to App.jsx
+- Added `todayScorecard` derived value in App.jsx computed from existing `useStats` hook output
+- todayScorecard = { resolved, calls, processEntries: processCount }
+- Avoided duplicate Supabase queries — useStats already fetches exactly these counts (case_events resolved/calls + mpl_entries count)
+- Passed `todayScorecard` as prop to PipBar via buildPipBar()
+- `refetch()` already called after new case/process writes — scorecard auto-refreshes
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx
+
+Learnings for future iterations:
+  - todayScorecard is purely derived from existing useStats data — no new fetch needed
+  - processEntries maps to stats.processes (mpl_entries count from useStats)
+  - PipBar receives todayScorecard prop; MinimizedStrip (Task 7) will consume it from PipBar
+---

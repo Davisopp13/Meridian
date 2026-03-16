@@ -74,7 +74,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture productivity widget fo
   - Acceptance criteria: `minimizedStripView` state exists; `activeStripSession` derives correctly for all combinations of active sessions; `handleStripSwap` toggles correctly
   - Test command: `npm run build` completes
 
-- [ ] **Task 6: Add today's scorecard counts to App.jsx**
+- [x] **Task 6: Add today's scorecard counts to App.jsx**
   - What to build: Add a `todayScorecard` derived value in `App.jsx` containing three counts, each configurable via a user preference (hardcode defaults for now, settings UI comes later): `resolved` (count of `ct_cases` with `status: 'resolved'` created today), `calls` (count of `case_events` with `type: 'call'` created today), `processEntries` (count of `mpl_entries` created today). Use America/New_York timezone for "today" boundary (midnight to now). Fetch on mount and refresh on any new case/process write. Pass `todayScorecard` as a prop down to `PipBar` and the minimized strip.
   - Files to create/modify:
     - Modify `src/App.jsx` — add `todayScorecard` state, fetch function, refresh triggers

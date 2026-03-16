@@ -278,6 +278,13 @@ export default function App() {
   const { resolved, reclass, calls, processes: processCount, refetch } = useStats()
   const stats = { resolved, reclass, calls, processes: processCount }
 
+  // ── Today's scorecard (for minimized strip) ───────────────────────────────
+  const todayScorecard = {
+    resolved,
+    calls,
+    processEntries: processCount,
+  }
+
   // ── Fetch process categories (team-filtered) after auth ───────────────────
   useEffect(() => {
     if (!user || !profile?.team) return
@@ -534,6 +541,7 @@ export default function App() {
         onCall={handleCall}
         onNewProcess={handleNewProcess}
         connectionStatus={connectionStatus}
+        todayScorecard={todayScorecard}
       >
         {rfcPending ? (
           <RFCPrompt
