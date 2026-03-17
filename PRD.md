@@ -49,7 +49,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
 
 ### Phase 2: Pills
 
-- [ ] **Task 2: Dark theme for CasePill**
+- [x] **Task 2: Dark theme for CasePill**
   - What to build: In `src/components/CasePill.jsx`, audit all inline styles. The pill background for a focused/active case should be `rgba(232,84,10,0.12)` with border `rgba(232,84,10,0.3)`. For an unfocused case, use `rgba(255,255,255,0.06)` background with border `var(--border)`. For awaiting state, use `rgba(245,158,11,0.12)` background with border `rgba(245,158,11,0.3)`. Replace any hardcoded white backgrounds, dark text colors (`#0f172a`, `#1e293b`, `#374151`), or black borders with the appropriate dark equivalents. Keep `#E8540A` orange and `#fff` white text on colored elements as-is.
   - Files to modify: `src/components/CasePill.jsx`
   - Acceptance criteria: Case pills render correctly on dark bar — focused orange tint, unfocused subtle, awaiting amber tint; text readable

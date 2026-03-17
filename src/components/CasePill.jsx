@@ -6,12 +6,11 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '0 10px', height: 32, borderRadius: 8,
-        background: 'rgba(217,119,6,0.3)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(217,119,6,0.5)', cursor: 'pointer',
+        background: 'rgba(245,158,11,0.12)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(245,158,11,0.3)', cursor: 'pointer',
         fontSize: 12, fontWeight: 600, color: '#fff',
         fontFamily: '"Inter", system-ui, sans-serif',
         flexShrink: 0,
-        boxShadow: '0 4px 12px rgba(217,119,6,0.1)'
       }}>
         <span>⏸</span>
         <span>{caseNumber}</span>
@@ -33,12 +32,11 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '0 10px', height: 32, borderRadius: 8,
-        background: 'rgba(0,48,135,0.2)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(0,48,135,0.4)',
+        background: 'rgba(232,84,10,0.12)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid rgba(232,84,10,0.3)',
         fontSize: 12, fontWeight: 600, color: C.textPri,
         fontFamily: '"Inter", system-ui, sans-serif',
         flexShrink: 0,
-        boxShadow: '0 4px 12px rgba(0,48,135,0.2)'
       }}>
         <span style={{ color: C.activeDot, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>●</span>
         <span>{caseNumber}</span>
@@ -72,14 +70,14 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
         padding: '0 10px', height: 32, borderRadius: 8,
-        background: 'rgba(0,0,0,0.04)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.06)',
+        background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border)',
         fontSize: 12, fontWeight: 500, color: C.textSec,
         fontFamily: '"Inter", system-ui, sans-serif',
         cursor: 'pointer', flexShrink: 0,
         transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.08)'; e.currentTarget.style.color = C.textPri; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.04)'; e.currentTarget.style.color = C.textSec; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = C.textPri; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = C.textSec; }}
     >
       <span style={{ color: C.activeDot }}>●</span>
       <span>{caseNumber}</span>
