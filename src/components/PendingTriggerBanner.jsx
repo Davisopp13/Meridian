@@ -78,11 +78,11 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        background: '#1a1a2e',
-        border: '1px solid #E8540A',
+        background: 'rgba(15,17,23,0.95)',
+        border: '1px solid rgba(232,84,10,0.5)',
         borderRadius: 12,
         padding: '12px 20px',
-        boxShadow: '0 8px 32px rgba(232, 84, 10, 0.25)',
+        boxShadow: '0 8px 32px rgba(232, 84, 10, 0.2)',
         maxWidth: 480,
       }}
     >
@@ -97,10 +97,10 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
 
       {/* Text */}
       <div style={{ flex: 1 }}>
-        <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>
+        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: 700 }}>
           {label}
         </div>
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 2 }}>
+        <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 2 }}>
           Click to launch the widget and start tracking
         </div>
       </div>

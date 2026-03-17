@@ -83,7 +83,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
   - Acceptance criteria: Manual entry form renders dark; duration pills readable and selectable; category section consistent with CategoryDrillDown dark theme
   - Test command: `npm run build` completes
 
-- [ ] **Task 7: Dark theme for PendingTriggerBanner**
+- [x] **Task 7: Dark theme for PendingTriggerBanner**
   - What to build: In `src/components/PendingTriggerBanner.jsx`, replace any light/white background with `var(--bg-card)`. This banner appears in the host page (not PiP window) when a trigger arrives while PiP is closed — check whether it uses the PiP CSS tokens or host page styles. If it uses host page styles, use hardcoded dark values (`background: rgba(15,17,23,0.95)`, `color: rgba(255,255,255,0.9)`) rather than CSS variables since the tokens only apply inside the PiP window document. Keep the orange accent color for the trigger type indicator.
   - Files to modify: `src/components/PendingTriggerBanner.jsx`
   - Acceptance criteria: Banner renders dark when appearing over the host page; text readable; orange accent visible
