@@ -24,7 +24,7 @@ export function usePipWindow() {
 
       pw.document.title = 'Meridian';
       pw.document.body.style.cssText =
-        'margin:0;padding:0;overflow:hidden;background:transparent;font-family:"Inter",system-ui,sans-serif';
+        'margin:0;padding:0;overflow:hidden;background:#0f1117;font-family:"Inter",system-ui,sans-serif';
 
       // Inject Google Fonts for Inter
       const link = pw.document.createElement('link');

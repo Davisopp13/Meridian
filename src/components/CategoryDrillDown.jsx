@@ -129,7 +129,7 @@ export default function CategoryDrillDown({
         paddingRight: contentPadding,
         paddingBottom: 12,
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, overflowY: 'auto', maxHeight: '280px' }}>
           {screen === 'category'
             ? categories.map(cat => itemBtn(cat, handleSelectCat))
             : (activeCat?.mpl_subcategories || []).map(sub =>
