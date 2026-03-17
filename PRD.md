@@ -55,7 +55,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
   - Acceptance criteria: Case pills render correctly on dark bar — focused orange tint, unfocused subtle, awaiting amber tint; text readable
   - Test command: `npm run build` completes
 
-- [ ] **Task 3: Dark theme for StatButton**
+- [x] **Task 3: Dark theme for StatButton**
   - What to build: In `src/components/StatButton.jsx`, the stat buttons (Resolved, Reclassified, Calls, Total) should keep their colored backgrounds but ensure text contrast is correct on dark. Replace any hardcoded white backgrounds with dark equivalents. The existing colored backgrounds (green, red, blue, gray) should stay — only fix if they have a white container behind them.
   - Files to modify: `src/components/StatButton.jsx`
   - Acceptance criteria: Stat buttons render correctly on dark bar with no white container visible
