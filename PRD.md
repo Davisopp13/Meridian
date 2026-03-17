@@ -91,7 +91,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
 
 ### Phase 5: Verification
 
-- [ ] **Task 8: Visual audit and cleanup**
+- [x] **Task 8: Visual audit and cleanup**
   - What to build: Run `grep -rn "background.*#fff\|background.*white\|background.*#f8\|background.*#f9\|color.*#0f172\|color.*#1e293\|color.*#374\|color.*#475" src/components/PipBar.jsx src/components/CasePill.jsx src/components/StatButton.jsx src/components/SwimlaneTray.jsx src/components/CaseLaneRow.jsx src/components/CategoryDrillDown.jsx src/components/ManualEntryForm.jsx src/components/PendingTriggerBanner.jsx` and fix any remaining light values that were missed in earlier tasks. Also check `src/components/overlays/` directory if it exists for any overlay components not covered above.
   - Files to modify: Any PiP component files with remaining light values
   - Acceptance criteria: Grep returns no hardcoded light backgrounds or dark text colors in PiP component files
