@@ -106,9 +106,9 @@ export default function PipBar({
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      background: '#ffffff',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-      border: '1px solid rgba(0,0,0,0.05)',
+      background: 'var(--bg-card)',
+      boxShadow: 'var(--shadow-subtle)',
+      border: '1px solid var(--border)',
       borderRadius: 12,
       overflow: 'hidden',
       height: '100%'
