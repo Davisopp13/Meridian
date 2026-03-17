@@ -157,7 +157,13 @@ export default function PipBar({
         />
 
         <div style={{ flex: 1 }} />
-
+        {/* Stat buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <StatButton label={`✓ ${stats.resolved} Resolved`} color={C.resolved} onClick={() => {}} />
+          <StatButton label={`↩ ${stats.reclass} Reclassified`} color={C.reclass} onClick={() => {}} />
+          <StatButton label={`☎ ${stats.calls} Calls`} color={C.calls} onClick={() => {}} />
+          <StatButton label={`${stats.resolved + stats.reclass + stats.calls} Total`} color={C.process} onClick={() => {}} />
+        </div>
         {/* Connection status dot */}
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
 
