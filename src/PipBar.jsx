@@ -1,5 +1,4 @@
 import { C, formatElapsed } from './lib/constants.js';
-import MButton from './components/MButton.jsx';
 import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
 import MinimizeButton from './components/MinimizeButton.jsx';
@@ -126,18 +125,13 @@ export default function PipBar({
         }}
       >
         {/* M° button */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <MButton onClick={() => onOpenDashboard && onOpenDashboard()} />
-          <span style={{
-            color: C.textPri,
-            fontSize: 16,
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-            fontFamily: '"Inter", system-ui, sans-serif'
-          }}>
-            Meridian
-          </span>
-        </div>
+        <img
+          src="/meridian-icon-512.png"
+          width={32}
+          height={32}
+          style={{ borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}
+          onClick={() => onOpenDashboard && onOpenDashboard()}
+        />
 
         {divider}
 
