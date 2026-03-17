@@ -221,8 +221,8 @@ export default function MinimizedStrip({
     <div
       onClick={() => onRestore?.()}
       style={{
-        width: 220,
-        height: 32,
+        width: '100%',
+        height: '100%',
         display: 'flex',
         alignItems: 'center',
         background: 'rgba(255,255,255,0.12)',
