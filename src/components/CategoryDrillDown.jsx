@@ -52,16 +52,16 @@ export default function CategoryDrillDown({
           textAlign: 'left',
           padding: '11px 12px',
           borderRadius: 8,
-          border: '1px solid rgba(255,255,255,0.18)',
+          border: '1px solid var(--border)',
           cursor: 'pointer',
           fontSize: 12,
           fontWeight: 700,
-          background: 'rgba(8,12,24,0.72)',
-          color: '#ffffff',
+          background: 'var(--card-bg-subtle)',
+          color: 'var(--text-pri)',
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
-          boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
+          boxShadow: 'var(--shadow-subtle)',
         }}
       >
         {item.name}
@@ -87,8 +87,8 @@ export default function CategoryDrillDown({
           <button
             onClick={handleBack}
             style={{
-              background: 'rgba(255,255,255,0.08)',
-              border: `1px solid rgba(255,255,255,0.16)`,
+              background: 'var(--card-bg-subtle)',
+              border: '1px solid var(--border)',
               color: tintColor,
               fontSize: 11,
               cursor: 'pointer',
@@ -109,7 +109,7 @@ export default function CategoryDrillDown({
           <div style={{
             fontSize: 13,
             fontWeight: 700,
-            color: '#ffffff',
+            color: 'var(--text-pri)',
             marginTop: 2,
             whiteSpace: 'nowrap',
             overflow: 'hidden',

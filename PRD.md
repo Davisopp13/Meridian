@@ -71,7 +71,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
 
 ### Phase 4: Overlays
 
-- [ ] **Task 5: Dark theme for CategoryDrillDown**
+- [x] **Task 5: Dark theme for CategoryDrillDown**
   - What to build: In `src/components/CategoryDrillDown.jsx`, replace all hardcoded light backgrounds with `var(--bg-card)`. Replace white category button backgrounds with `var(--card-bg-subtle)` and borders with `var(--border)`. Replace dark text with `var(--text-pri)`. Keep the selected/active category state using the existing accent color (orange or blue depending on context). Replace the back button and header text with `var(--text-sec)`.
   - Files to modify: `src/components/CategoryDrillDown.jsx`
   - Acceptance criteria: Category drill-down overlay renders dark; category buttons readable; selected state distinct; back button visible

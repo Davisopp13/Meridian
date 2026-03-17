@@ -1291,3 +1291,65 @@ Learnings for future iterations:
   - CSS custom properties (--bg-card, --border, etc.) are already injected into PiP window via usePipWindow.js — safe to use in inline styles as var(--token)
   - Title text already uses C.textPri (from constants.js) — no change needed there
 ---
+
+## Iteration N - Task 2: Dark theme for CasePill
+- Focused pill: replaced navy `rgba(0,48,135,...)` bg/border with orange tint `rgba(232,84,10,0.12)` / `rgba(232,84,10,0.3)`
+- Awaiting pill: replaced heavy `rgba(217,119,6,0.3)` with softer `rgba(245,158,11,0.12)` / `rgba(245,158,11,0.3)`
+- Unfocused pill: replaced dark-on-light `rgba(0,0,0,0.04)` bg and `rgba(0,0,0,0.06)` border with light-on-dark `rgba(255,255,255,0.06)` / `var(--border)`
+- Updated hover handlers to match new unfocused values
+- Removed boxShadow from focused and awaiting states
+- Files changed: src/components/CasePill.jsx, PRD.md
+- `npm run build` passes — 0 errors
+
+Learnings for future iterations:
+  - CasePill.jsx is in src/components/ (unlike PipBar.jsx which is at src/PipBar.jsx)
+  - Unfocused "inactive" pills previously used rgba(0,0,0,...) which works on light — must flip to rgba(255,255,255,...) for dark
+  - Mouse hover handlers also need the dark-equivalent values updated — easy to miss
+---
+
+## Iteration N - Task 3: Dark theme for StatButton
+- No code changes required — StatButton already dark-theme compliant
+- background: color prop (vibrant accent, not white), color: '#ffffff' (white text)
+- StatButton is imported in src/PipBar.jsx but not rendered in JSX (dead import)
+- Only PRD.md updated to mark task complete
+
+Files changed:
+  PRD.md
+
+Learnings for future iterations:
+  - StatButton uses colored accent backgrounds (C.resolved, C.reclass, etc.) passed as props — never had white background
+  - PipBar.jsx lives at src/PipBar.jsx (not src/components/PipBar.jsx)
+  - When a task has no changes needed, mark it complete immediately after build verification
+---
+
+## Iteration N - Task 4: Dark theme for SwimlaneTray and lane rows
+- SwimlaneTray.jsx, CasesLane.jsx, ProcessesLane.jsx, ProcessLaneRow.jsx all already used C constants with dark-compatible values — no changes needed in those files
+- CaseLaneRow.jsx had one bug: focused row used `C.rowFocus` (rgba white 0.04) instead of `C.caseFocus` (orange rgba 0.1) — fixed to use correct token
+- Also added `border: isFocused ? 1px solid C.caseBorder : 1px solid transparent` to focused rows per PRD spec
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/CaseLaneRow.jsx, PRD.md
+
+Learnings for future iterations:
+  - All lane/tray components were already dark-themed via C constants — main gap was wrong token (rowFocus vs caseFocus) on the focused case row
+  - C.caseFocus = var(--case-focus) = rgba(232,84,10,0.1) — orange tint for focused case rows
+  - C.caseBorder = var(--case-border) = rgba(232,84,10,0.25) — orange border for focused case rows
+  - C.rowFocus = var(--row-focus) = rgba(255,255,255,0.04) — for hovered/generic highlighted rows
+---
+
+## Iteration 33 - Task 5: Dark theme for CategoryDrillDown
+- Replaced hardcoded button background `rgba(8,12,24,0.72)` with `var(--card-bg-subtle)`
+- Replaced hardcoded button border `rgba(255,255,255,0.18)` with `var(--border)`
+- Replaced hardcoded button text `#ffffff` with `var(--text-pri)`
+- Replaced hardcoded button shadow with `var(--shadow-subtle)`
+- Replaced back button background/border with `var(--card-bg-subtle)` / `var(--border)`
+- Replaced header title text `#ffffff` with `var(--text-pri)`
+- Accent `tintColor` (orange/blue) kept unchanged
+- Files changed: src/components/CategoryDrillDown.jsx, PRD.md
+- `npm run build` passes
+
+Learnings for future iterations:
+  - CategoryDrillDown was already mostly dark — just needed token vars replacing inline rgba values
+  - `itemBtn` helper function means one change covers all category and subcategory buttons
+---
