@@ -77,7 +77,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
   - Acceptance criteria: Category drill-down overlay renders dark; category buttons readable; selected state distinct; back button visible
   - Test command: `npm run build` completes
 
-- [ ] **Task 6: Dark theme for ManualEntryForm**
+- [x] **Task 6: Dark theme for ManualEntryForm**
   - What to build: In `src/components/ManualEntryForm.jsx`, replace all hardcoded light/white backgrounds with `var(--bg-card)`. Duration pill buttons (5min, 10min etc.) should use `var(--card-bg-subtle)` background with `var(--border)` border and `var(--text-pri)` text when unselected, and the existing process blue `#4da6ff` tint when selected. Replace any dark text colors with `var(--text-pri)` / `var(--text-sec)`. Remove shadows.
   - Files to modify: `src/components/ManualEntryForm.jsx`
   - Acceptance criteria: Manual entry form renders dark; duration pills readable and selectable; category section consistent with CategoryDrillDown dark theme

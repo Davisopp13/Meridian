@@ -46,8 +46,8 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
     return {
       padding: '2px 6px', borderRadius: 10, fontSize: 9.5,
       fontWeight: isSelected ? 700 : 400, cursor: 'pointer',
-      border: isSelected ? `1px solid ${tint}` : '1px solid rgba(255,255,255,0.15)',
-      background: isSelected ? `${tint}44` : 'rgba(255,255,255,0.06)',
+      border: isSelected ? `1px solid ${tint}` : '1px solid var(--border)',
+      background: isSelected ? `${tint}44` : 'var(--card-bg-subtle)',
       color: C.textPri,
     }
   }
@@ -99,8 +99,8 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
             style={{
               padding: '2px 6px', borderRadius: 10, fontSize: 9.5,
               fontWeight: showCustom ? 700 : 400, cursor: 'pointer',
-              border: showCustom ? `1px solid ${tint}` : '1px solid rgba(255,255,255,0.15)',
-              background: showCustom ? `${tint}44` : 'rgba(255,255,255,0.06)',
+              border: showCustom ? `1px solid ${tint}` : '1px solid var(--border)',
+              background: showCustom ? `${tint}44` : 'var(--card-bg-subtle)',
               color: C.textPri,
             }}
           >
@@ -115,7 +115,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
               onChange={e => setCustomMinutes(e.target.value)}
               style={{
                 width: 44, padding: '1px 5px', borderRadius: 4,
-                border: `1px solid ${C.border}`, background: 'rgba(255,255,255,0.07)',
+                border: `1px solid ${C.border}`, background: 'var(--card-bg-subtle)',
                 color: C.textPri, fontSize: 11, textAlign: 'center',
               }}
             />
