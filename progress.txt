@@ -1353,3 +1353,50 @@ Learnings for future iterations:
   - CategoryDrillDown was already mostly dark — just needed token vars replacing inline rgba values
   - `itemBtn` helper function means one change covers all category and subcategory buttons
 ---
+## Iteration 32 - Task 6: Dark theme for ManualEntryForm
+- Replaced hardcoded `rgba(255,255,255,0.15)` border on unselected duration pills with `var(--border)`
+- Replaced hardcoded `rgba(255,255,255,0.06)` background on unselected duration pills with `var(--card-bg-subtle)`
+- Same replacements applied to the Custom duration button
+- Replaced `rgba(255,255,255,0.07)` background on custom number input with `var(--card-bg-subtle)`
+- All other styles (C.bg, C.divider, C.textPri, C.textSec, C.border, C.process) were already using CSS token vars
+- Files changed: src/components/ManualEntryForm.jsx, PRD.md
+- `npm run build` passes
+
+Learnings for future iterations:
+  - ManualEntryForm was nearly complete — only inline rgba values in durationPillStyle helper needed swapping
+  - The file already used C.* token objects everywhere else
+---
+
+## Iteration 33 - Task 7: Dark theme for PendingTriggerBanner
+- Updated background from `#1a1a2e` to `rgba(15,17,23,0.95)` to match dashboard tone
+- Updated border from solid `#E8540A` to `rgba(232,84,10,0.5)` (semi-transparent orange)
+- Updated primary text from `#fff` to `rgba(255,255,255,0.9)` (--text-pri equivalent)
+- Updated secondary text from `rgba(255,255,255,0.5)` to `rgba(255,255,255,0.55)` (--text-sec equivalent)
+- Reduced box-shadow orange opacity slightly (0.25 → 0.20)
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/PendingTriggerBanner.jsx, PRD.md
+
+Learnings for future iterations:
+  - PendingTriggerBanner is a host-page component — CSS variables from usePipWindow.js do NOT apply
+  - Use hardcoded dark hex/rgba values for host-page components, not var(--token-name)
+  - Banner was already dark (#1a1a2e) — task was a refinement to match dashboard's rgba(15,17,23,0.95)
+---
+
+## Iteration 34 - Task 8: Visual audit and cleanup
+- Ran grep for hardcoded light backgrounds and dark text across all PiP-rendered components
+- PipBar.jsx doesn't exist — actual bar components are CasesLane, ProcessesLane, PillZone, etc.
+- Two grep hits found: both are '#fff' text on colored/transparent backgrounds — correct, no change needed
+  - ManualEntryForm.jsx:147 — white text on C.process (blue) accent button — intentional
+  - ProcessPicker.jsx:39 — white text on transparent close button — intentional
+- All PiP components confirmed dark-theme compliant
+
+Files changed:
+  PRD.md only
+
+Learnings for future iterations:
+  - grep for light values may hit '#fff' text on accent-colored buttons — always check context before changing
+  - overlays/ directory contains ProcessPicker.jsx and RFCPrompt.jsx (also PiP-rendered)
+  - No PipBar.jsx exists — bar UI is split across CasesLane, ProcessesLane, SwimlaneTray, PillZone
+---
