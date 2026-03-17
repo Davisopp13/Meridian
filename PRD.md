@@ -63,7 +63,7 @@ Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard 
 
 ### Phase 3: Tray & Lane Rows
 
-- [ ] **Task 4: Dark theme for SwimlaneTray and lane rows**
+- [x] **Task 4: Dark theme for SwimlaneTray and lane rows**
   - What to build: Find `src/components/SwimlaneTray.jsx` and any `CaseLaneRow.jsx` / `ProcessLaneRow.jsx` files. Replace all hardcoded light backgrounds with `var(--bg-card)` or `var(--card-bg-subtle)`. Replace dark text colors with `var(--text-pri)` / `var(--text-sec)` / `var(--text-dim)`. Replace black/dark borders with `var(--border)`. Replace divider lines with `var(--divider)`. Focused case row background: `var(--case-focus)`, border: `var(--case-border)`. Hovered row: `var(--row-focus)`. Awaiting row: `var(--amber-row)`. Remove any `box-shadow` values — use `var(--shadow-subtle)` which is now `none`.
   - Files to modify: `src/components/SwimlaneTray.jsx`, `src/components/CaseLaneRow.jsx` (if exists), `src/components/ProcessLaneRow.jsx` (if exists)
   - Acceptance criteria: Tray renders on dark surface; lane rows readable; focused/awaiting states visually distinct; no white backgrounds

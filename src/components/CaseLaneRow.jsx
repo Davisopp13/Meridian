@@ -58,13 +58,14 @@ export default function CaseLaneRow({
   const rowBg = awaiting
     ? C.amberRow
     : isFocused
-      ? C.rowFocus
+      ? C.caseFocus
       : 'transparent'
 
   const rowStyle = {
     padding: '5px 8px',
     borderRadius: 6,
     background: rowBg,
+    border: isFocused ? `1px solid ${C.caseBorder}` : '1px solid transparent',
     cursor: 'pointer',
     transition: 'background 150ms',
     marginBottom: 3,
