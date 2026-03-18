@@ -68,7 +68,7 @@ export default function MinimizedStrip({
   if (!focusedCase && !activeProcess) {
     // Idle
     zone2Content = (
-      <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, paddingLeft: 8 }}>idle</span>
+      <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, fontStyle: 'italic', paddingLeft: 8 }}>ready</span>
     )
   } else if (focusedCase && !activeProcess) {
     // Case only
