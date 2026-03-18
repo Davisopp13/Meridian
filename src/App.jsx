@@ -158,6 +158,7 @@ export default function App() {
 
     const container = pw.document.createElement('div')
     container.id = 'meridian-pip-root'
+    container.style.cssText = 'width:100%;height:100%'
     pw.document.body.appendChild(container)
     pipRootRef.current = ReactDOM.createRoot(container)
     pipRootRef.current.render(<PipErrorBoundary>{buildPipBar()}</PipErrorBoundary>)
