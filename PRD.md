@@ -125,7 +125,7 @@ export const DEFAULT_SETTINGS = {
   - Acceptance criteria: `PipBar` receives a `userSettings` prop containing the merged settings object. Build passes.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 6: PipBar renders configurable stat buttons**
+- [x] **Task 6: PipBar renders configurable stat buttons**
   - What to build: In `src/PipBar.jsx`, replace the hardcoded 5 `StatButton` components with a dynamic rendering based on `userSettings.stat_buttons`. Create a `STAT_BUTTON_CONFIG` map that defines each button's label template, color, and stat key:
     ```js
     const STAT_BUTTON_CONFIG = {

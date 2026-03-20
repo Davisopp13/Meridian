@@ -1,9 +1,17 @@
-import { C, formatElapsed } from './lib/constants.js';
+import { C, formatElapsed, DEFAULT_SETTINGS } from './lib/constants.js';
 import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
 import MinimizeButton from './components/MinimizeButton.jsx';
 import MinimizedStrip from './components/MinimizedStrip.jsx';
 import { Check, Phone } from 'lucide-react';
+
+const STAT_BUTTON_CONFIG = {
+  resolved:  { icon: '✓', label: 'Resolved',  color: C.resolved,    key: 'resolved' },
+  reclass:   { icon: '↩', label: 'Reclass',   color: C.reclass,     key: 'reclass' },
+  calls:     { icon: '☎', label: 'Calls',      color: C.calls,       key: 'calls' },
+  processes: { icon: '📋', label: 'Processes', color: C.processNavy, key: 'processes' },
+  total:     { icon: '',  label: 'Total',      color: C.process,     key: null },
+}
 
 /**
  * PipBar — rendered into the PiP window via ReactDOM.createRoot.
@@ -53,6 +61,7 @@ export default function PipBar({
   onReclass,
   onCall,
   onNewProcess,
+  userSettings = DEFAULT_SETTINGS,
   pipToast = null,
   connectionStatus = 'connected',
   todayScorecard = { resolved: 0, calls: 0, processEntries: 0 },
@@ -153,10 +162,22 @@ export default function PipBar({
         <div style={{ flex: 1 }} />
         {/* Stat buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          <StatButton label={`✓ ${stats.resolved} Resolved`} color={C.resolved} onClick={() => {}} />
-          <StatButton label={`↩ ${stats.reclass} Reclassified`} color={C.reclass} onClick={() => {}} />
-          <StatButton label={`☎ ${stats.calls} Calls`} color={C.calls} onClick={() => {}} />
-          <StatButton label={`${stats.resolved + stats.reclass + stats.calls} Total`} color={C.process} onClick={() => {}} />
+          {(userSettings.stat_buttons || DEFAULT_SETTINGS.stat_buttons).map(btnKey => {
+            const cfg = STAT_BUTTON_CONFIG[btnKey]
+            if (!cfg) return null
+            let value
+            if (cfg.key === null) {
+              // total — sum whichever stats are in total_includes
+              const includes = userSettings.total_includes || DEFAULT_SETTINGS.total_includes
+              value = includes.reduce((sum, k) => sum + (stats[k] || 0), 0)
+            } else {
+              value = stats[cfg.key] || 0
+            }
+            const labelText = cfg.icon ? `${cfg.icon} ${value} ${cfg.label}` : `${value} ${cfg.label}`
+            return (
+              <StatButton key={btnKey} label={labelText} color={cfg.color} onClick={() => {}} />
+            )
+          })}
         </div>
         {/* Connection status dot */}
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />

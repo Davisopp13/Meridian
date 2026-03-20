@@ -1455,3 +1455,57 @@ Learnings for future iterations:
   - toggleStatButton preserves canonical order by filtering the hardcoded order array — clean pattern
   - PipPositionDiagram uses absolute-positioned divs within a 96×64 container; row/col grid maps to CSS top/bottom + left/right
 ---
+
+## Iteration N+3 - Tree 5 Task 4: Add Settings route to Dashboard
+- Added `onSettings` prop to Navbar.jsx; wired existing Settings dropdown button to call it (replaced // TODO: open settings)
+- Added `view` state ('dashboard' | 'settings') to Dashboard.jsx
+- Passed `onSettings={() => setView('settings')}` to Navbar
+- Conditionally renders SettingsPage (with `onBack` prop) or main dashboard body based on `view`
+- Added `onBack` prop to SettingsPage.jsx; renders a "← Dashboard" button above the title when `onBack` is provided
+- Imported SettingsPage in Dashboard.jsx
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/Navbar.jsx (onSettings prop, wired button)
+  src/components/Dashboard.jsx (view state, SettingsPage import and conditional render)
+  src/components/SettingsPage.jsx (onBack prop, back button)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - No router needed — simple view state toggle in Dashboard.jsx is sufficient per PRD spec
+  - Navbar already had a Settings gear button with // TODO: open settings — just wired onSettings prop to it
+  - SettingsPage accepts user + profile; onBack is optional (renders back button only when provided)
+  - No git repo exists — skip git commit step
+---
+
+## Iteration N - Task 5 (Tree 5): Read settings in App.jsx and pass to PipBar
+- Imported `getUserSettings` from `src/lib/constants.js` in App.jsx
+- Derived `userSettings = getUserSettings(profile)` as a derived value (no new state)
+- Passed `userSettings` as first prop to `<PipBar>` in `buildPipBar()`
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/App.jsx
+
+Learnings for future iterations:
+  - `getUserSettings` is already exported from constants.js (Task 2 done) — just import and call it
+  - `userSettings` is derived from `profile` state — no useState needed, recalculates on every render
+  - Git repo does exist on this machine — commit normally
+---
+
+## Iteration N - Task 6: PipBar renders configurable stat buttons
+- Added `STAT_BUTTON_CONFIG` map at module level in PipBar.jsx
+- Added `userSettings` prop (defaults to `DEFAULT_SETTINGS`) to PipBar
+- Replaced 4 hardcoded StatButton components with a dynamic `.map()` over `userSettings.stat_buttons`
+- Total button sums stats using `userSettings.total_includes`
+- If `stat_buttons` is null/undefined, falls back to `DEFAULT_SETTINGS.stat_buttons`
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/PipBar.jsx
+
+Learnings for future iterations:
+  - PipBar already received `userSettings` prop from App.jsx (Task 5 wired it) — just needed to destructure and use it
+  - `DEFAULT_SETTINGS` is exported from constants.js — import it for fallback defaults in PipBar
+  - `processes` stat button was missing from original hardcoded list; now included via config
+---
