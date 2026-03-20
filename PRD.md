@@ -111,7 +111,7 @@ export const DEFAULT_SETTINGS = {
   - Acceptance criteria: Component renders all 6 sections with working controls. Save writes to Supabase. Build passes.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 4: Add Settings route to Dashboard**
+- [x] **Task 4: Add Settings route to Dashboard**
   - What to build: In `src/components/Dashboard.jsx`, add a "Settings" link/button to the navigation (likely in `Navbar.jsx`). When clicked, render `SettingsPage` instead of the default dashboard content. Use a simple state toggle (`view: 'dashboard' | 'settings'`) — no router needed.
   - Files to modify: `src/components/Dashboard.jsx`, `src/components/Navbar.jsx`
   - Acceptance criteria: Navbar shows a Settings gear icon or link. Clicking it shows the SettingsPage. Clicking back or the dashboard link returns to the main dashboard view.
@@ -119,7 +119,7 @@ export const DEFAULT_SETTINGS = {
 
 ### Phase 4: Wire Settings to PiP Widget
 
-- [ ] **Task 5: Read settings in App.jsx and pass to PipBar**
+- [x] **Task 5: Read settings in App.jsx and pass to PipBar**
   - What to build: In `src/App.jsx`, import `getUserSettings` from constants. Derive `userSettings` from `profile` using `getUserSettings(profile)`. Pass `userSettings` as a prop to the `buildPipBar()` function and through to `PipBar`. This is prop threading — no new state needed, just derived from the existing `profile` state.
   - Files to modify: `src/App.jsx`
   - Acceptance criteria: `PipBar` receives a `userSettings` prop containing the merged settings object. Build passes.

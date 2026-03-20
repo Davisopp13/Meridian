@@ -16,7 +16,7 @@ import RFCPrompt from './components/overlays/RFCPrompt.jsx'
 import ProcessPicker from './components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from './components/ManualEntryForm.jsx'
 import { getNewYorkDateKey, getNewYorkDayRange } from './lib/timezone.js'
-import { SIZES } from './lib/constants.js'
+import { SIZES, getUserSettings } from './lib/constants.js'
 
 const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
@@ -85,6 +85,9 @@ export default function App() {
   const restoredStateKeyRef = useRef(null)
   const hasHydratedPipStateRef = useRef(false)
   const resolvingCaseIds = useRef(new Set())
+
+  // ── Derived settings ──────────────────────────────────────────────────────
+  const userSettings = getUserSettings(profile)
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -532,6 +535,7 @@ export default function App() {
   function buildPipBar() {
     return (
       <PipBar
+        userSettings={userSettings}
         cases={cases}
         processes={processes}
         focusedCaseId={focusedCaseId}
