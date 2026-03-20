@@ -38,3 +38,27 @@ export function formatElapsed(seconds) {
   const s = seconds % 60
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
+
+export const DEFAULT_SETTINGS = {
+  stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
+  total_includes: ['resolved', 'reclass', 'calls'],
+  pip_position: 'bottom-right',
+  team: null,
+  theme: 'dark',
+  notifications: {
+    toast_on_log: true,
+    sound: false,
+  },
+}
+
+export function getUserSettings(profile) {
+  const stored = profile?.settings || {}
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    notifications: {
+      ...DEFAULT_SETTINGS.notifications,
+      ...(stored.notifications || {}),
+    },
+  }
+}

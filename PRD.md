@@ -1,138 +1,188 @@
-# Meridian — PiP Widget Dark Theme PRD
+# Meridian — Tree 5: Settings Dashboard PRD
 
 ## Project Overview
 
-Meridian is a Vite + React 18 Document Picture-in-Picture widget. The dashboard is already dark (`#0f1117`). This PRD makes the floating PiP widget match — replacing all hardcoded light/white backgrounds and text colors in PiP-rendered components with dark equivalents. The `:root` CSS token block in `usePipWindow.js` has already been updated with dark tokens. This PRD wires those tokens up correctly and fixes any hardcoded values that bypass them. Success = the PiP bar, tray, pills, overlays, and all PiP-rendered UI render on a dark semi-transparent surface with white text and orange/blue accents.
-
----
+Add a Settings page to the Meridian Dashboard (host tab) that lets users configure their PiP widget behavior. Settings are stored as a JSONB column on `platform_users` and read by the PiP widget on launch. This is a Vite + React 18 app with Supabase backend. Success = users can configure stat buttons, Total formula, PiP position, team assignment, theme, and notification preferences from the Dashboard, and the PiP widget respects those settings.
 
 ## Architecture & Key Decisions
 
-- **Framework:** Vite + React 18, no TypeScript, inline styles only in PiP window
-- **Styling pattern:** All PiP component styles are inline (`style={{ ... }}`). CSS modules and Tailwind do not apply inside the PiP window. The only shared styles are CSS custom properties injected via the `:root` block in `usePipWindow.js`
-- **Token system:** CSS custom properties are already updated in `usePipWindow.js`. Use them via the `C` or `COLORS` constant object if one exists in the codebase, otherwise reference the variables directly
-- **Dark tokens (already live in usePipWindow.js):**
-  - `--bg-card`: `rgba(255,255,255,0.06)` — main bar and card backgrounds
-  - `--border`: `rgba(255,255,255,0.1)` — all borders
-  - `--divider`: `rgba(255,255,255,0.08)` — divider lines
-  - `--card-bg-subtle`: `rgba(255,255,255,0.05)` — subtle surface tint
-  - `--text-pri`: `rgba(255,255,255,0.9)` — primary text
-  - `--text-sec`: `rgba(255,255,255,0.55)` — secondary text
-  - `--text-dim`: `rgba(255,255,255,0.3)` — dim/hint text
-  - `--case-focus`: `rgba(232,84,10,0.1)` — focused case row bg
-  - `--case-border`: `rgba(232,84,10,0.25)` — focused case row border
-  - `--row-focus`: `rgba(255,255,255,0.04)` — hovered row bg
-  - `--amber-row`: `rgba(217,119,6,0.12)` — awaiting row bg
-  - `--shadow-subtle`: `none`
-  - `--shadow-glow`: `none`
-- **Accent colors stay the same:** CT orange `#E8540A`, MPL blue `#4da6ff`, resolved green `#4ade80`, reclass red `#ef4444`, calls blue `#3b82f6`, awaiting amber `#f59e0b`
-- **Do NOT touch:** Dashboard, Navbar, auth screens (SignIn, SignUp), onboarding steps, DashboardStatCard, DashboardChart, BookmarkletModal — these are host-page components, not PiP-rendered
-
----
+- **Framework:** Vite + React 18, no TypeScript, inline styles for PiP components, CSS-in-JS for Dashboard components
+- **Data model:** Single `settings` JSONB column added to `platform_users` table. No new tables.
+- **Default values:** App provides sensible defaults when `settings` is null (new users or pre-existing users who haven't visited Settings yet). Defaults are defined in a single `DEFAULT_SETTINGS` constant.
+- **Settings flow:** Dashboard Settings page reads/writes `platform_users.settings`. PiP widget reads `profile.settings` from the profile state already loaded in App.jsx. No realtime subscription needed — settings only take effect on next PiP launch or page refresh.
+- **Design:** Dark theme matching the existing Dashboard. Segoe UI font. Grouped sections with clear labels. Save button per section or a single global Save.
 
 ## Environment & Setup
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set in `.env.local`
-- No schema changes, no new dependencies
+- Supabase SQL Editor access needed for the migration (Task 1)
+- No new npm dependencies
 
----
+## Settings Schema
+
+```js
+// DEFAULT_SETTINGS — defined in src/lib/constants.js
+export const DEFAULT_SETTINGS = {
+  stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
+  total_includes: ['resolved', 'reclass', 'calls'],
+  pip_position: 'bottom-right',   // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  team: null,                      // 'CH' | 'MH' — null means use profile.team
+  theme: 'dark',                   // 'dark' only for now (future: 'light' | 'auto')
+  notifications: {
+    toast_on_log: true,            // show confirmation toast after logging
+    sound: false,                  // play sound on bookmarklet trigger
+  },
+}
+```
+
+### Available stat button keys:
+| Key | Label | Color token | Stat source |
+|-----|-------|-------------|-------------|
+| `resolved` | `✓ N Resolved` | `C.resolved` | `stats.resolved` |
+| `reclass` | `↩ N Reclass` | `C.reclass` | `stats.reclass` |
+| `calls` | `☎ N Calls` | `C.calls` | `stats.calls` |
+| `processes` | `📋 N Processes` | `C.processNavy` | `stats.processes` |
+| `total` | `N Total` | `C.process` | computed from `total_includes` |
 
 ## Tasks
 
-### Phase 1: Bar Background
+### Phase 1: Database Migration
 
-- [x] **Task 1: Dark background on PipBar**
-  - What to build: Find the hardcoded background color on the main bar container in `src/components/PipBar.jsx`. Replace it with `var(--bg-card)`. Also find and replace any hardcoded white, `#fff`, `#ffffff`, or light gray (`#f`, `rgba(0,0,0,0.0x)`) background values in this file. Replace border colors using `var(--border)`, divider lines using `var(--divider)`, primary text using `var(--text-pri)`, secondary text using `var(--text-sec)`.
-  - Files to modify: `src/components/PipBar.jsx`
-  - Acceptance criteria: PiP bar renders with dark semi-transparent background; no white or light background visible on the bar itself; title text is light; borders are subtle light opacity
-  - Test command: `npm run build` completes
+- [x] **Task 1: Add settings column to platform_users**
+  - What to build: Write a SQL migration that adds a `settings` JSONB column to `platform_users` with a default value of `null`. Do NOT set a default JSON value in the column — the app handles defaults in code.
+  - SQL:
+    ```sql
+    ALTER TABLE platform_users
+    ADD COLUMN IF NOT EXISTS settings jsonb DEFAULT NULL;
+    ```
+  - Files to create: `supabase/migrations/002_user_settings.sql`
+  - Acceptance criteria: Migration file exists and SQL is valid. Column is nullable JSONB.
+  - Test command: `npm run build` (no JS changes)
+  - **NOTE:** This migration must be run manually in Supabase SQL Editor before testing Tasks 3+.
 
-### Phase 2: Pills
+### Phase 2: Settings Constants & Helper
 
-- [x] **Task 2: Dark theme for CasePill**
-  - What to build: In `src/components/CasePill.jsx`, audit all inline styles. The pill background for a focused/active case should be `rgba(232,84,10,0.12)` with border `rgba(232,84,10,0.3)`. For an unfocused case, use `rgba(255,255,255,0.06)` background with border `var(--border)`. For awaiting state, use `rgba(245,158,11,0.12)` background with border `rgba(245,158,11,0.3)`. Replace any hardcoded white backgrounds, dark text colors (`#0f172a`, `#1e293b`, `#374151`), or black borders with the appropriate dark equivalents. Keep `#E8540A` orange and `#fff` white text on colored elements as-is.
-  - Files to modify: `src/components/CasePill.jsx`
-  - Acceptance criteria: Case pills render correctly on dark bar — focused orange tint, unfocused subtle, awaiting amber tint; text readable
-  - Test command: `npm run build` completes
+- [x] **Task 2: Add DEFAULT_SETTINGS and helper to constants.js**
+  - What to build: Add the `DEFAULT_SETTINGS` export and a `getUserSettings(profile)` helper function to `src/lib/constants.js`. The helper merges the user's stored settings with defaults so any missing keys get filled in. This prevents crashes when new settings are added in the future.
+  - Code:
+    ```js
+    export const DEFAULT_SETTINGS = {
+      stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
+      total_includes: ['resolved', 'reclass', 'calls'],
+      pip_position: 'bottom-right',
+      team: null,
+      theme: 'dark',
+      notifications: {
+        toast_on_log: true,
+        sound: false,
+      },
+    }
 
-- [x] **Task 3: Dark theme for StatButton**
-  - What to build: In `src/components/StatButton.jsx`, the stat buttons (Resolved, Reclassified, Calls, Total) should keep their colored backgrounds but ensure text contrast is correct on dark. Replace any hardcoded white backgrounds with dark equivalents. The existing colored backgrounds (green, red, blue, gray) should stay — only fix if they have a white container behind them.
-  - Files to modify: `src/components/StatButton.jsx`
-  - Acceptance criteria: Stat buttons render correctly on dark bar with no white container visible
-  - Test command: `npm run build` completes
+    export function getUserSettings(profile) {
+      const stored = profile?.settings || {}
+      return {
+        ...DEFAULT_SETTINGS,
+        ...stored,
+        notifications: {
+          ...DEFAULT_SETTINGS.notifications,
+          ...(stored.notifications || {}),
+        },
+      }
+    }
+    ```
+  - Files to modify: `src/lib/constants.js`
+  - Acceptance criteria: `DEFAULT_SETTINGS` and `getUserSettings` are exported. Existing `C`, `SIZES`, and `formatElapsed` exports are untouched.
+  - Test command: `npm run build` completes with 0 errors
 
-### Phase 3: Tray & Lane Rows
+### Phase 3: Settings Page UI
 
-- [x] **Task 4: Dark theme for SwimlaneTray and lane rows**
-  - What to build: Find `src/components/SwimlaneTray.jsx` and any `CaseLaneRow.jsx` / `ProcessLaneRow.jsx` files. Replace all hardcoded light backgrounds with `var(--bg-card)` or `var(--card-bg-subtle)`. Replace dark text colors with `var(--text-pri)` / `var(--text-sec)` / `var(--text-dim)`. Replace black/dark borders with `var(--border)`. Replace divider lines with `var(--divider)`. Focused case row background: `var(--case-focus)`, border: `var(--case-border)`. Hovered row: `var(--row-focus)`. Awaiting row: `var(--amber-row)`. Remove any `box-shadow` values — use `var(--shadow-subtle)` which is now `none`.
-  - Files to modify: `src/components/SwimlaneTray.jsx`, `src/components/CaseLaneRow.jsx` (if exists), `src/components/ProcessLaneRow.jsx` (if exists)
-  - Acceptance criteria: Tray renders on dark surface; lane rows readable; focused/awaiting states visually distinct; no white backgrounds
-  - Test command: `npm run build` completes
+- [ ] **Task 3: Create SettingsPage component**
+  - What to build: Create `src/components/SettingsPage.jsx`. This is a full-page settings form rendered in the Dashboard host tab. It reads the current user's settings from the `profile` prop, shows controls for each setting group, and writes updates back to `platform_users.settings` via Supabase.
+  - **Layout:** Single column, dark background (`#0f1117`), sections separated by subtle dividers. Each section has a heading, description, and controls.
+  - **Section 1 — Stat Buttons:** Checkbox list of the 5 available stat buttons. User can toggle each on/off. Minimum 1 must remain selected. Order matches the order in the `stat_buttons` array.
+  - **Section 2 — Total Formula:** Only shown if `total` is in the selected stat buttons. Checkbox list of which stats contribute to Total. At least 1 must be checked.
+  - **Section 3 — PiP Position:** 4-option radio group with a visual mini-diagram showing screen corners. Options: bottom-right (default), bottom-left, top-right, top-left.
+  - **Section 4 — Team Assignment:** Radio group: CH or MH. Pre-filled from `profile.team`. Changing this also updates `profile.team` (not just settings).
+  - **Section 5 — Theme:** Radio group: Dark (default). Light and Auto are shown but disabled with a "Coming soon" badge.
+  - **Section 6 — Notifications:** Two toggle switches: "Show confirmation toast after logging" (default on), "Play sound on bookmarklet trigger" (default off).
+  - **Save behavior:** Single "Save Settings" button at bottom. On click, writes the full settings JSON to `platform_users.settings` for the current user. Shows a success toast on save. If team changed, also updates `platform_users.team`.
+  - **Styling:** Inline styles. Dark theme tokens from `C` constant. Consistent with existing Dashboard design. Font: Segoe UI. Section headings: 14px bold, white. Descriptions: 11px, `C.textSec`. Controls: dark backgrounds with subtle borders, orange accent for selected states.
+  - Files to create: `src/components/SettingsPage.jsx`
+  - Acceptance criteria: Component renders all 6 sections with working controls. Save writes to Supabase. Build passes.
+  - Test command: `npm run build` completes with 0 errors
 
-### Phase 4: Overlays
+- [ ] **Task 4: Add Settings route to Dashboard**
+  - What to build: In `src/components/Dashboard.jsx`, add a "Settings" link/button to the navigation (likely in `Navbar.jsx`). When clicked, render `SettingsPage` instead of the default dashboard content. Use a simple state toggle (`view: 'dashboard' | 'settings'`) — no router needed.
+  - Files to modify: `src/components/Dashboard.jsx`, `src/components/Navbar.jsx`
+  - Acceptance criteria: Navbar shows a Settings gear icon or link. Clicking it shows the SettingsPage. Clicking back or the dashboard link returns to the main dashboard view.
+  - Test command: `npm run build` completes with 0 errors
 
-- [x] **Task 5: Dark theme for CategoryDrillDown**
-  - What to build: In `src/components/CategoryDrillDown.jsx`, replace all hardcoded light backgrounds with `var(--bg-card)`. Replace white category button backgrounds with `var(--card-bg-subtle)` and borders with `var(--border)`. Replace dark text with `var(--text-pri)`. Keep the selected/active category state using the existing accent color (orange or blue depending on context). Replace the back button and header text with `var(--text-sec)`.
-  - Files to modify: `src/components/CategoryDrillDown.jsx`
-  - Acceptance criteria: Category drill-down overlay renders dark; category buttons readable; selected state distinct; back button visible
-  - Test command: `npm run build` completes
+### Phase 4: Wire Settings to PiP Widget
 
-- [x] **Task 6: Dark theme for ManualEntryForm**
-  - What to build: In `src/components/ManualEntryForm.jsx`, replace all hardcoded light/white backgrounds with `var(--bg-card)`. Duration pill buttons (5min, 10min etc.) should use `var(--card-bg-subtle)` background with `var(--border)` border and `var(--text-pri)` text when unselected, and the existing process blue `#4da6ff` tint when selected. Replace any dark text colors with `var(--text-pri)` / `var(--text-sec)`. Remove shadows.
-  - Files to modify: `src/components/ManualEntryForm.jsx`
-  - Acceptance criteria: Manual entry form renders dark; duration pills readable and selectable; category section consistent with CategoryDrillDown dark theme
-  - Test command: `npm run build` completes
+- [ ] **Task 5: Read settings in App.jsx and pass to PipBar**
+  - What to build: In `src/App.jsx`, import `getUserSettings` from constants. Derive `userSettings` from `profile` using `getUserSettings(profile)`. Pass `userSettings` as a prop to the `buildPipBar()` function and through to `PipBar`. This is prop threading — no new state needed, just derived from the existing `profile` state.
+  - Files to modify: `src/App.jsx`
+  - Acceptance criteria: `PipBar` receives a `userSettings` prop containing the merged settings object. Build passes.
+  - Test command: `npm run build` completes with 0 errors
 
-- [x] **Task 7: Dark theme for PendingTriggerBanner**
-  - What to build: In `src/components/PendingTriggerBanner.jsx`, replace any light/white background with `var(--bg-card)`. This banner appears in the host page (not PiP window) when a trigger arrives while PiP is closed — check whether it uses the PiP CSS tokens or host page styles. If it uses host page styles, use hardcoded dark values (`background: rgba(15,17,23,0.95)`, `color: rgba(255,255,255,0.9)`) rather than CSS variables since the tokens only apply inside the PiP window document. Keep the orange accent color for the trigger type indicator.
-  - Files to modify: `src/components/PendingTriggerBanner.jsx`
-  - Acceptance criteria: Banner renders dark when appearing over the host page; text readable; orange accent visible
-  - Test command: `npm run build` completes
+- [ ] **Task 6: PipBar renders configurable stat buttons**
+  - What to build: In `src/PipBar.jsx`, replace the hardcoded 5 `StatButton` components with a dynamic rendering based on `userSettings.stat_buttons`. Create a `STAT_BUTTON_CONFIG` map that defines each button's label template, color, and stat key:
+    ```js
+    const STAT_BUTTON_CONFIG = {
+      resolved:  { icon: '✓', label: 'Resolved', color: C.resolved, key: 'resolved' },
+      reclass:   { icon: '↩', label: 'Reclass',  color: C.reclass,  key: 'reclass' },
+      calls:     { icon: '☎', label: 'Calls',     color: C.calls,    key: 'calls' },
+      processes: { icon: '📋', label: 'Processes', color: C.processNavy, key: 'processes' },
+      total:     { icon: '',  label: 'Total',     color: C.process,  key: null }, // computed
+    }
+    ```
+    For the `total` button, compute the value by summing whichever stats are in `userSettings.total_includes`. Render only the buttons listed in `userSettings.stat_buttons`, in order.
+  - Files to modify: `src/PipBar.jsx`
+  - Acceptance criteria: Bar renders only the stat buttons the user has enabled, in their configured order. Total computes from the configured formula. If settings are null/default, behavior is identical to the 5-button hardcoded layout.
+  - Test command: `npm run build` completes with 0 errors
 
-### Phase 5: Verification
+- [ ] **Task 7: Apply pip_position setting in usePipWindow**
+  - What to build: In `src/hooks/usePipWindow.js`, the `resizeAndPin` function uses `moveTo()` to position the PiP window. Currently it always pins to bottom-right. Update it to read the `pip_position` value from the settings passed through. Add a `position` parameter to `resizeAndPin(mode, position)` that defaults to `'bottom-right'`. Calculate the `moveTo` x/y based on the position:
+    - `bottom-right`: `x = screen.availWidth - width`, `y = screen.availHeight - height`
+    - `bottom-left`: `x = 0`, `y = screen.availHeight - height`
+    - `top-right`: `x = screen.availWidth - width`, `y = 0`
+    - `top-left`: `x = 0`, `y = 0`
+  - In `App.jsx`, pass `userSettings.pip_position` as the second argument to all `resizeAndPin` calls.
+  - Files to modify: `src/hooks/usePipWindow.js`, `src/App.jsx`
+  - Acceptance criteria: PiP window positions to the correct screen corner based on settings. Default is bottom-right (no regression from current behavior).
+  - Test command: `npm run build` completes with 0 errors
 
-- [x] **Task 8: Visual audit and cleanup**
-  - What to build: Run `grep -rn "background.*#fff\|background.*white\|background.*#f8\|background.*#f9\|color.*#0f172\|color.*#1e293\|color.*#374\|color.*#475" src/components/PipBar.jsx src/components/CasePill.jsx src/components/StatButton.jsx src/components/SwimlaneTray.jsx src/components/CaseLaneRow.jsx src/components/CategoryDrillDown.jsx src/components/ManualEntryForm.jsx src/components/PendingTriggerBanner.jsx` and fix any remaining light values that were missed in earlier tasks. Also check `src/components/overlays/` directory if it exists for any overlay components not covered above.
-  - Files to modify: Any PiP component files with remaining light values
-  - Acceptance criteria: Grep returns no hardcoded light backgrounds or dark text colors in PiP component files
-  - Test command: `npm run build` completes
+### Phase 5: Update Documentation
 
----
+- [ ] **Task 8: Update AGENTS.md with settings architecture**
+  - What to build: Add a new section to `AGENTS.md` documenting the settings system: the `DEFAULT_SETTINGS` constant, the `getUserSettings` helper, the `platform_users.settings` JSONB column, and the `STAT_BUTTON_CONFIG` map in PipBar. Include the available stat button keys and the pip_position options.
+  - Files to modify: `AGENTS.md`
+  - Acceptance criteria: AGENTS.md has a "User Settings" section with accurate documentation of the settings system.
+  - Test command: `npm run build` (no code change)
 
 ## Testing Strategy
 
-- Primary: `npm run build` — must complete with zero errors for every task
-- Secondary: `npm run dev` — launch the PiP widget and visually verify each state:
-  - Idle bar: dark surface, light text, green connection dot
-  - Case active: orange tinted pill on dark bar
-  - Process active: blue tinted pill on dark bar
-  - Tray open: dark swimlane, readable lane rows
-  - Category picker: dark overlay, readable category buttons
-  - Manual entry: dark overlay, readable duration pills
-- No automated test suite — rely on build success + visual check
-
----
+- Primary: `npm run build` completes with 0 errors for every task
+- Migration: Run `002_user_settings.sql` in Supabase SQL Editor before testing Tasks 3+
+- Visual: After all tasks, verify in `npm run dev`:
+  1. Settings page renders in Dashboard
+  2. Toggling stat buttons off removes them from the PiP bar
+  3. Changing Total formula changes the Total count
+  4. Changing PiP position moves the widget to the correct corner
+  5. Settings persist across page refresh
 
 ## Out of Scope
 
-- Do not touch `src/components/Dashboard.jsx`
-- Do not touch `src/components/Navbar.jsx`
-- Do not touch `src/components/DashboardChart.jsx`
-- Do not touch `src/components/DashboardStatCard.jsx`
-- Do not touch `src/components/BookmarkletModal.jsx`
-- Do not touch `src/components/auth/` directory
-- Do not touch `src/components/onboarding/` directory
-- Do not touch `src/components/SignIn.jsx` or `src/components/SignUp.jsx`
-- Do not touch `src/hooks/usePipWindow.js` — tokens already updated
-- No logic changes, no state changes, no schema changes, no new dependencies
-- Do not change any accent colors (orange, blue, green, red, amber)
-
----
+- Theme switching (UI exists but Dark is the only functional option)
+- Sound notifications (toggle exists but audio playback is future work)
+- Drag-to-reorder stat buttons (future enhancement)
+- Settings sync across devices (implicit via Supabase — already works)
+- PiP-inline settings (all settings are Dashboard-only)
 
 ## Notes for Ralph
 
-- **Inline styles only** — all PiP component styles are `style={{ ... }}` objects. There are no CSS class names to update inside PiP components. Every change is a value swap in an inline style prop.
-- **CSS variables work inside PiP** only because they are injected into the PiP window's `<head>` via `usePipWindow.js`. They are already updated and live. Use them with `var(--token-name)` in inline style strings: `style={{ background: 'var(--bg-card)' }}`.
-- **`PendingTriggerBanner` is a host-page component** — it renders in the main browser tab, not inside the PiP window. CSS variables from `usePipWindow.js` do NOT apply to it. Use hardcoded dark hex values for this component only.
-- **Do not guess file locations** — if a file listed in a task doesn't exist (e.g. `ProcessLaneRow.jsx`), check `src/components/` for the actual filename before proceeding.
-- **The goal is visual consistency** — the PiP widget should feel like it belongs to the same dark design system as the dashboard. When in doubt, match the dashboard's aesthetic: `#0f1117` deep background, subtle borders, white text hierarchy.
+- The `profile` object is already loaded in `App.jsx` from `platform_users` and passed around. Adding `.settings` to it requires no new queries — the existing `select('*')` already fetches all columns.
+- `C.processNavy` is `var(--color-process-navy)` which resolves to `rgba(0,48,135,0.4)`. This may be too transparent for a stat button background on its own. If it looks washed out, use `#003087` (solid Hapag Blue) instead.
+- The Navbar component in `src/components/Navbar.jsx` already has navigation items. Add Settings as a gear icon or text link in the same style.
+- When the `total` button computes its value, it should use `userSettings.total_includes` to decide which stats to sum. Example: if `total_includes` is `['resolved', 'calls']`, Total = `stats.resolved + stats.calls`.
+- The team setting in Section 4 does double duty: it updates both `settings.team` and `platform_users.team` (the top-level column). This is because `profile.team` is used throughout the app for category filtering, not `settings.team`. The settings value is a convenience so the Settings page can manage it in one place.
