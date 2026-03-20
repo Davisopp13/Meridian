@@ -1400,3 +1400,18 @@ Learnings for future iterations:
   - overlays/ directory contains ProcessPicker.jsx and RFCPrompt.jsx (also PiP-rendered)
   - No PipBar.jsx exists — bar UI is split across CasesLane, ProcessesLane, SwimlaneTray, PillZone
 ---
+
+## Iteration N - Tree 5 Task 1: Add settings column to platform_users
+- Created supabase/migrations/002_user_settings.sql
+- SQL: ALTER TABLE platform_users ADD COLUMN IF NOT EXISTS settings jsonb DEFAULT NULL;
+- `npm run build` passes — 0 errors
+
+Files changed:
+  supabase/migrations/002_user_settings.sql (created)
+  PRD-tree5-settings.md (Task 1 marked complete)
+
+Learnings for future iterations:
+  - PRD-tree5-settings.md is the active PRD for Tree 5 settings work
+  - Migration is DB-only, no JS changes — test is just build pass
+  - Must be run manually in Supabase SQL Editor before Tasks 3+ can be tested live
+---
