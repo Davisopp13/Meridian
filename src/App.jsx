@@ -20,7 +20,8 @@ import { SIZES, getUserSettings } from './lib/constants.js'
 
 const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
-function getBarSize(cases, processes, trayOpen, overlayOpen) {
+function getBarSize(cases, processes, trayOpen, overlayOpen, rfcBannerOpen) {
+  if (rfcBannerOpen) return 'rfcBanner'
   if (overlayOpen) return 'overlay'
   if (trayOpen) return 'trayOpen'
   if (cases.length > 0 && processes.length > 0) return 'bothActive'
@@ -70,6 +71,7 @@ export default function App() {
   const [trayOpen, setTrayOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [overlayOpen, setOverlayOpen] = useState(false)
+  const [rfcBannerOpen, setRfcBannerOpen] = useState(false)
   const [rfcPending, setRfcPending] = useState(null) // { sessionId, caseNum, elapsed }
   const [pickerPending, setPickerPending] = useState(null) // { processId, elapsed }
   const [lastTrigger, setLastTrigger] = useState('cases')
@@ -685,13 +687,13 @@ export default function App() {
   function handleRestore() {
     setIsMinimized(false)
     setHasPendingActivity(false)
-    pin(getBarSize(cases, processes, trayOpen, overlayOpen))
+    pin(getBarSize(cases, processes, trayOpen, overlayOpen, rfcBannerOpen))
   }
 
   function handleToggleTray() {
     const next = !trayOpen
     setTrayOpen(next)
-    pin(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen))
+    pin(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen, rfcBannerOpen))
   }
 
   function handleFocusCase(id) {
@@ -746,15 +748,15 @@ export default function App() {
       stopCaseTimer(id)
       if (c.previouslyResolved) {
         setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
-        setOverlayOpen(true)
-        pin('overlay')
+        setRfcBannerOpen(true)
+        pin('rfcBanner')
       } else {
         const remaining = cases.filter(x => x.id !== id)
         if (remaining.length === 0 && processes.length === 0) {
           setTrayOpen(false)
           pin('idle')
         } else {
-          pin(getBarSize(remaining, processes, trayOpen, false))
+          pin(getBarSize(remaining, processes, trayOpen, false, false))
         }
         await safeWrite(supabase.from('ct_cases')
           .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -798,15 +800,15 @@ export default function App() {
       // Pre-compute target size before first await (user activation intact)
       if (c.previouslyResolved) {
         setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
-        setOverlayOpen(true)
-        pin('overlay')
+        setRfcBannerOpen(true)
+        pin('rfcBanner')
       } else {
         const remaining = cases.filter(x => x.id !== focusedCaseId)
         if (remaining.length === 0 && processes.length === 0) {
           setTrayOpen(false)
           pin('idle')
         } else {
-          pin(getBarSize(remaining, processes, trayOpen, false))
+          pin(getBarSize(remaining, processes, trayOpen, false, false))
         }
       }
       const ok = await safeWrite(supabase.from('case_events').insert({
@@ -819,7 +821,7 @@ export default function App() {
       if (!ok) {
         // Roll back optimistic state if write failed
         setRfcPending(null)
-        setOverlayOpen(false)
+        setRfcBannerOpen(false)
         return
       }
       if (!c.previouslyResolved) {
@@ -885,7 +887,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false, false))
       }
       const ok1 = await safeWrite(supabase.from('case_events').insert({
         session_id: sessionId,
@@ -901,7 +903,7 @@ export default function App() {
       setCases(remaining)
       if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
       setRfcPending(null)
-      setOverlayOpen(false)
+      setRfcBannerOpen(false)
       refetch()
     } finally {
       resolvingCaseIds.current.delete(sessionId)
@@ -921,7 +923,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false, false))
       }
       await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -929,7 +931,7 @@ export default function App() {
       setCases(remaining)
       if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
       setRfcPending(null)
-      setOverlayOpen(false)
+      setRfcBannerOpen(false)
       refetch()
     } finally {
       resolvingCaseIds.current.delete(sessionId)
@@ -1038,8 +1040,8 @@ export default function App() {
     const c = cases.find(x => x.id === id)
     if (!c) return
     setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
-    setOverlayOpen(true)
-    pin('overlay')
+    setRfcBannerOpen(true)
+    pin('rfcBanner')
   }
 
   async function handleResolveCase(id) {

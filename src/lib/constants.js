@@ -30,6 +30,7 @@ export const SIZES = {
   subcategoryScreen: { width: 680, height: 392 },
   manualEntryForm: { width: 680, height: 368 },
   overlay: { width: 680, height: 292 },
+  rfcBanner: { width: 760, height: 120 },
   minimized: { width: 220, height: 32 },
 }
 

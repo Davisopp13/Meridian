@@ -1,62 +1,60 @@
 import { C } from '../../lib/constants.js'
 
 /**
- * RFCPrompt — bar-triggered overlay asking "Was this a Re-Filed Case?"
+ * RFCPrompt — compact inline banner asking "Resolved First Contact?"
  *
  * Props:
  *   caseNumber  — display name for the case (string)
  *   onYes       — user clicked "Yes — RFC"
- *   onNo        — user clicked "No, done"
+ *   onNo        — user clicked "No"
  */
 export default function RFCPrompt({ caseNumber, onYes, onNo }) {
-  const panelStyle = {
-    padding: '18px 20px',
-    background: C.bg,
-    borderTop: `1px solid ${C.divider}`,
-    fontFamily: '"Segoe UI", sans-serif',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14,
-  }
-
-  const titleStyle = {
-    fontSize: 13,
-    fontWeight: 700,
-    color: C.textPri,
-    margin: 0,
-  }
-
-  const subtitleStyle = {
-    fontSize: 11,
-    color: C.textSec,
-    margin: 0,
-  }
-
-  function btn(color, muted) {
-    return {
-      height: 32,
-      padding: '0 18px',
-      borderRadius: 16,
-      border: `1px solid ${muted ? C.border : color}`,
-      background: muted ? 'transparent' : `${color}22`,
-      color: muted ? C.textSec : color,
-      fontSize: 12,
-      fontWeight: 700,
-      cursor: 'pointer',
-      fontFamily: '"Segoe UI", sans-serif',
-    }
-  }
-
   return (
-    <div style={panelStyle}>
-      <p style={titleStyle}>Was this a Re-Filed Case?</p>
-      {caseNumber && (
-        <p style={subtitleStyle}>Case {caseNumber}</p>
-      )}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button style={btn(C.awaiting, false)} onClick={onYes}>Yes — RFC</button>
-        <button style={btn(C.textSec, true)} onClick={onNo}>No, done</button>
-      </div>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '0 14px',
+      height: 48,
+      background: 'rgba(217,119,6,0.08)',
+      borderTop: '1px solid rgba(217,119,6,0.2)',
+      fontFamily: '"Segoe UI", sans-serif',
+      flexShrink: 0,
+    }}>
+      <span style={{ fontSize: 14, color: '#f59e0b', flexShrink: 0 }}>⚠</span>
+      <span style={{
+        fontSize: 12, fontWeight: 600, color: C.textPri,
+        flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {caseNumber && (
+          <span style={{ fontWeight: 400, color: C.textSec, marginRight: 8 }}>
+            {caseNumber} ·
+          </span>
+        )}
+        Resolved First Contact?
+      </span>
+      <button
+        onClick={onYes}
+        style={{
+          height: 28, padding: '0 12px', borderRadius: 14,
+          border: '1px solid rgba(217,119,6,0.5)',
+          background: 'rgba(217,119,6,0.15)',
+          color: '#f59e0b', fontSize: 11, fontWeight: 700,
+          cursor: 'pointer', fontFamily: '"Segoe UI", sans-serif',
+          whiteSpace: 'nowrap', flexShrink: 0,
+        }}
+      >Yes — RFC</button>
+      <button
+        onClick={onNo}
+        style={{
+          height: 28, padding: '0 12px', borderRadius: 14,
+          border: `1px solid ${C.border}`,
+          background: 'transparent',
+          color: C.textSec, fontSize: 11, fontWeight: 700,
+          cursor: 'pointer', fontFamily: '"Segoe UI", sans-serif',
+          whiteSpace: 'nowrap', flexShrink: 0,
+        }}
+      >No</button>
     </div>
   )
 }

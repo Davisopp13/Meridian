@@ -7,6 +7,7 @@ const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
 /**
  * ManualEntryForm — shown when the `+` button is tapped.
  * No process pill or timer is created; user selects duration + category and logs directly.
+ * Selecting a subcategory with a duration already chosen logs immediately.
  *
  * Props:
  *   categories  — [{ id, name, team, mpl_subcategories[] }]
@@ -18,7 +19,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   const [showCustom, setShowCustom] = useState(false)
   const [customMinutes, setCustomMinutes] = useState('')
   const [selection, setSelection] = useState(null) // { cat, sub }
-  const [selectionKey, setSelectionKey] = useState(0)
+  const [showDurationHint, setShowDurationHint] = useState(false)
 
   const tint = categories[0]?.team === 'CH' ? 'rgba(251,191,36,1)' : 'rgba(96,165,250,1)'
   const tintColor = categories[0]?.team === 'CH' ? C.awaiting : C.process
@@ -29,17 +30,23 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   }
 
   function handleSelect(cat, sub) {
-    setSelection({ cat, sub })
-    setSelectionKey(k => k + 1) // reset drill-down to category screen
-  }
-
-  function handleLog() {
     const mins = getMinutes()
-    if (!mins || !selection) return
-    onLog(selection.cat.id, selection.sub?.id ?? null, mins)
+    if (mins > 0) {
+      onLog(cat.id, sub?.id ?? null, mins)
+    } else {
+      setSelection({ cat, sub })
+      setShowDurationHint(true)
+      setTimeout(() => setShowDurationHint(false), 2000)
+    }
   }
 
-  const canLog = getMinutes() > 0 && selection != null
+  function handleDurationSelect(d) {
+    setSelectedMinutes(d)
+    setShowCustom(false)
+    if (selection) {
+      onLog(selection.cat.id, selection.sub?.id ?? null, d)
+    }
+  }
 
   function durationPillStyle(val) {
     const isSelected = !showCustom && selectedMinutes === val
@@ -88,7 +95,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
           {DURATIONS.map(d => (
             <button
               key={d}
-              onClick={() => { setSelectedMinutes(d); setShowCustom(false) }}
+              onClick={() => handleDurationSelect(d)}
               style={durationPillStyle(d)}
             >
               {d} min
@@ -121,6 +128,11 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
             />
           )}
         </div>
+        {showDurationHint && (
+          <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600, marginTop: 3 }}>
+            ↑ Select a duration first
+          </div>
+        )}
       </div>
 
       {/* Selected category indicator */}
@@ -132,26 +144,9 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
 
       {/* Category drill-down — fills remaining space */}
       <CategoryDrillDown
-        key={selectionKey}
         categories={categories}
         onSelect={handleSelect}
       />
-
-      {/* Log button row — fixed height to prevent layout shift */}
-      <div style={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-        {canLog && (
-          <button
-            onClick={handleLog}
-            style={{
-              padding: '4px 14px', borderRadius: 12, border: 'none',
-              background: C.process, color: '#fff', fontSize: 11,
-              fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            Log
-          </button>
-        )}
-      </div>
     </div>
   )
 }
