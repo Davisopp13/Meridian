@@ -108,7 +108,7 @@ export function usePipWindow() {
     }
   }, []);
 
-  const resizeAndPin = useCallback((mode) => {
+  const resizeAndPin = useCallback((mode, position = 'bottom-right') => {
     const pw = pipWindowRef.current;
     if (!pw) {
       console.warn('resizeAndPin called but pipWindow is null');
@@ -121,8 +121,24 @@ export function usePipWindow() {
     }
     try {
       pw.resizeTo(size.width, size.height);
-      const x = window.screen.availWidth - size.width - PIP_MARGIN;
-      const y = window.screen.availHeight - size.height - PIP_MARGIN;
+      const sw = window.screen.availWidth;
+      const sh = window.screen.availHeight;
+      const { width, height } = size;
+      let x, y;
+      if (position === 'bottom-left') {
+        x = PIP_MARGIN;
+        y = sh - height - PIP_MARGIN;
+      } else if (position === 'top-right') {
+        x = sw - width - PIP_MARGIN;
+        y = PIP_MARGIN;
+      } else if (position === 'top-left') {
+        x = PIP_MARGIN;
+        y = PIP_MARGIN;
+      } else {
+        // bottom-right (default)
+        x = sw - width - PIP_MARGIN;
+        y = sh - height - PIP_MARGIN;
+      }
       pw.moveTo(x, y);
     } catch (e) {
       console.warn('[Meridian] PiP resize/move skipped (no user activation):', mode, e);

@@ -88,6 +88,11 @@ export default function App() {
 
   // ── Derived settings ──────────────────────────────────────────────────────
   const userSettings = getUserSettings(profile)
+  const userSettingsRef = useRef(userSettings)
+  userSettingsRef.current = userSettings
+
+  // ── pin: resizeAndPin with the user's configured position ─────────────────
+  const pin = (mode) => resizeAndPin(mode, userSettingsRef.current.pip_position)
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -456,7 +461,7 @@ export default function App() {
       // Pre-compute target size before first DB await (user activation intact)
       const willOpenTray = cases.length + 1 > 2
       if (willOpenTray) setTrayOpen(true)
-      resizeAndPin(willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive'))
+      pin(willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive'))
     }
 
     const { data, error } = await supabase
@@ -512,7 +517,7 @@ export default function App() {
       // Pre-compute target size (PiP is guaranteed open at this point)
       const willOpenTrayEarly = processes.length + 1 > 2
       if (willOpenTrayEarly) setTrayOpen(true)
-      resizeAndPin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
+      pin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
     }
 
     const id = crypto.randomUUID()
@@ -663,19 +668,19 @@ export default function App() {
 
   function handleMinimize() {
     setIsMinimized(true)
-    resizeAndPin('minimized')
+    pin('minimized')
   }
 
   function handleRestore() {
     setIsMinimized(false)
     setHasPendingActivity(false)
-    resizeAndPin(getBarSize(cases, processes, trayOpen, overlayOpen))
+    pin(getBarSize(cases, processes, trayOpen, overlayOpen))
   }
 
   function handleToggleTray() {
     const next = !trayOpen
     setTrayOpen(next)
-    resizeAndPin(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen))
+    pin(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen))
   }
 
   function handleFocusCase(id) {
@@ -708,9 +713,9 @@ export default function App() {
     const remaining = cases.filter(x => x.id !== id)
     if (remaining.length === 0 && processes.length === 0) {
       setTrayOpen(false)
-      resizeAndPin('idle')
+      pin('idle')
     } else {
-      resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+      pin(getBarSize(remaining, processes, trayOpen, false))
     }
     await supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: null })
@@ -731,14 +736,14 @@ export default function App() {
       if (c.previouslyResolved) {
         setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
         setOverlayOpen(true)
-        resizeAndPin('overlay')
+        pin('overlay')
       } else {
         const remaining = cases.filter(x => x.id !== id)
         if (remaining.length === 0 && processes.length === 0) {
           setTrayOpen(false)
-          resizeAndPin('idle')
+          pin('idle')
         } else {
-          resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+          pin(getBarSize(remaining, processes, trayOpen, false))
         }
         await safeWrite(supabase.from('ct_cases')
           .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -757,7 +762,7 @@ export default function App() {
     if (!p) return
     setPickerPending({ processId: id, elapsed: p.elapsed })
     setOverlayOpen(true)
-    resizeAndPin('categoryScreen')
+    pin('categoryScreen')
   }
 
   function handleProcessLogFromStrip(processId) {
@@ -769,7 +774,7 @@ export default function App() {
     stopProcessTimer(id)
     const nextProcesses = processes.filter(p => p.id !== id)
     setProcesses(nextProcesses)
-    resizeAndPin(getBarSize(cases, nextProcesses, trayOpen, false))
+    pin(getBarSize(cases, nextProcesses, trayOpen, false))
   }
 
   async function handleResolve() {
@@ -783,14 +788,14 @@ export default function App() {
       if (c.previouslyResolved) {
         setRfcPending({ sessionId: focusedCaseId, caseNum: c.caseNum, elapsed: c.elapsed })
         setOverlayOpen(true)
-        resizeAndPin('overlay')
+        pin('overlay')
       } else {
         const remaining = cases.filter(x => x.id !== focusedCaseId)
         if (remaining.length === 0 && processes.length === 0) {
           setTrayOpen(false)
-          resizeAndPin('idle')
+          pin('idle')
         } else {
-          resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+          pin(getBarSize(remaining, processes, trayOpen, false))
         }
       }
       const ok = await safeWrite(supabase.from('case_events').insert({
@@ -832,9 +837,9 @@ export default function App() {
       const remaining = cases.filter(x => x.id !== focusedCaseId)
       if (remaining.length === 0 && processes.length === 0) {
         setTrayOpen(false)
-        resizeAndPin('idle')
+        pin('idle')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false))
       }
       const ok = await safeWrite(supabase.from('case_events').insert({
         session_id: focusedCaseId,
@@ -867,9 +872,9 @@ export default function App() {
       const remaining = cases.filter(x => x.id !== sessionId)
       if (remaining.length === 0 && processes.length === 0) {
         setTrayOpen(false)
-        resizeAndPin('idle')
+        pin('idle')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false))
       }
       const ok1 = await safeWrite(supabase.from('case_events').insert({
         session_id: sessionId,
@@ -903,9 +908,9 @@ export default function App() {
       const remaining = cases.filter(x => x.id !== sessionId)
       if (remaining.length === 0 && processes.length === 0) {
         setTrayOpen(false)
-        resizeAndPin('idle')
+        pin('idle')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false))
       }
       await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -937,25 +942,25 @@ export default function App() {
       const latest = processes[processes.length - 1]
       setPickerPending({ processId: latest.id, elapsed: latest.elapsed })
       setOverlayOpen(true)
-      resizeAndPin('categoryScreen')
+      pin('categoryScreen')
       return
     }
 
     setManualEntryOpen(true)
     setOverlayOpen(true)
-    resizeAndPin('manualEntryForm')
+    pin('manualEntryForm')
   }
 
   function handleManualEntryClose() {
     setManualEntryOpen(false)
     setOverlayOpen(false)
-    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
+    pin(getBarSize(cases, processes, trayOpen, false))
   }
 
   async function handleManualLog(categoryId, subcategoryId, minutes) {
     if (!user) return
     // Pre-compute target size before await (user activation intact)
-    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
+    pin(getBarSize(cases, processes, trayOpen, false))
     await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -975,9 +980,9 @@ export default function App() {
     // Pre-compute target size before first await (user activation intact)
     const remaining = processes.filter(p => p.id !== processId)
     if (cases.length === 0 && remaining.length === 0) {
-      resizeAndPin('idle')
+      pin('idle')
     } else {
-      resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
+      pin(getBarSize(cases, remaining, trayOpen, false))
     }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
@@ -997,13 +1002,13 @@ export default function App() {
   }
 
   function handlePickerScreenChange(screen) {
-    resizeAndPin(screen === 'subcategory' ? 'subcategoryScreen' : 'categoryScreen')
+    pin(screen === 'subcategory' ? 'subcategoryScreen' : 'categoryScreen')
   }
 
   function handlePickerCancel() {
     setPickerPending(null)
     setOverlayOpen(false)
-    resizeAndPin(getBarSize(cases, processes, trayOpen, false))
+    pin(getBarSize(cases, processes, trayOpen, false))
   }
 
   function handleProcessPause(id) {
@@ -1023,7 +1028,7 @@ export default function App() {
     if (!c) return
     setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
     setOverlayOpen(true)
-    resizeAndPin('overlay')
+    pin('overlay')
   }
 
   async function handleResolveCase(id) {
@@ -1039,9 +1044,9 @@ export default function App() {
         const remaining = cases.filter(x => x.id !== id)
         if (remaining.length === 0 && processes.length === 0) {
           setTrayOpen(false)
-          resizeAndPin('idle')
+          pin('idle')
         } else {
-          resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+          pin(getBarSize(remaining, processes, trayOpen, false))
         }
       }
       await supabase.from('case_events').insert({
@@ -1078,9 +1083,9 @@ export default function App() {
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
         setTrayOpen(false)
-        resizeAndPin('idle')
+        pin('idle')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false))
       }
       await supabase.from('case_events').insert({
         session_id: id,
@@ -1135,9 +1140,9 @@ export default function App() {
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
         setTrayOpen(false)
-        resizeAndPin('idle')
+        pin('idle')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false))
       }
       await supabase.from('case_events').insert({
         session_id: id,
@@ -1169,9 +1174,9 @@ export default function App() {
       const remaining = cases.filter(x => x.id !== id)
       if (remaining.length === 0 && processes.length === 0) {
         setTrayOpen(false)
-        resizeAndPin('idle')
+        pin('idle')
       } else {
-        resizeAndPin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarSize(remaining, processes, trayOpen, false))
       }
       await supabase.from('case_events').insert({
         session_id: id,
@@ -1198,9 +1203,9 @@ export default function App() {
     const remaining = processes.filter(p => p.id !== id)
     if (cases.length === 0 && remaining.length === 0) {
       setTrayOpen(false)
-      resizeAndPin('idle')
+      pin('idle')
     } else {
-      resizeAndPin(getBarSize(cases, remaining, trayOpen, false))
+      pin(getBarSize(cases, remaining, trayOpen, false))
     }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,

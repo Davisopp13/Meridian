@@ -141,7 +141,7 @@ export const DEFAULT_SETTINGS = {
   - Acceptance criteria: Bar renders only the stat buttons the user has enabled, in their configured order. Total computes from the configured formula. If settings are null/default, behavior is identical to the 5-button hardcoded layout.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 7: Apply pip_position setting in usePipWindow**
+- [x] **Task 7: Apply pip_position setting in usePipWindow**
   - What to build: In `src/hooks/usePipWindow.js`, the `resizeAndPin` function uses `moveTo()` to position the PiP window. Currently it always pins to bottom-right. Update it to read the `pip_position` value from the settings passed through. Add a `position` parameter to `resizeAndPin(mode, position)` that defaults to `'bottom-right'`. Calculate the `moveTo` x/y based on the position:
     - `bottom-right`: `x = screen.availWidth - width`, `y = screen.availHeight - height`
     - `bottom-left`: `x = 0`, `y = screen.availHeight - height`
