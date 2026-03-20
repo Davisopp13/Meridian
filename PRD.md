@@ -154,7 +154,7 @@ export const DEFAULT_SETTINGS = {
 
 ### Phase 5: Update Documentation
 
-- [ ] **Task 8: Update AGENTS.md with settings architecture**
+- [x] **Task 8: Update AGENTS.md with settings architecture**
   - What to build: Add a new section to `AGENTS.md` documenting the settings system: the `DEFAULT_SETTINGS` constant, the `getUserSettings` helper, the `platform_users.settings` JSONB column, and the `STAT_BUTTON_CONFIG` map in PipBar. Include the available stat button keys and the pip_position options.
   - Files to modify: `AGENTS.md`
   - Acceptance criteria: AGENTS.md has a "User Settings" section with accurate documentation of the settings system.

@@ -489,6 +489,99 @@ function showPipToast(message, isError = true) {
 
 ---
 
+## User Settings
+
+Settings are stored as a JSONB column (`settings`) on `platform_users`. Defaults are defined in `src/lib/constants.js` and merged at runtime — no defaults are stored in the DB.
+
+### DEFAULT_SETTINGS (src/lib/constants.js)
+
+```js
+export const DEFAULT_SETTINGS = {
+  stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
+  total_includes: ['resolved', 'reclass', 'calls'],
+  pip_position: 'bottom-right',   // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+  team: null,                      // 'CH' | 'MH' — null means use profile.team
+  theme: 'dark',                   // 'dark' only for now
+  notifications: {
+    toast_on_log: true,
+    sound: false,
+  },
+}
+```
+
+### getUserSettings helper (src/lib/constants.js)
+
+Always use this to merge stored settings with defaults. Handles null profile and missing keys.
+
+```js
+export function getUserSettings(profile) {
+  const stored = profile?.settings || {}
+  return {
+    ...DEFAULT_SETTINGS,
+    ...stored,
+    notifications: {
+      ...DEFAULT_SETTINGS.notifications,
+      ...(stored.notifications || {}),
+    },
+  }
+}
+```
+
+Usage in App.jsx:
+```js
+import { getUserSettings } from './lib/constants';
+// Derived from profile state — no new useState needed
+const userSettings = getUserSettings(profile);
+```
+
+### platform_users.settings column
+
+```sql
+ALTER TABLE platform_users
+ADD COLUMN IF NOT EXISTS settings jsonb DEFAULT NULL;
+```
+
+Migration file: `supabase/migrations/002_user_settings.sql`
+
+### STAT_BUTTON_CONFIG map (src/PipBar.jsx)
+
+Defines the label, color, and stat key for each configurable button. `key: null` means computed (total).
+
+```js
+const STAT_BUTTON_CONFIG = {
+  resolved:  { icon: '✓',  label: 'Resolved',  color: C.resolved,    key: 'resolved' },
+  reclass:   { icon: '↩',  label: 'Reclass',   color: C.reclass,     key: 'reclass' },
+  calls:     { icon: '☎',  label: 'Calls',      color: C.calls,       key: 'calls' },
+  processes: { icon: '📋', label: 'Processes',  color: C.processNavy, key: 'processes' },
+  total:     { icon: '',   label: 'Total',      color: C.process,     key: null },  // computed
+}
+```
+
+Rendering only enabled buttons in order:
+```js
+{userSettings.stat_buttons.map(btnKey => {
+  const cfg = STAT_BUTTON_CONFIG[btnKey];
+  if (!cfg) return null;
+  const value = cfg.key
+    ? (stats[cfg.key] ?? 0)
+    : userSettings.total_includes.reduce((sum, k) => sum + (stats[k] ?? 0), 0);
+  return <StatButton key={btnKey} icon={cfg.icon} label={cfg.label} value={value} color={cfg.color} />;
+})}
+```
+
+### pip_position values
+
+| Value | moveTo x | moveTo y |
+|-------|----------|----------|
+| `bottom-right` | `screen.availWidth - width` | `screen.availHeight - height` |
+| `bottom-left`  | `0` | `screen.availHeight - height` |
+| `top-right`    | `screen.availWidth - width` | `0` |
+| `top-left`     | `0` | `0` |
+
+Pass `userSettings.pip_position` as the second argument to `resizeAndPin(mode, position)`.
+
+---
+
 ## File Structure
 
 ```

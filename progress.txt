@@ -1509,3 +1509,38 @@ Learnings for future iterations:
   - `DEFAULT_SETTINGS` is exported from constants.js — import it for fallback defaults in PipBar
   - `processes` stat button was missing from original hardcoded list; now included via config
 ---
+## Iteration N - Task 7: Apply pip_position setting in usePipWindow
+- Updated `resizeAndPin(mode)` in usePipWindow.js to accept `resizeAndPin(mode, position = 'bottom-right')`
+- Added x/y calculation for all 4 positions using PIP_MARGIN on all edges (consistent with existing bottom-right behavior)
+- Added `userSettingsRef` (always-current ref) and `pin(mode)` wrapper in App.jsx that calls `resizeAndPin(mode, userSettingsRef.current.pip_position)`
+- Replaced all ~35 `resizeAndPin(` call sites in App.jsx with `pin(` using replace_all
+- Fixed self-referencing bug: replace_all also hit the `pin` definition itself — manually corrected to call `resizeAndPin`
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/usePipWindow.js (position parameter + 4-way position logic)
+  src/App.jsx (userSettingsRef, pin wrapper, all call sites)
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - replace_all on `resizeAndPin(` will also hit the `pin` definition line — fix that manually after
+  - `userSettingsRef.current = userSettings` (reassigned every render) is the stale-closure fix for derived values used inside plain functions
+  - PIP_MARGIN applied to all 4 corners for visual consistency (not just bottom-right as before)
+---
+
+## Iteration N+1 - Task 8: Update AGENTS.md with settings architecture
+- Added "User Settings" section to AGENTS.md documenting:
+  - DEFAULT_SETTINGS constant with all keys and values
+  - getUserSettings(profile) helper with usage example
+  - platform_users.settings JSONB column and migration reference
+  - STAT_BUTTON_CONFIG map with rendering pattern
+  - pip_position values table with moveTo x/y coordinates
+- `npm run build` passes — 0 errors (doc-only change)
+
+Files changed:
+  AGENTS.md
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - All Tree 5 tasks are now complete
+---
