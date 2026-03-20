@@ -96,7 +96,7 @@ export const DEFAULT_SETTINGS = {
 
 ### Phase 3: Settings Page UI
 
-- [ ] **Task 3: Create SettingsPage component**
+- [x] **Task 3: Create SettingsPage component**
   - What to build: Create `src/components/SettingsPage.jsx`. This is a full-page settings form rendered in the Dashboard host tab. It reads the current user's settings from the `profile` prop, shows controls for each setting group, and writes updates back to `platform_users.settings` via Supabase.
   - **Layout:** Single column, dark background (`#0f1117`), sections separated by subtle dividers. Each section has a heading, description, and controls.
   - **Section 1 — Stat Buttons:** Checkbox list of the 5 available stat buttons. User can toggle each on/off. Minimum 1 must remain selected. Order matches the order in the `stat_buttons` array.

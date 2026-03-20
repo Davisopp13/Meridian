@@ -1415,3 +1415,43 @@ Learnings for future iterations:
   - Migration is DB-only, no JS changes — test is just build pass
   - Must be run manually in Supabase SQL Editor before Tasks 3+ can be tested live
 ---
+
+## Iteration N+1 - Tree 5 Task 2: Add DEFAULT_SETTINGS and getUserSettings to constants.js
+- Added DEFAULT_SETTINGS export to src/lib/constants.js
+- Added getUserSettings(profile) helper that merges stored settings with defaults (deep merge for notifications)
+- Existing C, SIZES, formatElapsed exports untouched
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/lib/constants.js (DEFAULT_SETTINGS + getUserSettings added)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - PRD.md is the active task list (PRD-tree5-settings.md was deleted/merged in)
+  - getUserSettings does a shallow spread with a manual deep merge for the nested notifications object
+  - DEFAULT_SETTINGS lives in constants.js alongside C, SIZES, formatElapsed
+---
+
+## Iteration N+2 - Tree 5 Task 3: Create SettingsPage component
+- Created src/components/SettingsPage.jsx
+- 6 sections: Stat Buttons, Total Formula (conditional), PiP Position, Team Assignment, Theme, Notifications
+- Stat Buttons: checkbox list, canonical order preserved on toggle, minimum 1 enforced
+- Total Formula: only shown when 'total' is in statButtons; minimum 1 enforced
+- PiP Position: radio options + visual mini-diagram (2×2 corner dots click to select)
+- Team: radio CH/MH pre-filled from profile.team
+- Theme: Dark active; Light/Auto shown disabled with "Coming soon" badge
+- Notifications: two toggles (toast_on_log, sound) using custom toggle component
+- Save: writes settings JSONB to platform_users.settings; if team changed, also updates platform_users.team; toast on success/error
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/SettingsPage.jsx (created)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - SettingsPage is a host-page component — CSS variables (var(--token)) work fine here
+  - Save writes to platform_users via user_id (not id): .eq('user_id', user.id)
+  - Two separate .update() calls: one for settings JSONB, one for team column (only if changed)
+  - toggleStatButton preserves canonical order by filtering the hardcoded order array — clean pattern
+  - PipPositionDiagram uses absolute-positioned divs within a 96×64 container; row/col grid maps to CSS top/bottom + left/right
+---
