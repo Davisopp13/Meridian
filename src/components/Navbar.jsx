@@ -19,7 +19,7 @@ function getInitials(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletModal }) {
+export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletModal, onSettings }) {
     const [isLaunchHovered, setIsLaunchHovered] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -256,7 +256,7 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
                                         onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                         onClick={() => {
                                             setShowUserMenu(false);
-                                            // TODO: open settings
+                                            onSettings && onSettings();
                                         }}
                                     >
                                         <span style={{ fontSize: 15 }}>&#9881;</span>

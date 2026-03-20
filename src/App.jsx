@@ -116,6 +116,17 @@ export default function App() {
     return true
   }
 
+  // ── Profile refresh (called after settings save) ──────────────────────────
+  async function refreshProfile() {
+    if (!user) return
+    const { data } = await supabase
+      .from('platform_users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    if (data) setProfile(data)
+  }
+
   // ── Timer ref maps (keyed by session id) ─────────────────────────────────
   const caseTimers = useRef({})     // { [caseId]: intervalId }
   const processTimers = useRef({})  // { [processId]: intervalId }
@@ -1244,7 +1255,7 @@ export default function App() {
 
   return (
     <>
-      <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} />
+      <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} onRefreshProfile={refreshProfile} />
       <PendingTriggerBanner
         trigger={pendingTrigger}
         onLaunch={handlePendingTriggerLaunch}

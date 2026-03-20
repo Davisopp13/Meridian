@@ -6,6 +6,7 @@ import DashboardTable from './DashboardTable.jsx';
 import DashboardChart from './DashboardChart.jsx';
 import BookmarkletModal from './BookmarkletModal.jsx';
 import ActivityLog from './ActivityLog.jsx';
+import SettingsPage from './SettingsPage.jsx';
 import { Check, CornerDownLeft, Phone, Minus, ClipboardList, Timer, Zap } from 'lucide-react';
 
 const C = {
@@ -41,11 +42,12 @@ const METRICS = [
   { key: 'totalActivity', label: 'Total Activity', color: '#E8540A', icon: <Zap size={18} strokeWidth={2.5} /> },
 ];
 
-export default function Dashboard({ user, profile, onLaunchPip }) {
+export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile }) {
   const [period, setPeriod] = useState('this_week');
   const [activeMetric, setActiveMetric] = useState('resolved');
   const [chartType, setChartType] = useState('bar');
   const [showBookmarkletModal, setShowBookmarkletModal] = useState(false);
+  const [view, setView] = useState('dashboard');
 
   const stats = useDashboardStats({ userId: user.id, period });
 
@@ -89,63 +91,67 @@ export default function Dashboard({ user, profile, onLaunchPip }) {
 
   return (
     <div style={{ background: C.bgDeep, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} setShowBookmarkletModal={setShowBookmarkletModal} />
+      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} />
 
 
-      {/* Body */}
-      <div style={bodyStyle}>
-        {/* Activity Log */}
-        <div style={{ marginBottom: 20 }}>
-          <ActivityLog userId={user.id} />
-        </div>
-
-        {/* Period tabs */}
-        <div style={periodTabsStyle}>
-          {PERIODS.map(p => (
-            <button
-              key={p.key}
-              style={tabStyle(period === p.key)}
-              onClick={() => setPeriod(p.key)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Stat cards */}
-        <div style={statCardsStyle}>
-          {METRICS.map(m => (
-            <DashboardStatCard
-              key={m.key}
-              label={m.label}
-              value={stats.loading ? '—' : stats[m.key]}
-              color={m.color}
-              icon={m.icon}
-              active={activeMetric === m.key}
-              onClick={() => setActiveMetric(m.key)}
-            />
-          ))}
-        </div>
-
-        {/* Table */}
-        {stats.loading ? (
-          <SkeletonTable />
-        ) : (
-          <DashboardTable rows={stats.dailyRows} />
-        )}
-
-        {/* Chart — only for monthly/YTD periods */}
-        {CHART_PERIODS.has(period) && !stats.loading && (
-          <div style={{ marginTop: 24 }}>
-            <DashboardChart
-              rows={stats.dailyRows}
-              activeMetric={activeMetric}
-              chartType={chartType}
-              onChartTypeChange={setChartType}
-            />
+      {view === 'settings' ? (
+        <SettingsPage user={user} profile={profile} onBack={() => setView('dashboard')} onRefreshProfile={onRefreshProfile} />
+      ) : (
+        /* Body */
+        <div style={bodyStyle}>
+          {/* Activity Log */}
+          <div style={{ marginBottom: 20 }}>
+            <ActivityLog userId={user.id} />
           </div>
-        )}
-      </div>
+
+          {/* Period tabs */}
+          <div style={periodTabsStyle}>
+            {PERIODS.map(p => (
+              <button
+                key={p.key}
+                style={tabStyle(period === p.key)}
+                onClick={() => setPeriod(p.key)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Stat cards */}
+          <div style={statCardsStyle}>
+            {METRICS.map(m => (
+              <DashboardStatCard
+                key={m.key}
+                label={m.label}
+                value={stats.loading ? '—' : stats[m.key]}
+                color={m.color}
+                icon={m.icon}
+                active={activeMetric === m.key}
+                onClick={() => setActiveMetric(m.key)}
+              />
+            ))}
+          </div>
+
+          {/* Table */}
+          {stats.loading ? (
+            <SkeletonTable />
+          ) : (
+            <DashboardTable rows={stats.dailyRows} />
+          )}
+
+          {/* Chart — only for monthly/YTD periods */}
+          {CHART_PERIODS.has(period) && !stats.loading && (
+            <div style={{ marginTop: 24 }}>
+              <DashboardChart
+                rows={stats.dailyRows}
+                activeMetric={activeMetric}
+                chartType={chartType}
+                onChartTypeChange={setChartType}
+              />
+            </div>
+          )}
+        </div>
+      )}
       {showBookmarkletModal && (
         <BookmarkletModal onClose={() => setShowBookmarkletModal(false)} user={user} />
       )}

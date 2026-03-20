@@ -222,7 +222,7 @@ function PipPositionDiagram({ selected, onSelect }) {
   )
 }
 
-export default function SettingsPage({ user, profile }) {
+export default function SettingsPage({ user, profile, onBack, onRefreshProfile }) {
   const initial = getUserSettings(profile)
 
   const [statButtons, setStatButtons] = useState(initial.stat_buttons)
@@ -280,7 +280,7 @@ export default function SettingsPage({ user, profile }) {
       const { error: settingsErr } = await supabase
         .from('platform_users')
         .update({ settings })
-        .eq('user_id', user.id)
+        .eq('id', user.id)
 
       if (settingsErr) throw settingsErr
 
@@ -289,11 +289,12 @@ export default function SettingsPage({ user, profile }) {
         const { error: teamErr } = await supabase
           .from('platform_users')
           .update({ team })
-          .eq('user_id', user.id)
+          .eq('id', user.id)
 
         if (teamErr) throw teamErr
       }
 
+      if (onRefreshProfile) await onRefreshProfile()
       showToast('success')
     } catch {
       showToast('error')
@@ -347,6 +348,25 @@ export default function SettingsPage({ user, profile }) {
   return (
     <div style={pageStyle}>
       <div style={containerStyle}>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: C.textSec,
+              fontSize: 13,
+              cursor: 'pointer',
+              padding: '0 0 16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'Segoe UI, sans-serif',
+            }}
+          >
+            ← Dashboard
+          </button>
+        )}
         <div style={pageTitleStyle}>Settings</div>
         <div style={pageSubtitleStyle}>Configure your PiP widget behavior. Changes take effect on next launch.</div>
 
