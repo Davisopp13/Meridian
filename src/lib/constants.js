@@ -28,7 +28,7 @@ export const STAT_BUTTON_WIDTHS = {
 }
 
 export const STATE_BASE_WIDTHS = {
-  idle: 100,
+  idle: 160,
   caseActive: 260,
   processActive: 190,
   bothActive: 350,
@@ -64,8 +64,8 @@ export const HEIGHTS = {
   bothActive: 64,
   rfcBanner: 114,
   trayOpen: 276,
-  categoryScreen: 364,
-  subcategoryScreen: 364,
+  categoryScreen: 420,
+  subcategoryScreen: 420,
   manualEntryForm: 378,
   overlay: 354,
 }
