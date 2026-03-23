@@ -449,9 +449,9 @@ export default function App() {
   }, [user?.id])
 
   // ── Ensure PiP window is open; restore if minimized ──────────────────────
-  async function ensurePipOpen() {
+  async function ensurePipOpen(targetMode = 'idle') {
     if (!isOpen) {
-      const pw = await openPip(getSizeForState('idle', userSettingsRef.current.stat_buttons))
+      const pw = await openPip(getSizeForState(targetMode, userSettingsRef.current.stat_buttons))
       if (!pw) return false
       mountPipWindow(pw)
       if (user) createBarSession(user.id)
@@ -463,8 +463,13 @@ export default function App() {
 
   async function handleCaseStart({ caseNumber, accountId, caseType, caseSubtype }) {
     if (!user) return
+
+    // Compute target mode for initial open
+    const willOpenTray = cases.length + 1 > 2
+    const targetMode = willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive')
+
     if (!pipRootRef.current) {
-      const opened = await ensurePipOpen()
+      const opened = await ensurePipOpen(targetMode)
       if (!opened || !pipRootRef.current) {
         // PiP open blocked — queue the trigger so the banner can handle it
         setPendingTrigger({ type: 'case', data: { caseNumber, accountId, caseType, caseSubtype } })
@@ -474,10 +479,11 @@ export default function App() {
     if (isMinimized) {
       setHasPendingActivity(true)
     } else {
-      // Pre-compute target size before first DB await (user activation intact)
-      const willOpenTray = cases.length + 1 > 2
+      // pin() here is for when PiP was already open — Realtime callbacks
+      // won't have user activation so resizeTo may silently fail, but the
+      // next user interaction will correct the size.
       if (willOpenTray) setTrayOpen(true)
-      pin(willOpenTray ? 'trayOpen' : (processes.length > 0 ? 'bothActive' : 'caseActive'))
+      pin(targetMode)
     }
 
     const { data, error } = await supabase
@@ -519,8 +525,11 @@ export default function App() {
   async function handleProcessStart() {
     if (!user || !profile?.onboarding_complete) return
 
+    const willOpenTray = processes.length + 1 > 2
+    const targetMode = willOpenTray ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive')
+
     if (!pipRootRef.current) {
-      const opened = await ensurePipOpen()
+      const opened = await ensurePipOpen(targetMode)
       if (!opened || !pipRootRef.current) {
         // PiP open blocked — queue the trigger
         setPendingTrigger({ type: 'process', data: {} })
@@ -530,10 +539,8 @@ export default function App() {
     if (isMinimized) {
       setHasPendingActivity(true)
     } else {
-      // Pre-compute target size (PiP is guaranteed open at this point)
-      const willOpenTrayEarly = processes.length + 1 > 2
-      if (willOpenTrayEarly) setTrayOpen(true)
-      pin(willOpenTrayEarly ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive'))
+      if (willOpenTray) setTrayOpen(true)
+      pin(targetMode)
     }
 
     const id = crypto.randomUUID()
