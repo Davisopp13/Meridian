@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { SIZES } from '../lib/constants.js';
 
 const PIP_MARGIN = 16; // px from screen edge when pinned to bottom-right
 
@@ -18,8 +17,8 @@ export function usePipWindow() {
 
     try {
       const pw = await window.documentPictureInPicture.requestWindow({
-        width: width ?? SIZES.idle.width,
-        height: height ?? SIZES.idle.height,
+        width: width ?? 680,
+        height: height ?? 64,
       });
 
       pw.document.title = 'Meridian';
@@ -108,15 +107,10 @@ export function usePipWindow() {
     }
   }, []);
 
-  const resizeAndPin = useCallback((mode, position = 'bottom-right') => {
+  const resizeAndPin = useCallback((size, position = 'bottom-right') => {
     const pw = pipWindowRef.current;
-    if (!pw) {
-      console.warn('resizeAndPin called but pipWindow is null');
-      return;
-    }
-    const size = SIZES[mode];
-    if (!size) {
-      console.warn(`resizeAndPin: unknown mode "${mode}"`);
+    if (!pw || !size) {
+      console.warn('resizeAndPin called but pipWindow or size is null');
       return;
     }
     try {
@@ -141,7 +135,7 @@ export function usePipWindow() {
       }
       pw.moveTo(x, y);
     } catch (e) {
-      console.warn('[Meridian] PiP resize/move skipped (no user activation):', mode, e);
+      console.warn('[Meridian] PiP resize/move skipped (no user activation):', size, e);
     }
   }, []);
 

@@ -27,7 +27,7 @@ export default function SwimlaneTray({
 }) {
   const trayStyle = {
     display: 'flex',
-    height: 296,
+    height: 214,
     overflow: 'hidden',
     borderTop: `1px solid ${C.divider}`,
     fontFamily: '"Segoe UI", sans-serif',

@@ -20,18 +20,61 @@ export const C = {
   amberRow: 'var(--amber-row)',
 }
 
-export const SIZES = {
-  idle: { width: 680, height: 68 },
-  caseActive: { width: 680, height: 68 },
-  processActive: { width: 680, height: 68 },
-  bothActive: { width: 680, height: 68 },
-  trayOpen: { width: 680, height: 368 },
-  categoryScreen: { width: 680, height: 392 },
-  subcategoryScreen: { width: 680, height: 392 },
-  manualEntryForm: { width: 680, height: 368 },
-  overlay: { width: 680, height: 292 },
-  rfcBanner: { width: 760, height: 120 },
-  minimized: { width: 220, height: 32 },
+// ── Dynamic PiP Sizing ─────────────────────────────────────────────
+
+export const STAT_BUTTON_WIDTHS = {
+  resolved: 110, reclass: 100,
+  calls: 90, processes: 114, total: 90,
+}
+
+export const STATE_BASE_WIDTHS = {
+  idle: 100,
+  caseActive: 260,
+  processActive: 190,
+  bothActive: 350,
+  rfcBanner: 260,
+  trayOpen: 380,
+  categoryScreen: 240,
+  subcategoryScreen: 240,
+  manualEntryForm: 160,
+  overlay: 240,
+}
+
+const BUTTON_GAP = 6
+
+export function getBarWidth(stateKey, statButtons) {
+  const base = STATE_BASE_WIDTHS[stateKey] || 240
+  const btnW = statButtons.reduce((sum, k) => sum + (STAT_BUTTON_WIDTHS[k] || 0), 0)
+  const gaps = Math.max(0, statButtons.length - 1) * BUTTON_GAP
+  return base + btnW + gaps
+}
+
+export const MINI_BASE = 70
+export const MINI_PER_SCORE = 24
+
+export function getMiniWidth(statButtons) {
+  return MINI_BASE + statButtons.length * MINI_PER_SCORE
+}
+
+export const HEIGHTS = {
+  minimized: 32,
+  idle: 64,
+  caseActive: 64,
+  processActive: 64,
+  bothActive: 64,
+  rfcBanner: 114,
+  trayOpen: 276,
+  categoryScreen: 364,
+  subcategoryScreen: 364,
+  manualEntryForm: 378,
+  overlay: 354,
+}
+
+export function getSizeForState(stateKey, statButtons) {
+  if (stateKey === 'minimized') {
+    return { width: getMiniWidth(statButtons), height: HEIGHTS.minimized }
+  }
+  return { width: getBarWidth(stateKey, statButtons), height: HEIGHTS[stateKey] || 64 }
 }
 
 export function formatElapsed(seconds) {

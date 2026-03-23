@@ -16,11 +16,11 @@ import RFCPrompt from './components/overlays/RFCPrompt.jsx'
 import ProcessPicker from './components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from './components/ManualEntryForm.jsx'
 import { getNewYorkDateKey, getNewYorkDayRange } from './lib/timezone.js'
-import { SIZES, getUserSettings } from './lib/constants.js'
+import { getSizeForState, getUserSettings } from './lib/constants.js'
 
 const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
-function getBarSize(cases, processes, trayOpen, overlayOpen, rfcBannerOpen) {
+function getBarMode(cases, processes, trayOpen, overlayOpen, rfcBannerOpen) {
   if (rfcBannerOpen) return 'rfcBanner'
   if (overlayOpen) return 'overlay'
   if (trayOpen) return 'trayOpen'
@@ -93,8 +93,11 @@ export default function App() {
   const userSettingsRef = useRef(userSettings)
   userSettingsRef.current = userSettings
 
-  // ── pin: resizeAndPin with the user's configured position ─────────────────
-  const pin = (mode) => resizeAndPin(mode, userSettingsRef.current.pip_position)
+  // ── pin: compute dynamic size and resizeAndPin with the user's configured position
+  const pin = (mode) => resizeAndPin(
+    getSizeForState(mode, userSettingsRef.current.stat_buttons),
+    userSettingsRef.current.pip_position
+  )
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -448,7 +451,7 @@ export default function App() {
   // ── Ensure PiP window is open; restore if minimized ──────────────────────
   async function ensurePipOpen() {
     if (!isOpen) {
-      const pw = await openPip()
+      const pw = await openPip(getSizeForState('idle', userSettingsRef.current.stat_buttons))
       if (!pw) return false
       mountPipWindow(pw)
       if (user) createBarSession(user.id)
@@ -634,7 +637,8 @@ export default function App() {
   // ── Launch PiP window ─────────────────────────────────────────────────────
   async function handleLaunch() {
     if (!user || !profile?.onboarding_complete) return
-    const pw = await openPip()
+    const initialSize = getSizeForState('idle', userSettingsRef.current.stat_buttons)
+    const pw = await openPip(initialSize)
     if (!pw) return
 
     mountPipWindow(pw)
@@ -657,7 +661,7 @@ export default function App() {
       const willOpenTray = processes.length + 1 > 2
       targetMode = willOpenTray ? 'trayOpen' : (cases.length > 0 ? 'bothActive' : 'processActive')
     }
-    const { width, height } = SIZES[targetMode] || SIZES.idle
+    const { width, height } = getSizeForState(targetMode, userSettingsRef.current.stat_buttons)
 
     const pw = await openPip({ width, height })
     if (!pw) return
@@ -687,13 +691,13 @@ export default function App() {
   function handleRestore() {
     setIsMinimized(false)
     setHasPendingActivity(false)
-    pin(getBarSize(cases, processes, trayOpen, overlayOpen, rfcBannerOpen))
+    pin(getBarMode(cases, processes, trayOpen, overlayOpen, rfcBannerOpen))
   }
 
   function handleToggleTray() {
     const next = !trayOpen
     setTrayOpen(next)
-    pin(next ? 'trayOpen' : getBarSize(cases, processes, false, overlayOpen, rfcBannerOpen))
+    pin(next ? 'trayOpen' : getBarMode(cases, processes, false, overlayOpen, rfcBannerOpen))
   }
 
   function handleFocusCase(id) {
@@ -728,7 +732,7 @@ export default function App() {
       setTrayOpen(false)
       pin('idle')
     } else {
-      pin(getBarSize(remaining, processes, trayOpen, false))
+      pin(getBarMode(remaining, processes, trayOpen, false))
     }
     await supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: null })
@@ -756,7 +760,7 @@ export default function App() {
           setTrayOpen(false)
           pin('idle')
         } else {
-          pin(getBarSize(remaining, processes, trayOpen, false, false))
+          pin(getBarMode(remaining, processes, trayOpen, false, false))
         }
         await safeWrite(supabase.from('ct_cases')
           .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -787,7 +791,7 @@ export default function App() {
     stopProcessTimer(id)
     const nextProcesses = processes.filter(p => p.id !== id)
     setProcesses(nextProcesses)
-    pin(getBarSize(cases, nextProcesses, trayOpen, false))
+    pin(getBarMode(cases, nextProcesses, trayOpen, false))
   }
 
   async function handleResolve() {
@@ -808,7 +812,7 @@ export default function App() {
           setTrayOpen(false)
           pin('idle')
         } else {
-          pin(getBarSize(remaining, processes, trayOpen, false, false))
+          pin(getBarMode(remaining, processes, trayOpen, false, false))
         }
       }
       const ok = await safeWrite(supabase.from('case_events').insert({
@@ -852,7 +856,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarMode(remaining, processes, trayOpen, false))
       }
       const ok = await safeWrite(supabase.from('case_events').insert({
         session_id: focusedCaseId,
@@ -887,7 +891,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false, false))
+        pin(getBarMode(remaining, processes, trayOpen, false, false))
       }
       const ok1 = await safeWrite(supabase.from('case_events').insert({
         session_id: sessionId,
@@ -923,7 +927,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false, false))
+        pin(getBarMode(remaining, processes, trayOpen, false, false))
       }
       await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
@@ -967,13 +971,13 @@ export default function App() {
   function handleManualEntryClose() {
     setManualEntryOpen(false)
     setOverlayOpen(false)
-    pin(getBarSize(cases, processes, trayOpen, false))
+    pin(getBarMode(cases, processes, trayOpen, false))
   }
 
   async function handleManualLog(categoryId, subcategoryId, minutes) {
     if (!user) return
     // Pre-compute target size before await (user activation intact)
-    pin(getBarSize(cases, processes, trayOpen, false))
+    pin(getBarMode(cases, processes, trayOpen, false))
     await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -995,7 +999,7 @@ export default function App() {
     if (cases.length === 0 && remaining.length === 0) {
       pin('idle')
     } else {
-      pin(getBarSize(cases, remaining, trayOpen, false))
+      pin(getBarMode(cases, remaining, trayOpen, false))
     }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
@@ -1021,7 +1025,7 @@ export default function App() {
   function handlePickerCancel() {
     setPickerPending(null)
     setOverlayOpen(false)
-    pin(getBarSize(cases, processes, trayOpen, false))
+    pin(getBarMode(cases, processes, trayOpen, false))
   }
 
   function handleProcessPause(id) {
@@ -1059,7 +1063,7 @@ export default function App() {
           setTrayOpen(false)
           pin('idle')
         } else {
-          pin(getBarSize(remaining, processes, trayOpen, false))
+          pin(getBarMode(remaining, processes, trayOpen, false))
         }
       }
       await supabase.from('case_events').insert({
@@ -1098,7 +1102,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarMode(remaining, processes, trayOpen, false))
       }
       await supabase.from('case_events').insert({
         session_id: id,
@@ -1155,7 +1159,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarMode(remaining, processes, trayOpen, false))
       }
       await supabase.from('case_events').insert({
         session_id: id,
@@ -1189,7 +1193,7 @@ export default function App() {
         setTrayOpen(false)
         pin('idle')
       } else {
-        pin(getBarSize(remaining, processes, trayOpen, false))
+        pin(getBarMode(remaining, processes, trayOpen, false))
       }
       await supabase.from('case_events').insert({
         session_id: id,
@@ -1218,7 +1222,7 @@ export default function App() {
       setTrayOpen(false)
       pin('idle')
     } else {
-      pin(getBarSize(cases, remaining, trayOpen, false))
+      pin(getBarMode(cases, remaining, trayOpen, false))
     }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
