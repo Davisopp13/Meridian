@@ -9,17 +9,43 @@ export function usePipWindow() {
   // Ref always holds the latest pipWindow so resizeAndPin never uses a stale closure
   const pipWindowRef = useRef(null);
 
-  const openPip = useCallback(async ({ width, height } = {}) => {
+  const openPip = useCallback(async ({ width, height, position } = {}) => {
     if (!window.documentPictureInPicture) {
       console.warn('Document Picture-in-Picture API not supported in this browser.');
       return null;
     }
 
     try {
+      const w = width ?? 680;
+      const h = height ?? 64;
       const pw = await window.documentPictureInPicture.requestWindow({
-        width: width ?? 680,
-        height: height ?? 64,
+        width: w,
+        height: h,
       });
+
+      // Snap to the user's preferred corner immediately after window creation
+      try {
+        const sw = window.screen.availWidth;
+        const sh = window.screen.availHeight;
+        let x, y;
+        if (position === 'bottom-left') {
+          x = PIP_MARGIN;
+          y = sh - h - PIP_MARGIN;
+        } else if (position === 'top-right') {
+          x = sw - w - PIP_MARGIN;
+          y = PIP_MARGIN;
+        } else if (position === 'top-left') {
+          x = PIP_MARGIN;
+          y = PIP_MARGIN;
+        } else {
+          // bottom-right (default)
+          x = sw - w - PIP_MARGIN;
+          y = sh - h - PIP_MARGIN;
+        }
+        pw.moveTo(x, y);
+      } catch (e) {
+        console.warn('[Meridian] Initial moveTo skipped:', e);
+      }
 
       pw.document.title = 'Meridian';
       pw.document.body.style.cssText =

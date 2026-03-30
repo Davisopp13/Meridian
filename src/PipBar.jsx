@@ -3,14 +3,14 @@ import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
 import MinimizeButton from './components/MinimizeButton.jsx';
 import MinimizedStrip from './components/MinimizedStrip.jsx';
-import { Check, Phone } from 'lucide-react';
+import { Check, Phone, ClipboardList, CornerUpLeft } from 'lucide-react';
 
 const STAT_BUTTON_CONFIG = {
-  resolved:  { icon: '✓', label: 'Resolved',  color: C.resolved,    key: 'resolved' },
-  reclass:   { icon: '↩', label: 'Reclass',   color: C.reclass,     key: 'reclass' },
-  calls:     { icon: '☎', label: 'Calls',      color: C.calls,       key: 'calls' },
-  processes: { icon: '📋', label: 'Processes', color: C.processNavy, key: 'processes' },
-  total:     { icon: '',  label: 'Total',      color: C.process,     key: null },
+  resolved:  { icon: <Check size={14} strokeWidth={2.5} />, label: 'Resolved',  color: C.resolved,    key: 'resolved' },
+  reclass:   { icon: <CornerUpLeft size={14} strokeWidth={2.5} />, label: 'Reclass',   color: C.reclass,     key: 'reclass' },
+  calls:     { icon: <Phone size={14} strokeWidth={2.5} />, label: 'Calls',      color: C.calls,       key: 'calls' },
+  processes: { icon: <ClipboardList size={14} strokeWidth={2.5} />, label: 'Processes', color: C.processNavy, key: 'processes' },
+  total:     { icon: null,  label: 'Total',      color: C.process,     key: null },
 }
 
 /**
@@ -173,9 +173,9 @@ export default function PipBar({
             } else {
               value = stats[cfg.key] || 0
             }
-            const labelText = cfg.icon ? `${cfg.icon} ${value} ${cfg.label}` : `${value} ${cfg.label}`
+            const labelText = `${value} ${cfg.label}`
             return (
-              <StatButton key={btnKey} label={labelText} color={cfg.color} onClick={() => {}} />
+              <StatButton key={btnKey} icon={cfg.icon} label={labelText} color={cfg.color} onClick={() => {}} />
             )
           })}
         </div>

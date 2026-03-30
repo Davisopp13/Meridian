@@ -10,7 +10,7 @@ import { C } from '../lib/constants.js';
  *   disabled  bool     — when no focused case
  *   active    bool     — process button when active
  */
-export default function StatButton({ label, color, onClick, disabled = false, active = false }) {
+export default function StatButton({ icon, label, color, onClick, disabled = false, active = false }) {
   const [hovered, setHovered] = useState(false);
   const [pressed, setPressed] = useState(false);
 
@@ -53,7 +53,8 @@ export default function StatButton({ label, color, onClick, disabled = false, ac
       onTouchEnd={() => setPressed(false)}
       title={label}
     >
-      {label}
+      {icon && icon}
+      <span>{label}</span>
     </button>
   );
 }
