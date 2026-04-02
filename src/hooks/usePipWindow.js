@@ -23,7 +23,10 @@ export function usePipWindow() {
         height: h,
       });
 
-      // Snap to the user's preferred corner immediately after window creation
+      // Snap to the user's preferred corner. pw.moveTo() from the parent context
+      // fails silently after await (user activation is consumed by requestWindow).
+      // Injecting a script into the PiP window's own document runs in that window's
+      // activation context, where the gesture is still live.
       try {
         const sw = window.screen.availWidth;
         const sh = window.screen.availHeight;
@@ -42,9 +45,12 @@ export function usePipWindow() {
           x = sw - w - PIP_MARGIN;
           y = sh - h - PIP_MARGIN;
         }
-        pw.moveTo(x, y);
+        const posScript = pw.document.createElement('script');
+        posScript.textContent = `try{window.moveTo(${x},${y})}catch(e){}`;
+        pw.document.head.appendChild(posScript);
+        posScript.remove();
       } catch (e) {
-        console.warn('[Meridian] Initial moveTo skipped:', e);
+        console.warn('[Meridian] Initial position script failed:', e);
       }
 
       pw.document.title = 'Meridian';
