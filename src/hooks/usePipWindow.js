@@ -23,11 +23,12 @@ export function usePipWindow() {
         height: h,
       });
 
-      // Snap to the user's preferred corner. pw.moveTo() from the parent context
-      // fails silently after await (user activation is consumed by requestWindow).
-      // Injecting a script into the PiP window's own document runs in that window's
-      // activation context, where the gesture is still live.
-      try {
+      // Snap to the user's preferred corner.
+      // After await requestWindow(), user activation is gone in the parent context,
+      // so pw.moveTo() from here usually no-ops. We try it anyway (free), then
+      // inject a one-time mousedown listener into the PiP window as a reliable
+      // fallback — the first click gives the PiP window real user activation.
+      {
         const sw = window.screen.availWidth;
         const sh = window.screen.availHeight;
         let x, y;
@@ -41,16 +42,17 @@ export function usePipWindow() {
           x = PIP_MARGIN;
           y = PIP_MARGIN;
         } else {
-          // bottom-right (default)
           x = sw - w - PIP_MARGIN;
           y = sh - h - PIP_MARGIN;
         }
+        // Best-effort immediate snap (works if Chrome doesn't gate moveTo on PiP windows)
+        try { pw.moveTo(x, y); } catch (e) { /* expected to fail */ }
+        // Guaranteed fallback: snap on first interaction within the PiP widget.
+        // mousedown provides user activation in the PiP window's context.
         const posScript = pw.document.createElement('script');
-        posScript.textContent = `try{window.moveTo(${x},${y})}catch(e){}`;
+        posScript.textContent = `document.addEventListener('mousedown',function(){try{window.moveTo(${x},${y})}catch(e){}},{once:true})`;
         pw.document.head.appendChild(posScript);
         posScript.remove();
-      } catch (e) {
-        console.warn('[Meridian] Initial position script failed:', e);
       }
 
       pw.document.title = 'Meridian';
