@@ -207,8 +207,29 @@ export default function PipBar({
               value = stats[cfg.key] || 0
             }
             const labelText = `${value} ${cfg.label}`
+            const STAT_BUTTON_HANDLERS = {
+              resolved:  onResolve,
+              reclass:   onReclass,
+              calls:     onCall,
+              processes: onNewProcess,
+              total:     null,
+            }
+            const STAT_BUTTON_DISABLED = {
+              resolved:  !hasFocused,
+              reclass:   !hasFocused,
+              calls:     !hasFocused,
+              processes: false,
+              total:     true,
+            }
             return (
-              <StatButton key={btnKey} icon={cfg.icon} label={labelText} color={cfg.color} onClick={() => {}} />
+              <StatButton
+                key={btnKey}
+                icon={cfg.icon}
+                label={labelText}
+                color={cfg.color}
+                onClick={STAT_BUTTON_HANDLERS[btnKey] || undefined}
+                disabled={STAT_BUTTON_DISABLED[btnKey] ?? false}
+              />
             )
           })}
         </div>
