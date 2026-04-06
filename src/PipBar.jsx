@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { C, formatElapsed, DEFAULT_SETTINGS } from './lib/constants.js';
 import PillZone from './components/PillZone.jsx';
 import StatButton from './components/StatButton.jsx';
@@ -40,6 +41,36 @@ const STAT_BUTTON_CONFIG = {
  *   onNewProcess     — stat button: start/open process picker
  *   children         — optional: overlay or tray rendered below bar row
  */
+function SnapButton({ onClick }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      title="Snap to corner"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        width: 16,
+        height: 16,
+        padding: 0,
+        border: 'none',
+        background: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: hovered ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
+        flexShrink: 0,
+      }}
+    >
+      <svg viewBox="0 0 12 12" width="11" height="11" fill="none">
+        <rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2 1.5" />
+        <circle cx="6" cy="6" r="1.5" fill="currentColor" />
+      </svg>
+    </button>
+  );
+}
+
 export default function PipBar({
   cases = [],
   processes = [],
@@ -72,6 +103,7 @@ export default function PipBar({
   onProcessResume,
   onProcessLog,
   onProcessDiscard,
+  onSnapToCorner,
   children,
 }) {
   const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
@@ -179,6 +211,11 @@ export default function PipBar({
             )
           })}
         </div>
+        {/* Snap to corner button */}
+        {onSnapToCorner && (
+          <SnapButton onClick={onSnapToCorner} />
+        )}
+
         {/* Connection status dot */}
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
 

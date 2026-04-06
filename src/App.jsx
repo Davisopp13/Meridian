@@ -594,6 +594,7 @@ export default function App() {
         onProcessResume={handleProcessResume}
         onProcessLog={handleProcessLogFromStrip}
         onProcessDiscard={handleCloseProcess}
+        onSnapToCorner={() => pin(isMinimized ? 'minimized' : getBarMode(cases, processes, trayOpen, overlayOpen, rfcBannerOpen))}
       >
         {rfcPending ? (
           <RFCPrompt
