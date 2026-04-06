@@ -46,7 +46,7 @@ function SnapButton({ onClick }) {
   return (
     <button
       title="Snap to corner"
-      onClick={onClick}
+      onClick={() => { console.log('SNAP CLICKED'); onClick && onClick(); }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -106,6 +106,7 @@ export default function PipBar({
   onSnapToCorner,
   children,
 }) {
+  console.log('[PipBar] onSnapToCorner prop:', typeof onSnapToCorner);
   const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
   const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
   // ── Minimized restore strip ──────────────────────────────────────────────
