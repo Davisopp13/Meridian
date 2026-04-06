@@ -217,7 +217,7 @@ export default function PipBar({
             const STAT_BUTTON_DISABLED = {
               resolved:  !hasFocused,
               reclass:   !hasFocused,
-              calls:     !hasFocused,
+              calls:     false,
               processes: false,
               total:     true,
             }
