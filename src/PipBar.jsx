@@ -234,7 +234,7 @@ export default function PipBar({
           })}
         </div>
         {/* Snap to corner button */}
-        {onSnapToCorner && (
+        {false && onSnapToCorner && (
           <SnapButton onClick={onSnapToCorner} />
         )}
 

@@ -407,6 +407,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
         )}
 
         {/* Section 3: PiP Position */}
+        {false && (
         <Section>
           <SectionHeading
             title="PiP Position"
@@ -414,6 +415,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
           />
           <PipPositionDiagram selected={pipPosition} onSelect={setPipPosition} />
         </Section>
+        )}
 
         {/* Section 4: Team Assignment */}
         <Section>
