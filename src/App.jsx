@@ -122,7 +122,8 @@ export default function App() {
     const { error } = await promise
     if (error) {
       console.error('[Meridian] Supabase write failed', error)
-      showPipToast('Connection error — data may not have saved.')
+      const msg = error.message || error.details || 'Unknown error'
+      showPipToast('Save failed: ' + msg)
       return false
     }
     return true
@@ -815,7 +816,7 @@ export default function App() {
     refetch()
   }
 
-  // Bar pill × — pause timer, open RFC overlay only if previously resolved
+  // Bar pill × — dismiss case session without resolution
   async function handleBarPillClose(id) {
     if (resolvingCaseIds.current.has(id)) return
     const c = cases.find(x => x.id === id)
@@ -823,25 +824,19 @@ export default function App() {
     resolvingCaseIds.current.add(id)
     try {
       stopCaseTimer(id)
-      if (c.previouslyResolved) {
-        setRfcPending({ sessionId: id, caseNum: c.caseNum, elapsed: c.elapsed })
-        setRfcBannerOpen(true)
-        pin('rfcBanner')
+      const remaining = cases.filter(x => x.id !== id)
+      if (remaining.length === 0 && processes.length === 0) {
+        setTrayOpen(false)
+        pin('idle')
       } else {
-        const remaining = cases.filter(x => x.id !== id)
-        if (remaining.length === 0 && processes.length === 0) {
-          setTrayOpen(false)
-          pin('idle')
-        } else {
-          pin(getBarMode(remaining, processes, trayOpen, false, false))
-        }
-        await safeWrite(supabase.from('ct_cases')
-          .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
-          .eq('id', id))
-        setCases(remaining)
-        if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
-        refetch()
+        pin(getBarMode(remaining, processes, trayOpen, false, false))
       }
+      await safeWrite(supabase.from('ct_cases')
+        .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: null })
+        .eq('id', id))
+      setCases(remaining)
+      if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
+      refetch()
     } finally {
       resolvingCaseIds.current.delete(id)
     }
