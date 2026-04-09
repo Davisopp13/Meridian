@@ -88,16 +88,23 @@ export default function App() {
   const hasHydratedPipStateRef = useRef(false)
   const resolvingCaseIds = useRef(new Set())
 
+  // ── Widget mode: detect ?mode=widget for popup rendering ─────────────────
+  const isWidgetMode = new URLSearchParams(window.location.search).get('mode') === 'widget'
+
   // ── Derived settings ──────────────────────────────────────────────────────
   const userSettings = getUserSettings(profile)
   const userSettingsRef = useRef(userSettings)
   userSettingsRef.current = userSettings
 
-  // ── pin: compute dynamic size and resizeAndPin with the user's configured position
-  const pin = (mode) => resizeAndPin(
-    getSizeForState(mode, userSettingsRef.current.stat_buttons),
-    userSettingsRef.current.pip_position
-  )
+  // ── pin: resize PiP or popup window depending on mode ────────────────────
+  const pin = (mode) => {
+    const size = getSizeForState(mode, userSettingsRef.current.stat_buttons)
+    if (isWidgetMode) {
+      try { window.resizeTo(size.width, size.height) } catch (e) {}
+    } else {
+      resizeAndPin(size, userSettingsRef.current.pip_position)
+    }
+  }
 
   // ── Toast helper ──────────────────────────────────────────────────────────
   const toastTimerRef = useRef(null)
@@ -274,6 +281,21 @@ export default function App() {
       }
     }, 300)
   }, [authLoading, user, profile])
+
+  // ── Widget mode: auto-initialize on mount ─────────────────────────────────
+  const widgetInitRef = useRef(false)
+  useEffect(() => {
+    if (!isWidgetMode) return
+    if (authLoading || !user || !profile?.onboarding_complete) return
+    if (widgetInitRef.current) return
+    widgetInitRef.current = true
+
+    createBarSession(user.id)
+    document.body.classList.add('widget-mode')
+
+    const size = getSizeForState('idle', userSettingsRef.current.stat_buttons)
+    try { window.resizeTo(size.width, size.height) } catch (e) {}
+  }, [isWidgetMode, authLoading, user, profile])
 
   // ── Connection status health-check ────────────────────────────────────────
   useEffect(() => {
@@ -581,6 +603,7 @@ export default function App() {
 
   // ── Re-render PipBar into PiP window on every state change ────────────────
   useEffect(() => {
+    if (isWidgetMode) return // Widget mode renders via JSX return, not pipRoot
     if (!pipRootRef.current) return
     pipRootRef.current.render(<PipErrorBoundary>{buildPipBar()}</PipErrorBoundary>)
   })
@@ -716,18 +739,32 @@ export default function App() {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   function handleOpenDashboard() {
-    window.focus()
+    if (isWidgetMode) {
+      window.open(window.location.origin, 'meridian-dashboard')
+    } else {
+      window.focus()
+    }
   }
 
   function handleMinimize() {
     setIsMinimized(true)
-    pin('minimized')
+    if (isWidgetMode) {
+      try { window.resizeTo(550, 36) } catch (e) {}
+    } else {
+      pin('minimized')
+    }
   }
 
   function handleRestore() {
     setIsMinimized(false)
     setHasPendingActivity(false)
-    pin(getBarMode(cases, processes, trayOpen, overlayOpen, rfcBannerOpen))
+    const mode = getBarMode(cases, processes, trayOpen, overlayOpen, rfcBannerOpen)
+    if (isWidgetMode) {
+      const size = getSizeForState(mode, userSettingsRef.current.stat_buttons)
+      try { window.resizeTo(size.width, size.height) } catch (e) {}
+    } else {
+      pin(mode)
+    }
   }
 
   function handleToggleTray() {
@@ -1293,6 +1330,23 @@ export default function App() {
 
   if (!profile?.onboarding_complete) {
     return <Onboarding user={user} onComplete={handleOnboardingComplete} />
+  }
+
+  // ── Widget mode: render PipBar directly (no dashboard) ───────────────────
+  if (isWidgetMode) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        background: '#0f1117',
+        overflow: 'hidden',
+        fontFamily: '"Inter", system-ui, sans-serif',
+      }}>
+        <PipErrorBoundary>
+          {buildPipBar()}
+        </PipErrorBoundary>
+      </div>
+    )
   }
 
   return (
