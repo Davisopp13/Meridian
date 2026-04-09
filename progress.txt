@@ -1567,3 +1567,22 @@ Learnings for future iterations:
   - callConfirmTimerRef needed for setTimeout ID cleanup on unmount (same pattern as toastTimerRef)
   - C.textPri / C.process / C.calls / C.border / C.divider all resolve via CSS vars in host page context
 ---
+
+## Iteration MPL-2 - Task 2 (MPL PRD): Style the MplWidget top bar
+- Replaced nested `TimerPill()` function component with `timerPill` JSX variable (inline, avoids re-creation on every render)
+- Added Pause/Resume toggle button embedded inside the timer pill in the top bar
+- Pill background/border/color already matched spec (running: blue rgba, paused: amber rgba)
+- Dot color now uses `C.process` (CSS var) when running, amber when paused
+- Toggle button: 20×20 circle, no border, fills Pause icon when running / Play icon when paused
+- All other top bar elements (icon, divider, spacer, Log Call, process stat, connection dot) already matched spec from Task 1
+- `npm run build` passes — 2457 modules, 0 errors
+
+Files changed:
+  src/components/MplWidget.jsx (TimerPill → timerPill inline, Pause/Resume toggle in pill)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - Avoid defining function components inside render functions — use JSX variables or extract to module level
+  - Pause/Resume toggle inside the pill needs to call the same handlePause/handleResume handlers already used by main area buttons
+  - pill has `padding: '3px 4px 3px 8px'` (asymmetric right) to tighten spacing around the toggle button
+---

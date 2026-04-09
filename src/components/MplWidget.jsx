@@ -123,14 +123,13 @@ export default function MplWidget({
   const processCount = stats.processes ?? 0
   const callCount = stats.calls ?? 0
 
-  // ── Top bar timer pill ───────────────────────────────────────────────
-  function TimerPill() {
-    if (!timerRunning) return null
-    const pillStyle = {
+  // ── Top bar timer pill (with embedded Pause/Resume toggle) ──────────
+  const timerPill = timerRunning ? (
+    <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: 5,
-      padding: '3px 8px',
+      gap: 6,
+      padding: '3px 4px 3px 8px',
       borderRadius: 999,
       fontSize: 11,
       fontWeight: 700,
@@ -138,15 +137,33 @@ export default function MplWidget({
       background: paused ? 'rgba(245,158,11,0.12)' : 'rgba(96,165,250,0.12)',
       border: paused ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(96,165,250,0.3)',
       color: paused ? '#fbbf24' : '#ffffff',
-      cursor: 'default',
-    }
-    return (
-      <div style={pillStyle}>
-        <span style={{ fontSize: 8, lineHeight: 1 }}>●</span>
-        {formatElapsed(elapsed)}
-      </div>
-    )
-  }
+    }}>
+      <span style={{ fontSize: 8, lineHeight: 1, color: paused ? '#fbbf24' : C.process }}>●</span>
+      {formatElapsed(elapsed)}
+      {/* Pause/Resume toggle embedded in pill */}
+      <button
+        onClick={paused ? handleResume : handlePause}
+        title={paused ? 'Resume' : 'Pause'}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 20,
+          height: 20,
+          borderRadius: '50%',
+          border: 'none',
+          background: paused ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.1)',
+          color: paused ? '#fbbf24' : 'rgba(255,255,255,0.7)',
+          cursor: 'pointer',
+          padding: 0,
+          flexShrink: 0,
+          lineHeight: 1,
+        }}
+      >
+        {paused ? <Play size={10} /> : <Pause size={10} />}
+      </button>
+    </div>
+  ) : null
 
   // ── Top bar ──────────────────────────────────────────────────────────
   const topBar = (
@@ -173,7 +190,7 @@ export default function MplWidget({
       <div style={{ width: 1, height: 28, background: C.divider, flexShrink: 0 }} />
 
       {/* Timer pill (when running) */}
-      <TimerPill />
+      {timerPill}
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />

@@ -45,7 +45,7 @@ Separate the Manual Process Logger (MPL) from the Case Tracker widget into its o
   - Acceptance criteria: Component renders all states (idle, timer, picker, manual entry). Log Call button is present. Build passes.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 2: Style the MplWidget top bar**
+- [x] **Task 2: Style the MplWidget top bar**
   - What to build: Polish the top bar to match the Meridian design system. It should feel like a sibling of the PipBar — same visual language but focused on MPL.
   - **Top bar layout (left to right):**
     - Meridian icon (32x32, rounded 8px, clickable — opens dashboard via `window.open(origin, 'meridian-dashboard')`)
