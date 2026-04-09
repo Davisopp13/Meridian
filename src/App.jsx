@@ -627,7 +627,7 @@ export default function App() {
       <PipBar
         userSettings={userSettings}
         cases={cases}
-        processes={processes}
+        processes={[]}
         focusedCaseId={focusedCaseId}
         trayOpen={trayOpen}
         isMinimized={isMinimized}

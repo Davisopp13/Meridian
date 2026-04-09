@@ -189,7 +189,7 @@ Separate the Manual Process Logger (MPL) from the Case Tracker widget into its o
 
 ### Phase 3: Clean Up PipBar (CT-only)
 
-- [ ] **Task 7: Remove process UI from PipBar**
+- [x] **Task 7: Remove process UI from PipBar**
   - What to build: Remove the `+ Process` button from PipBar since MPL now has its own surface. Take a conservative approach — minimize changes to PipBar.jsx.
   - **In `src/PipBar.jsx`:** Remove ONLY the `+ Process` button JSX (the button with text "+ Process" and `onClick={() => onStartProcess && onStartProcess()}`). Keep the `+ Case` button. Keep all props in the function signature — just don't render the process button.
   - **In `src/App.jsx` `buildPipBar()` function:** Change `processes={processes}` to `processes={[]}` so no process pills render in the CT widget. This is the safest approach — PipBar.jsx still accepts the prop but receives an empty array.

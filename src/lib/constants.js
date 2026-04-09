@@ -84,7 +84,7 @@ export function formatElapsed(seconds) {
 }
 
 export const DEFAULT_SETTINGS = {
-  stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
+  stat_buttons: ['resolved', 'reclass', 'calls', 'total'],
   total_includes: ['resolved', 'reclass', 'calls'],
   pip_position: 'bottom-right',
   team: null,

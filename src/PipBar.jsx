@@ -240,15 +240,6 @@ export default function PipBar({
               }}
             >+ Case</button>
           )}
-          <button
-            onClick={() => onStartProcess && onStartProcess()}
-            style={{
-              height: 24, padding: '0 8px', borderRadius: 12,
-              border: '1px solid rgba(232,84,10,0.3)', background: 'rgba(232,84,10,0.1)',
-              color: C.process || '#60a5fa', fontSize: 10, fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 3,
-            }}
-          >+ Process</button>
         </div>
 
         {/* Pill zone: up to 2 case pills + 2 process pills + chevron */}
