@@ -1,188 +1,235 @@
-# Meridian — Tree 5: Settings Dashboard PRD
+# Meridian: MPL Separation PRD
 
 ## Project Overview
 
-Add a Settings page to the Meridian Dashboard (host tab) that lets users configure their PiP widget behavior. Settings are stored as a JSONB column on `platform_users` and read by the PiP widget on launch. This is a Vite + React 18 app with Supabase backend. Success = users can configure stat buttons, Total formula, PiP position, team assignment, theme, and notification preferences from the Dashboard, and the PiP widget respects those settings.
+Separate the Manual Process Logger (MPL) from the Case Tracker widget into its own standalone surface. Currently both CT and MPL share one PipBar widget, making it overcrowded and confusing. After this work, CT keeps its existing PiP widget (unchanged) and MPL gets its own dedicated page accessible via `?mode=mpl`. Both tools share the same Supabase backend, auth, and dashboard. This is a Vite + React 18 app with Supabase backend, inline styles, no TypeScript.
 
 ## Architecture & Key Decisions
 
-- **Framework:** Vite + React 18, no TypeScript, inline styles for PiP components, CSS-in-JS for Dashboard components
-- **Data model:** Single `settings` JSONB column added to `platform_users` table. No new tables.
-- **Default values:** App provides sensible defaults when `settings` is null (new users or pre-existing users who haven't visited Settings yet). Defaults are defined in a single `DEFAULT_SETTINGS` constant.
-- **Settings flow:** Dashboard Settings page reads/writes `platform_users.settings`. PiP widget reads `profile.settings` from the profile state already loaded in App.jsx. No realtime subscription needed — settings only take effect on next PiP launch or page refresh.
-- **Design:** Dark theme matching the existing Dashboard. Segoe UI font. Grouped sections with clear labels. Save button per section or a single global Save.
+- **Framework:** Vite + React 18, no TypeScript, inline styles using `C` color tokens from `src/lib/constants.js`
+- **Database:** Supabase — MPL writes to `mpl_entries` table, calls write to `case_events` table with `session_id: null`
+- **Mode detection:** `?mode=mpl` URL parameter detected in App.jsx, similar to existing `?mode=widget` pattern
+- **The CT PiP widget (PipBar.jsx) must NOT change** — James and Carlos are daily users. Do not modify any CT-specific code paths.
+- **Reuse existing components:** `CategoryDrillDown.jsx`, `ManualEntryForm.jsx`, and `ProcessPicker.jsx` are used by the new MPL widget. Do not duplicate them — import them.
+- **Styling:** Dark theme, `#0f1117` background, Segoe UI / Inter font stack, 8px grid. Use `C` tokens from constants.js for all colors.
+- **Stats hook:** Reuse `useStats()` from `src/hooks/useStats.js` — it already counts processes and calls.
 
 ## Environment & Setup
 
 - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set in `.env.local`
-- Supabase SQL Editor access needed for the migration (Task 1)
-- No new npm dependencies
-
-## Settings Schema
-
-```js
-// DEFAULT_SETTINGS — defined in src/lib/constants.js
-export const DEFAULT_SETTINGS = {
-  stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
-  total_includes: ['resolved', 'reclass', 'calls'],
-  pip_position: 'bottom-right',   // 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
-  team: null,                      // 'CH' | 'MH' — null means use profile.team
-  theme: 'dark',                   // 'dark' only for now (future: 'light' | 'auto')
-  notifications: {
-    toast_on_log: true,            // show confirmation toast after logging
-    sound: false,                  // play sound on bookmarklet trigger
-  },
-}
-```
-
-### Available stat button keys:
-| Key | Label | Color token | Stat source |
-|-----|-------|-------------|-------------|
-| `resolved` | `✓ N Resolved` | `C.resolved` | `stats.resolved` |
-| `reclass` | `↩ N Reclass` | `C.reclass` | `stats.reclass` |
-| `calls` | `☎ N Calls` | `C.calls` | `stats.calls` |
-| `processes` | `📋 N Processes` | `C.processNavy` | `stats.processes` |
-| `total` | `N Total` | `C.process` | computed from `total_includes` |
+- Supabase tables `mpl_entries`, `mpl_categories`, `mpl_subcategories`, `case_events`, `platform_users` already exist
+- `mpl_categories` has columns: `id`, `name`, `team`, `is_active`, `display_order`, with related `mpl_subcategories`
+- `case_events` supports `session_id: null` for calls not associated with a case
+- No new npm dependencies needed
 
 ## Tasks
 
-### Phase 1: Database Migration
+### Phase 1: Create the MPL Widget Component
 
-- [x] **Task 1: Add settings column to platform_users**
-  - What to build: Write a SQL migration that adds a `settings` JSONB column to `platform_users` with a default value of `null`. Do NOT set a default JSON value in the column — the app handles defaults in code.
-  - SQL:
-    ```sql
-    ALTER TABLE platform_users
-    ADD COLUMN IF NOT EXISTS settings jsonb DEFAULT NULL;
+- [x] **Task 1: Create MplWidget.jsx**
+  - What to build: Create `src/components/MplWidget.jsx` — a standalone, full-page MPL interface. This is the primary deliverable.
+  - **Layout:** Full viewport height, dark background (`#0f1117`). Two zones:
+    - **Top bar (60px):** Meridian icon (links to dashboard), active timer pill (if running), current category label, Log Call button, stats display (processes count, calls count), connection status dot
+    - **Main area (fills remaining space):** Shows either the idle state, active timer state, or category picker
+  - **States:**
+    - **Idle:** Shows a prominent "Start Timer" button and a "Manual Entry" button. Also shows today's process count and call count.
+    - **Timer running:** Shows the elapsed timer, a "Log" button (opens category picker), a "Pause" button, and a "Discard" button
+    - **Category picker open:** Shows the `CategoryDrillDown` component for selecting category/subcategory. When selected, logs the entry and returns to idle.
+    - **Manual entry:** Shows the `ManualEntryForm` component (duration chips + category selection). When complete, returns to idle.
+  - **Log Call button:** Always visible in the top bar. Clicking it inserts to `case_events` with `{ user_id, type: 'call', session_id: null, excluded: false, rfc: false }` and shows a brief confirmation. Increments the calls stat.
+  - **Props:** `user`, `profile`, `categories`, `stats` (from useStats), `refetch` (to refresh stats after logging), `onLog` (async function for timer-based entries), `onManualLog` (async function for manual entries), `onCall` (async function for call logging)
+  - **Internal state:** `timerRunning` (bool), `elapsed` (seconds), `paused` (bool), `showPicker` (bool), `showManualEntry` (bool)
+  - **Timer:** Use `setInterval` for the timer, same pattern as App.jsx's `startProcessTimer`/`stopProcessTimer`. Timer is local state — no Supabase row created until the entry is logged.
+  - **Logging:** When category is selected (from picker or manual entry), call the `onLog` prop with `(categoryId, subcategoryId, minutes, source)`. The parent (App.jsx) handles the Supabase insert.
+  - Files to create: `src/components/MplWidget.jsx`
+  - Acceptance criteria: Component renders all states (idle, timer, picker, manual entry). Log Call button is present. Build passes.
+  - Test command: `npm run build` completes with 0 errors
+
+- [ ] **Task 2: Style the MplWidget top bar**
+  - What to build: Polish the top bar to match the Meridian design system. It should feel like a sibling of the PipBar — same visual language but focused on MPL.
+  - **Top bar layout (left to right):**
+    - Meridian icon (32x32, rounded 8px, clickable — opens dashboard via `window.open(origin, 'meridian-dashboard')`)
+    - Vertical divider (1px, `C.divider`)
+    - Timer pill (when timer is running): shows `● HH:MM:SS` with process blue accent (`C.process`), includes Pause/Resume toggle
+    - Category label (when timer is running and category pre-selected): shows the category name in `C.process` color
+    - Flex spacer
+    - Log Call button: phone icon + "N Calls" label, blue accent (`C.calls`), always enabled
+    - Process stat: "N Processes" with process color
+    - Connection status dot (6px circle, green when connected)
+  - **Timer pill styling:**
+    - Running: `background: rgba(96,165,250,0.12)`, `border: 1px solid rgba(96,165,250,0.3)`, white text
+    - Paused: `background: rgba(245,158,11,0.12)`, `border: 1px solid rgba(245,158,11,0.3)`, amber text
+  - Use inline styles with `C` token references. Match the 60px bar height, 12px horizontal padding, 8px gap pattern from PipBar.
+  - Files to modify: `src/components/MplWidget.jsx`
+  - Acceptance criteria: Top bar visually matches Meridian design system. Timer pill changes appearance when paused vs running.
+  - Test command: `npm run build` completes with 0 errors
+
+- [ ] **Task 3: Implement timer logic in MplWidget**
+  - What to build: Add start/pause/resume/discard timer functionality using local state and `setInterval`.
+  - **Start:** Set `timerRunning = true`, `elapsed = 0`, `paused = false`. Start interval that increments `elapsed` every second.
+  - **Pause:** Set `paused = true`. Clear the interval but keep `elapsed` value.
+  - **Resume:** Set `paused = false`. Restart the interval from current `elapsed`.
+  - **Discard:** Clear interval, reset all timer state to idle.
+  - **Log (opens picker):** Set `showPicker = true`. The picker component receives `elapsed` and handles category selection.
+  - Use `useRef` for the interval ID to avoid stale closures. Clean up interval on unmount via `useEffect` return.
+  - Timer display: Use `formatElapsed` from `src/lib/constants.js`.
+  - Files to modify: `src/components/MplWidget.jsx`
+  - Acceptance criteria: Timer starts, pauses, resumes, and discards correctly. Elapsed time displays formatted. Interval is cleaned up on unmount.
+  - Test command: `npm run build` completes with 0 errors
+
+- [ ] **Task 4: Integrate CategoryDrillDown and ManualEntryForm**
+  - What to build: Wire the category picker and manual entry form into MplWidget's main area.
+  - **When `showPicker` is true:** Render `ProcessPicker` component below the top bar, passing `categories`, `elapsed`, `onConfirm`, `onCancel`, and `onScreenChange`. The `onConfirm` callback receives `(categoryId, subcategoryId, durationSeconds)` — convert to minutes via `Math.round(durationSeconds / 60) || 1`, call `onLog(categoryId, subcategoryId, minutes, 'mpl_timer')`, then reset timer state to idle. Set `showPicker = false`, `timerRunning = false`, `elapsed = 0`.
+  - **When `showManualEntry` is true:** Render `ManualEntryForm` below the top bar, passing `categories`, `onClose` (sets `showManualEntry = false`), and `onLog` (receives `(categoryId, subcategoryId, minutes)` — call `onManualLog(categoryId, subcategoryId, minutes)`, then set `showManualEntry = false`).
+  - **The main area** should use `flex: 1, minHeight: 0, overflow: hidden` so the picker/form fills available space below the 60px top bar.
+  - When neither picker nor manual entry is open, show the idle state with "Start Timer" and "Manual Entry" buttons.
+  - Files to modify: `src/components/MplWidget.jsx`
+  - Acceptance criteria: Category picker opens when Log is clicked on running timer. Manual entry form opens from idle. Both correctly log entries via props. State resets to idle after logging.
+  - Test command: `npm run build` completes with 0 errors
+
+### Phase 2: Wire MPL Mode into App.jsx
+
+- [ ] **Task 5: Add isMplMode detection and render branch**
+  - What to build: In `src/App.jsx`, detect `?mode=mpl` in the URL and render MplWidget instead of Dashboard.
+  - **Add near the existing `isWidgetMode` detection** (around line 92):
+    ```javascript
+    const isMplMode = new URLSearchParams(window.location.search).get('mode') === 'mpl'
     ```
-  - Files to create: `supabase/migrations/002_user_settings.sql`
-  - Acceptance criteria: Migration file exists and SQL is valid. Column is nullable JSONB.
-  - Test command: `npm run build` (no JS changes)
-  - **NOTE:** This migration must be run manually in Supabase SQL Editor before testing Tasks 3+.
-
-### Phase 2: Settings Constants & Helper
-
-- [x] **Task 2: Add DEFAULT_SETTINGS and helper to constants.js**
-  - What to build: Add the `DEFAULT_SETTINGS` export and a `getUserSettings(profile)` helper function to `src/lib/constants.js`. The helper merges the user's stored settings with defaults so any missing keys get filled in. This prevents crashes when new settings are added in the future.
-  - Code:
-    ```js
-    export const DEFAULT_SETTINGS = {
-      stat_buttons: ['resolved', 'reclass', 'calls', 'processes', 'total'],
-      total_includes: ['resolved', 'reclass', 'calls'],
-      pip_position: 'bottom-right',
-      team: null,
-      theme: 'dark',
-      notifications: {
-        toast_on_log: true,
-        sound: false,
-      },
-    }
-
-    export function getUserSettings(profile) {
-      const stored = profile?.settings || {}
-      return {
-        ...DEFAULT_SETTINGS,
-        ...stored,
-        notifications: {
-          ...DEFAULT_SETTINGS.notifications,
-          ...(stored.notifications || {}),
-        },
-      }
+  - **Add an MPL init effect** (similar to the widget init effect around line 286):
+    ```javascript
+    const mplInitRef = useRef(false)
+    useEffect(() => {
+      if (!isMplMode) return
+      if (authLoading || !user || !profile?.onboarding_complete) return
+      if (mplInitRef.current) return
+      mplInitRef.current = true
+      document.body.classList.add('widget-mode')
+    }, [isMplMode, authLoading, user, profile])
+    ```
+  - **Add render branch** — BEFORE the `isWidgetMode` check and BEFORE the Dashboard return, add:
+    ```jsx
+    if (isMplMode) {
+      return (
+        <div style={{
+          width: '100%',
+          height: '100vh',
+          background: '#0f1117',
+          overflow: 'hidden',
+          fontFamily: '"Inter", system-ui, sans-serif',
+        }}>
+          <MplWidget
+            user={user}
+            profile={profile}
+            categories={categories}
+            stats={stats}
+            refetch={refetch}
+            onLog={async (categoryId, subcategoryId, minutes, source) => {
+              await safeWrite(supabase.from('mpl_entries').insert({
+                user_id: user.id,
+                category_id: categoryId,
+                subcategory_id: subcategoryId,
+                minutes,
+                source: source || 'mpl_widget',
+              }))
+              refetch()
+            }}
+            onManualLog={async (categoryId, subcategoryId, minutes) => {
+              await safeWrite(supabase.from('mpl_entries').insert({
+                user_id: user.id,
+                category_id: categoryId,
+                subcategory_id: subcategoryId,
+                minutes,
+                source: 'manual',
+              }))
+              refetch()
+            }}
+            onCall={async () => {
+              await safeWrite(supabase.from('case_events').insert({
+                session_id: null,
+                user_id: user.id,
+                type: 'call',
+                excluded: false,
+                rfc: false,
+              }))
+              refetch()
+            }}
+          />
+        </div>
+      )
     }
     ```
-  - Files to modify: `src/lib/constants.js`
-  - Acceptance criteria: `DEFAULT_SETTINGS` and `getUserSettings` are exported. Existing `C`, `SIZES`, and `formatElapsed` exports are untouched.
-  - Test command: `npm run build` completes with 0 errors
-
-### Phase 3: Settings Page UI
-
-- [x] **Task 3: Create SettingsPage component**
-  - What to build: Create `src/components/SettingsPage.jsx`. This is a full-page settings form rendered in the Dashboard host tab. It reads the current user's settings from the `profile` prop, shows controls for each setting group, and writes updates back to `platform_users.settings` via Supabase.
-  - **Layout:** Single column, dark background (`#0f1117`), sections separated by subtle dividers. Each section has a heading, description, and controls.
-  - **Section 1 — Stat Buttons:** Checkbox list of the 5 available stat buttons. User can toggle each on/off. Minimum 1 must remain selected. Order matches the order in the `stat_buttons` array.
-  - **Section 2 — Total Formula:** Only shown if `total` is in the selected stat buttons. Checkbox list of which stats contribute to Total. At least 1 must be checked.
-  - **Section 3 — PiP Position:** 4-option radio group with a visual mini-diagram showing screen corners. Options: bottom-right (default), bottom-left, top-right, top-left.
-  - **Section 4 — Team Assignment:** Radio group: CH or MH. Pre-filled from `profile.team`. Changing this also updates `profile.team` (not just settings).
-  - **Section 5 — Theme:** Radio group: Dark (default). Light and Auto are shown but disabled with a "Coming soon" badge.
-  - **Section 6 — Notifications:** Two toggle switches: "Show confirmation toast after logging" (default on), "Play sound on bookmarklet trigger" (default off).
-  - **Save behavior:** Single "Save Settings" button at bottom. On click, writes the full settings JSON to `platform_users.settings` for the current user. Shows a success toast on save. If team changed, also updates `platform_users.team`.
-  - **Styling:** Inline styles. Dark theme tokens from `C` constant. Consistent with existing Dashboard design. Font: Segoe UI. Section headings: 14px bold, white. Descriptions: 11px, `C.textSec`. Controls: dark backgrounds with subtle borders, orange accent for selected states.
-  - Files to create: `src/components/SettingsPage.jsx`
-  - Acceptance criteria: Component renders all 6 sections with working controls. Save writes to Supabase. Build passes.
-  - Test command: `npm run build` completes with 0 errors
-
-- [x] **Task 4: Add Settings route to Dashboard**
-  - What to build: In `src/components/Dashboard.jsx`, add a "Settings" link/button to the navigation (likely in `Navbar.jsx`). When clicked, render `SettingsPage` instead of the default dashboard content. Use a simple state toggle (`view: 'dashboard' | 'settings'`) — no router needed.
-  - Files to modify: `src/components/Dashboard.jsx`, `src/components/Navbar.jsx`
-  - Acceptance criteria: Navbar shows a Settings gear icon or link. Clicking it shows the SettingsPage. Clicking back or the dashboard link returns to the main dashboard view.
-  - Test command: `npm run build` completes with 0 errors
-
-### Phase 4: Wire Settings to PiP Widget
-
-- [x] **Task 5: Read settings in App.jsx and pass to PipBar**
-  - What to build: In `src/App.jsx`, import `getUserSettings` from constants. Derive `userSettings` from `profile` using `getUserSettings(profile)`. Pass `userSettings` as a prop to the `buildPipBar()` function and through to `PipBar`. This is prop threading — no new state needed, just derived from the existing `profile` state.
+  - **Add import** at the top of App.jsx: `import MplWidget from './components/MplWidget.jsx'`
   - Files to modify: `src/App.jsx`
-  - Acceptance criteria: `PipBar` receives a `userSettings` prop containing the merged settings object. Build passes.
+  - Acceptance criteria: Navigating to `?mode=mpl` renders MplWidget. Auth works (shared session). Categories load based on profile team. Build passes.
   - Test command: `npm run build` completes with 0 errors
 
-- [x] **Task 6: PipBar renders configurable stat buttons**
-  - What to build: In `src/PipBar.jsx`, replace the hardcoded 5 `StatButton` components with a dynamic rendering based on `userSettings.stat_buttons`. Create a `STAT_BUTTON_CONFIG` map that defines each button's label template, color, and stat key:
-    ```js
-    const STAT_BUTTON_CONFIG = {
-      resolved:  { icon: '✓', label: 'Resolved', color: C.resolved, key: 'resolved' },
-      reclass:   { icon: '↩', label: 'Reclass',  color: C.reclass,  key: 'reclass' },
-      calls:     { icon: '☎', label: 'Calls',     color: C.calls,    key: 'calls' },
-      processes: { icon: '📋', label: 'Processes', color: C.processNavy, key: 'processes' },
-      total:     { icon: '',  label: 'Total',     color: C.process,  key: null }, // computed
-    }
+- [ ] **Task 6: Add MPL bookmarklet entry point**
+  - What to build: Update the bookmarklet screens so agents have a way to launch MPL.
+  - **In `src/components/onboarding/Step3Bookmarklet.jsx`:** Add a second bookmarklet anchor below the existing CT one. This one opens `?mode=mpl`:
+    ```javascript
+    const mplBmHref = `javascript:(function(){window.open('https://meridian-hlag.vercel.app?mode=mpl','meridian-mpl');})();`;
     ```
-    For the `total` button, compute the value by summing whichever stats are in `userSettings.total_includes`. Render only the buttons listed in `userSettings.stat_buttons`, in order.
-  - Files to modify: `src/PipBar.jsx`
-  - Acceptance criteria: Bar renders only the stat buttons the user has enabled, in their configured order. Total computes from the configured formula. If settings are null/default, behavior is identical to the 5-button hardcoded layout.
+    Render as a second draggable button with blue (`#3b82f6`) background:
+    ```jsx
+    <a href={mplBmHref} draggable="true" style={{
+      display: 'inline-block', background: '#3b82f6', color: '#fff',
+      fontWeight: 700, fontSize: 14, padding: '10px 24px', borderRadius: 20,
+      cursor: 'grab', userSelect: 'none', textDecoration: 'none',
+    }} onClick={e => e.preventDefault()}>
+      📋 MPL — Log Process
+    </a>
+    ```
+    Place it in a flex row next to the existing bookmarklet with `gap: 12px`.
+  - **In `src/components/BookmarkletModal.jsx`:** Same second bookmarklet anchor.
+  - **Update instruction text** in both files:
+    - Step 3: `'Click "Meridian — Log" on Salesforce to log cases. Click "MPL — Log Process" to time manual work.'`
+  - Files to modify: `src/components/onboarding/Step3Bookmarklet.jsx`, `src/components/BookmarkletModal.jsx`
+  - Acceptance criteria: Both bookmarklet anchors render. CT bookmarklet unchanged. MPL bookmarklet opens `?mode=mpl`. Build passes.
   - Test command: `npm run build` completes with 0 errors
 
-- [x] **Task 7: Apply pip_position setting in usePipWindow**
-  - What to build: In `src/hooks/usePipWindow.js`, the `resizeAndPin` function uses `moveTo()` to position the PiP window. Currently it always pins to bottom-right. Update it to read the `pip_position` value from the settings passed through. Add a `position` parameter to `resizeAndPin(mode, position)` that defaults to `'bottom-right'`. Calculate the `moveTo` x/y based on the position:
-    - `bottom-right`: `x = screen.availWidth - width`, `y = screen.availHeight - height`
-    - `bottom-left`: `x = 0`, `y = screen.availHeight - height`
-    - `top-right`: `x = screen.availWidth - width`, `y = 0`
-    - `top-left`: `x = 0`, `y = 0`
-  - In `App.jsx`, pass `userSettings.pip_position` as the second argument to all `resizeAndPin` calls.
-  - Files to modify: `src/hooks/usePipWindow.js`, `src/App.jsx`
-  - Acceptance criteria: PiP window positions to the correct screen corner based on settings. Default is bottom-right (no regression from current behavior).
+### Phase 3: Clean Up PipBar (CT-only)
+
+- [ ] **Task 7: Remove process UI from PipBar**
+  - What to build: Remove the `+ Process` button from PipBar since MPL now has its own surface. Take a conservative approach — minimize changes to PipBar.jsx.
+  - **In `src/PipBar.jsx`:** Remove ONLY the `+ Process` button JSX (the button with text "+ Process" and `onClick={() => onStartProcess && onStartProcess()}`). Keep the `+ Case` button. Keep all props in the function signature — just don't render the process button.
+  - **In `src/App.jsx` `buildPipBar()` function:** Change `processes={processes}` to `processes={[]}` so no process pills render in the CT widget. This is the safest approach — PipBar.jsx still accepts the prop but receives an empty array.
+  - **In `src/lib/constants.js`:** Change `DEFAULT_SETTINGS.stat_buttons` from `['resolved', 'reclass', 'calls', 'processes', 'total']` to `['resolved', 'reclass', 'calls', 'total']`.
+  - **DO NOT** remove process props from PipBar's function signature. DO NOT refactor PillZone.jsx or SwimlaneTray.jsx. Just stop passing process data and remove the + Process button UI.
+  - Files to modify: `src/PipBar.jsx` (remove + Process button only), `src/App.jsx` (change processes prop in buildPipBar), `src/lib/constants.js` (update DEFAULT_SETTINGS)
+  - Acceptance criteria: PipBar renders case-only UI. No + Process button. No process pills. Stat buttons show resolved, reclass, calls, total. Build passes.
   - Test command: `npm run build` completes with 0 errors
-
-### Phase 5: Update Documentation
-
-- [x] **Task 8: Update AGENTS.md with settings architecture**
-  - What to build: Add a new section to `AGENTS.md` documenting the settings system: the `DEFAULT_SETTINGS` constant, the `getUserSettings` helper, the `platform_users.settings` JSONB column, and the `STAT_BUTTON_CONFIG` map in PipBar. Include the available stat button keys and the pip_position options.
-  - Files to modify: `AGENTS.md`
-  - Acceptance criteria: AGENTS.md has a "User Settings" section with accurate documentation of the settings system.
-  - Test command: `npm run build` (no code change)
 
 ## Testing Strategy
 
-- Primary: `npm run build` completes with 0 errors for every task
-- Migration: Run `002_user_settings.sql` in Supabase SQL Editor before testing Tasks 3+
-- Visual: After all tasks, verify in `npm run dev`:
-  1. Settings page renders in Dashboard
-  2. Toggling stat buttons off removes them from the PiP bar
-  3. Changing Total formula changes the Total count
-  4. Changing PiP position moves the widget to the correct corner
-  5. Settings persist across page refresh
+- Primary: `npm run build` completes with 0 errors after each task
+- Every task must pass build before being marked complete
+- Do NOT attempt to run `npm run dev` or start a dev server — just verify the build
 
 ## Out of Scope
 
-- Theme switching (UI exists but Dark is the only functional option)
-- Sound notifications (toggle exists but audio playback is future work)
-- Drag-to-reorder stat buttons (future enhancement)
-- Settings sync across devices (implicit via Supabase — already works)
-- PiP-inline settings (all settings are Dashboard-only)
+- No Supabase schema changes (tables already exist)
+- No changes to the Dashboard component
+- No changes to the activity log or edit feature
+- No changes to the auth flow
+- No changes to `usePipWindow.js` or the Document PiP API
+- No changes to `meridian-trigger.js` or `meridian-relay.html`
+- No CSS framework changes (keep inline styles)
+- Do NOT add react-router or any routing library
+- Do NOT create separate Vite entry points
+- Do NOT modify existing handler functions in App.jsx (handleProcessStart, handlePickerConfirm, etc.) — MPL mode defines its own handlers via props
+- Do NOT touch CaseLaneRow.jsx, CasePill.jsx, CasesLane.jsx, RFCPrompt.jsx, or any CT-specific component
 
 ## Notes for Ralph
 
-- The `profile` object is already loaded in `App.jsx` from `platform_users` and passed around. Adding `.settings` to it requires no new queries — the existing `select('*')` already fetches all columns.
-- `C.processNavy` is `var(--color-process-navy)` which resolves to `rgba(0,48,135,0.4)`. This may be too transparent for a stat button background on its own. If it looks washed out, use `#003087` (solid Hapag Blue) instead.
-- The Navbar component in `src/components/Navbar.jsx` already has navigation items. Add Settings as a gear icon or text link in the same style.
-- When the `total` button computes its value, it should use `userSettings.total_includes` to decide which stats to sum. Example: if `total_includes` is `['resolved', 'calls']`, Total = `stats.resolved + stats.calls`.
-- The team setting in Section 4 does double duty: it updates both `settings.team` and `platform_users.team` (the top-level column). This is because `profile.team` is used throughout the app for category filtering, not `settings.team`. The settings value is a convenience so the Settings page can manage it in one place.
+- **Import paths:** Components are in `src/components/`. Hooks are in `src/hooks/`. Constants in `src/lib/constants.js`. Supabase client in `src/lib/supabase.js`.
+- **Color tokens:** Always use `C.xxx` from constants.js. Never hardcode hex in components. Exception: background colors like `#0f1117` for page-level backgrounds are OK.
+- **`formatElapsed(seconds)`:** Exported from `src/lib/constants.js`. Returns `MM:SS` format string.
+- **`categories` array shape:** `[{ id, name, team, display_order, mpl_subcategories: [{ id, name, display_order }] }]`
+- **`mpl_entries` insert shape:** `{ user_id, category_id, subcategory_id, minutes, source }` — `subcategory_id` can be null.
+- **`case_events` call insert shape:** `{ session_id: null, user_id, type: 'call', excluded: false, rfc: false }`
+- **The `?mode=widget` path already exists** — check how it's implemented (around line 92 and line 1336 in App.jsx) and follow the exact same pattern for `?mode=mpl`.
+- **ProcessPicker props:** `{ categories, elapsed, onConfirm, onCancel, onScreenChange }`. `onConfirm` is called with `(categoryId, subcategoryId, durationSeconds)`.
+- **ManualEntryForm props:** `{ categories, onClose, onLog }`. `onLog` is called with `(categoryId, subcategoryId, minutes)`.
+- **Use lucide-react for icons** — it's already a dependency. Import like: `import { Phone, Play, Pause, Square, Clock, Plus } from 'lucide-react'`
+- **PipBar.jsx uses `useState`** for local state (case input). When removing the + Process button, only remove that specific JSX block. Don't restructure the component.
+- **The `safeWrite` function** is defined in App.jsx and shows error toasts. All Supabase writes in the MPL render branch should use it via the inline async functions passed as props.

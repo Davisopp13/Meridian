@@ -1544,3 +1544,26 @@ Files changed:
 Learnings for future iterations:
   - All Tree 5 tasks are now complete
 ---
+
+## Iteration MPL-1 - Task 1 (MPL Separation PRD): Create MplWidget.jsx
+- Created src/components/MplWidget.jsx — full-page MPL interface for ?mode=mpl
+- All 4 states implemented: idle (Start Timer + Manual Entry buttons + today's counts), timer running (elapsed display + Log/Pause/Resume/Discard), category picker (ProcessPicker overlay), manual entry (ManualEntryForm)
+- Top bar (60px): Meridian icon → dashboard, timer pill (blue/amber tint for running/paused), Log Call button (calls onCall prop + brief "Logged!" confirm flash), process count, connection dot
+- All timer state: timerRunning, elapsed, paused, showPicker, showManualEntry via useState
+- intervalRef (useRef) used for setInterval ID; cleared on unmount via useEffect cleanup
+- handlePickerConfirm: converts durationSeconds → minutes, calls onLog, resets timer state
+- handleManualLog: calls onManualLog, closes form
+- handleLogCall: calls onCall, shows 1.5s "Logged!" confirmation
+- `npm run build` passes — 2457 modules, 0 errors
+
+Files changed:
+  src/components/MplWidget.jsx (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - ProcessPicker props: { categories, elapsed, onConfirm, onCancel } — onConfirm called with (categoryId, subcategoryId, durationSeconds)
+  - ManualEntryForm props: { categories, onClose, onLog } — onLog called with (categoryId, subcategoryId, minutes)
+  - MplWidget timer uses same setInterval/clearInterval + useRef pattern as App.jsx process timers
+  - callConfirmTimerRef needed for setTimeout ID cleanup on unmount (same pattern as toastTimerRef)
+  - C.textPri / C.process / C.calls / C.border / C.divider all resolve via CSS vars in host page context
+---
