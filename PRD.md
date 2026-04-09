@@ -163,7 +163,7 @@ Separate the Manual Process Logger (MPL) from the Case Tracker widget into its o
   - Acceptance criteria: Navigating to `?mode=mpl` renders MplWidget. Auth works (shared session). Categories load based on profile team. Build passes.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 6: Add MPL bookmarklet entry point**
+- [x] **Task 6: Add MPL bookmarklet entry point**
   - What to build: Update the bookmarklet screens so agents have a way to launch MPL.
   - **In `src/components/onboarding/Step3Bookmarklet.jsx`:** Add a second bookmarklet anchor below the existing CT one. This one opens `?mode=mpl`:
     ```javascript

@@ -1639,3 +1639,21 @@ Learnings for future iterations:
   - MPL render branch placed BEFORE isWidgetMode check so both modes are mutually exclusive and handled cleanly
   - `safeWrite` is available in App.jsx scope — use it for all Supabase writes in the inline async handlers
 ---
+
+## Iteration MPL-6 - Task 6 (MPL PRD): Add MPL bookmarklet entry point
+- Added MPL bookmarklet anchor (`?mode=mpl`) to Step3Bookmarklet.jsx and BookmarkletModal.jsx
+- Both files now render a flex row with gap:12 containing the existing orange CT anchor + new blue (#3b82f6) MPL anchor
+- Updated instruction step 3 text in both files: 'Click "Meridian — Log" on Salesforce to log cases. Click "MPL — Log Process" to time manual work.'
+- CT bookmarklet unchanged; MPL anchor opens `?mode=mpl` in a `meridian-mpl` named window
+- `npm run build` passes — 2458 modules, 0 errors
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx (second bookmarklet anchor + updated instruction)
+  src/components/BookmarkletModal.jsx (second bookmarklet anchor + updated instruction)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - MPL bookmarklet href is a simple window.open — no relay iframe or Supabase calls needed (MPL handles its own auth)
+  - flexWrap: 'wrap' on the anchor row ensures graceful layout on narrow screens
+  - Unicode escapes (\u2014) needed in template literals for em-dash in instruction strings
+---

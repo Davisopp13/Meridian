@@ -27,7 +27,7 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
   const instructions = [
     'Show your bookmarks bar — press Ctrl+Shift+B (Windows) or Cmd+Shift+B (Mac)',
     'Drag the orange button below up to your bookmarks bar',
-    'Click it to launch the Meridian widget, and again on any Salesforce case page to log that case',
+    'Click "Meridian \u2014 Log" on Salesforce to log cases. Click "MPL \u2014 Log Process" to time manual work.',
   ];
 
   return (
@@ -62,8 +62,8 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
           ))}
         </div>
 
-        {/* Bookmarklet anchor */}
-        <div style={{ display: 'flex', justifyContent: 'center', margin: '24px auto' }}>
+        {/* Bookmarklet anchors */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '24px auto', flexWrap: 'wrap' }}>
           <a
             href={bmHref}
             draggable="true"
@@ -82,6 +82,25 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
             onClick={e => e.preventDefault()}
           >
             ⚡ Meridian — Log
+          </a>
+          <a
+            href={`javascript:(function(){window.open('https://meridian-hlag.vercel.app?mode=mpl','meridian-mpl');})();`}
+            draggable="true"
+            style={{
+              display: 'inline-block',
+              background: '#3b82f6',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 14,
+              padding: '10px 24px',
+              borderRadius: 20,
+              cursor: 'grab',
+              userSelect: 'none',
+              textDecoration: 'none',
+            }}
+            onClick={e => e.preventDefault()}
+          >
+            📋 MPL — Log Process
           </a>
         </div>
 
