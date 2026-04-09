@@ -1586,3 +1586,39 @@ Learnings for future iterations:
   - Pause/Resume toggle inside the pill needs to call the same handlePause/handleResume handlers already used by main area buttons
   - pill has `padding: '3px 4px 3px 8px'` (asymmetric right) to tighten spacing around the toggle button
 ---
+
+## Iteration MPL-3 - Task 3 (MPL PRD): Implement timer logic in MplWidget
+- Verification task — all timer logic was already fully implemented in Task 1 (MPL-1)
+- handleStart: setElapsed(0), setPaused(false), setTimerRunning(true), startInterval() ✓
+- handlePause: clearTimerInterval(), setPaused(true) ✓
+- handleResume: setPaused(false), startInterval() ✓
+- handleDiscard: clearTimerInterval(), reset all timer state ✓
+- handleLogOpen: setShowPicker(true) ✓
+- intervalRef (useRef) for setInterval ID ✓
+- useEffect cleanup on unmount (clearTimerInterval + clearTimeout) ✓
+- formatElapsed from constants.js used in both top bar pill and main area display ✓
+- npm run build passes — 2457 modules, 0 errors
+
+Files changed:
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - Task 3 was pre-implemented by Task 1 — always read MplWidget.jsx before writing timer code
+  - The existing implementation uses startInterval() / clearTimerInterval() helpers to wrap setInterval/clearInterval — reuse these patterns
+
+## Iteration MPL-4 - Task 4 (MPL PRD): Integrate CategoryDrillDown and ManualEntryForm
+- Verification task — all integration was already fully implemented in Task 1 (MPL-1)
+- showPicker → ProcessPicker with categories, elapsed, onConfirm, onCancel ✓
+- showManualEntry → ManualEntryForm with categories, onClose, onLog ✓
+- main area uses flex:1, minHeight:0, overflow:hidden ✓
+- handlePickerConfirm: converts durationSeconds→minutes, calls onLog, resets timer state ✓
+- handleManualLog: calls onManualLog, sets showManualEntry=false ✓
+- idle state shows Start Timer + Manual Entry buttons ✓
+- `npm run build` passes — 2457 modules, 0 errors
+
+Files changed:
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - Tasks 1-4 of the MPL PRD are complete; next work is Phase 2 (Task 5: isMplMode in App.jsx)
+---

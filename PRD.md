@@ -64,7 +64,7 @@ Separate the Manual Process Logger (MPL) from the Case Tracker widget into its o
   - Acceptance criteria: Top bar visually matches Meridian design system. Timer pill changes appearance when paused vs running.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 3: Implement timer logic in MplWidget**
+- [x] **Task 3: Implement timer logic in MplWidget**
   - What to build: Add start/pause/resume/discard timer functionality using local state and `setInterval`.
   - **Start:** Set `timerRunning = true`, `elapsed = 0`, `paused = false`. Start interval that increments `elapsed` every second.
   - **Pause:** Set `paused = true`. Clear the interval but keep `elapsed` value.
@@ -77,7 +77,7 @@ Separate the Manual Process Logger (MPL) from the Case Tracker widget into its o
   - Acceptance criteria: Timer starts, pauses, resumes, and discards correctly. Elapsed time displays formatted. Interval is cleaned up on unmount.
   - Test command: `npm run build` completes with 0 errors
 
-- [ ] **Task 4: Integrate CategoryDrillDown and ManualEntryForm**
+- [x] **Task 4: Integrate CategoryDrillDown and ManualEntryForm**
   - What to build: Wire the category picker and manual entry form into MplWidget's main area.
   - **When `showPicker` is true:** Render `ProcessPicker` component below the top bar, passing `categories`, `elapsed`, `onConfirm`, `onCancel`, and `onScreenChange`. The `onConfirm` callback receives `(categoryId, subcategoryId, durationSeconds)` — convert to minutes via `Math.round(durationSeconds / 60) || 1`, call `onLog(categoryId, subcategoryId, minutes, 'mpl_timer')`, then reset timer state to idle. Set `showPicker = false`, `timerRunning = false`, `elapsed = 0`.
   - **When `showManualEntry` is true:** Render `ManualEntryForm` below the top bar, passing `categories`, `onClose` (sets `showManualEntry = false`), and `onLog` (receives `(categoryId, subcategoryId, minutes)` — call `onManualLog(categoryId, subcategoryId, minutes)`, then set `showManualEntry = false`).
