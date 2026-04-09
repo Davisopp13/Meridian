@@ -89,7 +89,7 @@ Separate the Manual Process Logger (MPL) from the Case Tracker widget into its o
 
 ### Phase 2: Wire MPL Mode into App.jsx
 
-- [ ] **Task 5: Add isMplMode detection and render branch**
+- [x] **Task 5: Add isMplMode detection and render branch**
   - What to build: In `src/App.jsx`, detect `?mode=mpl` in the URL and render MplWidget instead of Dashboard.
   - **Add near the existing `isWidgetMode` detection** (around line 92):
     ```javascript

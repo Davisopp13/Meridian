@@ -17,6 +17,7 @@ import ProcessPicker from './components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from './components/ManualEntryForm.jsx'
 import { getNewYorkDateKey, getNewYorkDayRange } from './lib/timezone.js'
 import { getSizeForState, getUserSettings } from './lib/constants.js'
+import MplWidget from './components/MplWidget.jsx'
 
 const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
@@ -90,6 +91,7 @@ export default function App() {
 
   // ── Widget mode: detect ?mode=widget for popup rendering ─────────────────
   const isWidgetMode = new URLSearchParams(window.location.search).get('mode') === 'widget'
+  const isMplMode = new URLSearchParams(window.location.search).get('mode') === 'mpl'
 
   // ── Derived settings ──────────────────────────────────────────────────────
   const userSettings = getUserSettings(profile)
@@ -297,6 +299,16 @@ export default function App() {
     const size = getSizeForState('idle', userSettingsRef.current.stat_buttons)
     try { window.resizeTo(size.width, size.height) } catch (e) {}
   }, [isWidgetMode, authLoading, user, profile])
+
+  // ── MPL mode: auto-initialize on mount ────────────────────────────────────
+  const mplInitRef = useRef(false)
+  useEffect(() => {
+    if (!isMplMode) return
+    if (authLoading || !user || !profile?.onboarding_complete) return
+    if (mplInitRef.current) return
+    mplInitRef.current = true
+    document.body.classList.add('widget-mode')
+  }, [isMplMode, authLoading, user, profile])
 
   // ── Connection status health-check ────────────────────────────────────────
   useEffect(() => {
@@ -1325,6 +1337,57 @@ export default function App() {
 
   if (!profile?.onboarding_complete) {
     return <Onboarding user={user} onComplete={handleOnboardingComplete} />
+  }
+
+  // ── MPL mode: render MplWidget directly (no dashboard) ───────────────────
+  if (isMplMode) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        background: '#0f1117',
+        overflow: 'hidden',
+        fontFamily: '"Inter", system-ui, sans-serif',
+      }}>
+        <MplWidget
+          user={user}
+          profile={profile}
+          categories={categories}
+          stats={stats}
+          refetch={refetch}
+          onLog={async (categoryId, subcategoryId, minutes, source) => {
+            await safeWrite(supabase.from('mpl_entries').insert({
+              user_id: user.id,
+              category_id: categoryId,
+              subcategory_id: subcategoryId,
+              minutes,
+              source: source || 'mpl_widget',
+            }))
+            refetch()
+          }}
+          onManualLog={async (categoryId, subcategoryId, minutes) => {
+            await safeWrite(supabase.from('mpl_entries').insert({
+              user_id: user.id,
+              category_id: categoryId,
+              subcategory_id: subcategoryId,
+              minutes,
+              source: 'manual',
+            }))
+            refetch()
+          }}
+          onCall={async () => {
+            await safeWrite(supabase.from('case_events').insert({
+              session_id: null,
+              user_id: user.id,
+              type: 'call',
+              excluded: false,
+              rfc: false,
+            }))
+            refetch()
+          }}
+        />
+      </div>
+    )
   }
 
   // ── Widget mode: render PipBar directly (no dashboard) ───────────────────

@@ -1622,3 +1622,20 @@ Files changed:
 Learnings for future iterations:
   - Tasks 1-4 of the MPL PRD are complete; next work is Phase 2 (Task 5: isMplMode in App.jsx)
 ---
+
+## Iteration MPL-5 - Task 5 (MPL PRD): Add isMplMode detection and render branch
+- Added `const isMplMode = ...` alongside `isWidgetMode` at line ~93
+- Added `mplInitRef` + useEffect (adds `widget-mode` class to body) alongside widget init effect
+- Added `import MplWidget from './components/MplWidget.jsx'` to App.jsx imports
+- Added `if (isMplMode)` render branch BEFORE `if (isWidgetMode)` — returns full MplWidget with onLog/onManualLog/onCall handlers wired to `mpl_entries` and `case_events` via `safeWrite`
+- `npm run build` passes — 2458 modules, 0 errors
+
+Files changed:
+  src/App.jsx (isMplMode, mplInitRef effect, MplWidget import, render branch)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - `stats` and `refetch` are already destructured from `useStats()` in App.jsx — pass them directly to MplWidget
+  - MPL render branch placed BEFORE isWidgetMode check so both modes are mutually exclusive and handled cleanly
+  - `safeWrite` is available in App.jsx scope — use it for all Supabase writes in the inline async handlers
+---
