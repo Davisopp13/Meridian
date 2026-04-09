@@ -66,7 +66,7 @@ export const HEIGHTS = {
   trayOpen: 276,
   categoryScreen: 420,
   subcategoryScreen: 420,
-  manualEntryForm: 500,
+  manualEntryForm: 480,
   overlay: 354,
 }
 

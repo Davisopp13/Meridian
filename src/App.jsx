@@ -249,6 +249,32 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // ── Autolaunch: open PiP when ?autolaunch=true is in URL ─────────────────
+  const autolaunchFiredRef = useRef(false)
+  useEffect(() => {
+    if (authLoading || !user || !profile?.onboarding_complete) return
+    if (autolaunchFiredRef.current) return
+
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('autolaunch') !== 'true') return
+
+    autolaunchFiredRef.current = true
+
+    // Strip the param so refresh doesn't re-trigger
+    params.delete('autolaunch')
+    const newUrl = params.toString()
+      ? `${window.location.pathname}?${params.toString()}`
+      : window.location.pathname
+    window.history.replaceState({}, '', newUrl)
+
+    // Small delay to ensure DOM is ready for PiP
+    setTimeout(() => {
+      if (!pipRootRef.current) {
+        handleLaunch()
+      }
+    }, 300)
+  }, [authLoading, user, profile])
+
   // ── Connection status health-check ────────────────────────────────────────
   useEffect(() => {
     if (!user) return
@@ -595,6 +621,8 @@ export default function App() {
         onProcessLog={handleProcessLogFromStrip}
         onProcessDiscard={handleCloseProcess}
         onSnapToCorner={() => pin(isMinimized ? 'minimized' : getBarMode(cases, processes, trayOpen, overlayOpen, rfcBannerOpen))}
+        onStartCase={(caseNumber) => handleCaseStart({ caseNumber })}
+        onStartProcess={() => handleProcessStart()}
       >
         {rfcPending ? (
           <RFCPrompt

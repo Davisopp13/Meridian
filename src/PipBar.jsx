@@ -104,9 +104,13 @@ export default function PipBar({
   onProcessLog,
   onProcessDiscard,
   onSnapToCorner,
+  onStartCase,
+  onStartProcess,
   children,
 }) {
   console.log('[PipBar] onSnapToCorner prop:', typeof onSnapToCorner);
+  const [showCaseInput, setShowCaseInput] = useState(false);
+  const [caseInput, setCaseInput] = useState('');
   const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
   const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
   // ── Minimized restore strip ──────────────────────────────────────────────
@@ -176,6 +180,76 @@ export default function PipBar({
         />
 
         {divider}
+
+        {/* + Case and + Process quick-trigger buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {showCaseInput ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+              <input
+                type="text"
+                placeholder="Case #"
+                value={caseInput}
+                onChange={e => setCaseInput(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && caseInput.length >= 8) {
+                    onStartCase && onStartCase(caseInput);
+                    setCaseInput('');
+                    setShowCaseInput(false);
+                  }
+                  if (e.key === 'Escape') {
+                    setCaseInput('');
+                    setShowCaseInput(false);
+                  }
+                }}
+                autoFocus
+                style={{
+                  width: 80, height: 24, padding: '0 6px', borderRadius: 6,
+                  border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)',
+                  color: '#fff', fontSize: 11, fontFamily: 'monospace', outline: 'none',
+                }}
+              />
+              <button
+                onClick={() => {
+                  if (caseInput.length >= 8) {
+                    onStartCase && onStartCase(caseInput);
+                    setCaseInput('');
+                    setShowCaseInput(false);
+                  }
+                }}
+                disabled={caseInput.length < 8}
+                style={{
+                  height: 24, padding: '0 8px', borderRadius: 6,
+                  border: 'none', background: caseInput.length >= 8 ? '#003087' : 'rgba(255,255,255,0.06)',
+                  color: '#fff', fontSize: 10, fontWeight: 600, cursor: caseInput.length >= 8 ? 'pointer' : 'default',
+                  opacity: caseInput.length >= 8 ? 1 : 0.4,
+                }}
+              >Go</button>
+              <button
+                onClick={() => { setCaseInput(''); setShowCaseInput(false); }}
+                style={{ background: 'none', border: 'none', color: C.textSec, fontSize: 12, cursor: 'pointer', padding: '0 2px' }}
+              >×</button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowCaseInput(true)}
+              style={{
+                height: 24, padding: '0 8px', borderRadius: 12,
+                border: '1px solid rgba(0,48,135,0.3)', background: 'rgba(0,48,135,0.1)',
+                color: '#4a90d9', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 3,
+              }}
+            >+ Case</button>
+          )}
+          <button
+            onClick={() => onStartProcess && onStartProcess()}
+            style={{
+              height: 24, padding: '0 8px', borderRadius: 12,
+              border: '1px solid rgba(232,84,10,0.3)', background: 'rgba(232,84,10,0.1)',
+              color: C.process || '#60a5fa', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 3,
+            }}
+          >+ Process</button>
+        </div>
 
         {/* Pill zone: up to 2 case pills + 2 process pills + chevron */}
         <PillZone
