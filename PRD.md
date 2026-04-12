@@ -292,7 +292,7 @@ src/
   - Files: Modify `public/meridian-relay.html`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 9: Update CT bookmarklet to remove popup window.open**
+- [x] **Task 9: Update CT bookmarklet to remove popup window.open**
   - What: Modify `buildCtBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
   - **Remove** the `window.open('...?mode=ct-widget', 'meridian-ct', ...)` call. The CT bookmarklet no longer opens a popup. It only injects the relay iframe (on SF pages) or shows a toast (on non-SF pages).
   - **SF path stays the same:** Insert relay iframe → relay loads meridian-trigger.js → trigger code runs → (now) injects ct-widget.js overlay instead of pending_trigger

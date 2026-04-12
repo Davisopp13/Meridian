@@ -2075,3 +2075,20 @@ Learnings for future iterations:
   - result = { code: code } is then wrapped by the existing postMessage { success: true, data: result } at line 113
   - meridian-trigger.js (Task 7) consumes this as e.data.data.code — the double .data is because result is { code } and it gets wrapped in data: result
 ---
+
+## Iteration CT-9 - Task 9 (CT Widget PRD): Update CT bookmarklet to remove popup window.open
+- Removed `window.open('...?mode=ct-widget', 'meridian-ct', ...)` call from buildCtBmHref in Step3Bookmarklet.jsx
+- Removed unused SUPABASE_URL and ANON_KEY variables (only needed for the pending_triggers fetch that was also removed)
+- Removed 15-second setTimeout that removed the relay iframe — relay must persist for widget's ongoing Supabase calls
+- Updated non-SF toast message from '✓ Meridian — CT widget opened' to 'Meridian: Open a Salesforce case page to use Case Tracker'
+- SF path relay injection unchanged — bookmarklet still injects relay iframe and executes trigger.js on SF pages
+- npx vite build passes — 0 errors
+- grep -c 'ct-widget.*popup\|mode=ct-widget' returns 0
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx (buildCtBmHref updated)
+  PRD.md (Task 9 marked [x])
+
+Learnings for future iterations:
+  - The relay iframe removal setTimeout was a gotcha: removing it breaks the widget since ct-widget.js needs the relay to stay alive for Supabase postMessage calls throughout its lifetime
+  - bookmarklet href is a single-line template literal — use Edit with old/new string spanning the full function
