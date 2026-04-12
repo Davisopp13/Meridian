@@ -245,7 +245,7 @@ src/
   - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 10: Update onboarding Step 3 to show two bookmarklets**
+- [x] **Task 10: Update onboarding Step 3 to show two bookmarklets**
   - What: Modify the JSX in `Step3Bookmarklet.jsx` to show both bookmarklets
   - Show two draggable anchors:
     1. **"⚡ Cases"** — orange background (#E8540A), uses `buildCtBmHref(userId)`
