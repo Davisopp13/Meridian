@@ -1918,3 +1918,19 @@ Learnings for future iterations:
   - manualChunks for supabase and lucide-react keeps vendor code separate from app code
   - Vite manualChunks creates empty chunk warning if a lib ends up not being directly imported (react/react-dom already bundled by @vitejs/plugin-react)
 ---
+
+## Iteration CT-1 - Task 1 (CT Overlay Widget PRD): Add SUPABASE_GET and SUPABASE_POST actions to relay
+- Added SUPABASE_POST action: POST /rest/v1/{payload.table} with anon key, Prefer: return=minimal, JSON body
+- Added SUPABASE_GET action: GET /rest/v1/{payload.table}?{payload.query} with optional payload.token (falls back to anon key)
+- Kept existing SUPABASE_INSERT_TRIGGER handler unchanged
+- npx vite build passes — 0 errors
+
+Files changed:
+  public/meridian-relay.html
+
+Learnings for future iterations:
+  - SUPABASE_POST returns { success: true } (no data) since Prefer: return=minimal gives 201 with empty body
+  - SUPABASE_GET returns the parsed JSON array directly as result (not wrapped in { success, data })
+  - FETCH_CODE action is added in Task 8 — not included here (Task 1 scope only)
+  - Active PRD is CT Overlay Widget PRD in PRD.md (tasks marked [ ])
+---

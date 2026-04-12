@@ -1,327 +1,360 @@
-# Meridian Dual-Widget Split PRD
+# CT Overlay Widget PRD
 
 ## Project Overview
 
-Split Meridian's single combined widget into two focused widgets: **CT Widget** (cases only) and **MPL Widget** (manual processes only). Both open via separate bookmarklets, share the same Supabase backend and auth, and write to existing tables. The dashboard unifies data from both.
+Replace the CT popup window widget (`?mode=ct-widget`) with an **injected vanilla JS overlay** that lives directly inside Salesforce pages — modeled after Case Tracker 1.0's floating widget. The bookmarklet injects a self-contained widget (no React, no build step) that floats over the SF page, scrapes case data from the DOM, runs a timer, and writes to Supabase via the existing relay iframe.
 
-**Stack:** Vite + React 18, Supabase, Vercel deployment  
-**Repo:** Already cloned, working directory is root  
-**Success:** Two independently launchable widgets — CT handles case logging, MPL handles process timing/logging — both reachable via bookmarklets, Vite build passes with no errors.
+**Stack:** Vanilla JS (no React), Supabase REST via relay iframe, injected into host page DOM  
+**Repo:** Meridian (same repo)  
+**Success:** Agent clicks CT bookmarklet on SF case page → floating CT widget appears on the page with case number, timer, resolve/reclass/call buttons, and stat counts. Widget writes to `ct_activity_log` via relay. Vite build still passes (widget is a static `.js` file in `public/`).
 
 ## Architecture & Key Decisions
 
-- **No new dependencies.** Both widgets use existing React, Supabase, Lucide icons.
-- **Fork, don't rewrite.** CT widget is a copy of App.jsx with process code stripped. MPL widget is a new streamlined component.
-- **Routing via query param.** `?mode=ct-widget` renders CtApp. `?mode=mpl-widget` renders MplApp. Default (no param) renders existing Dashboard/App.
-- **Shared components stay shared.** StatButton, MinimizeButton, PipErrorBoundary, CasePill, CategoryDrillDown — these live in `src/components/` and are imported by both widgets.
-- **Shared hooks stay shared.** usePipWindow, usePendingTriggers, useStats, useTimer — parameterized where needed.
-- **Two bookmarklets.** CT bookmarklet opens `?mode=ct-widget` and runs SF scraping. MPL bookmarklet opens `?mode=mpl-widget` with no scraping.
-- **MPL widget has Start button.** Idle state shows Start (timer mode) and Quick Log (manual entry mode). Start begins a timer immediately; category is selected when logging (after timer).
-- **Do NOT modify or delete the existing App.jsx or PipBar.jsx.** They remain as the combined fallback. New files are created alongside them.
-- **Do NOT modify Supabase schema or RLS policies.** All existing tables and policies are correct.
-- **CSS variables are defined in index.css.** Both widgets inherit them. For PiP windows, the `usePipWindow.js` hook already injects `:root` vars into the PiP document head.
+- **Vanilla JS only.** The widget is a single IIFE in `public/ct-widget.js`. No React, no JSX, no build step. It's loaded by the relay and executed on the SF page via `new Function()`.
+- **Relay iframe is the Supabase proxy.** SF CSP blocks direct `fetch()` to Supabase. The widget sends `postMessage` to the relay iframe, which proxies all Supabase REST calls. The relay (`public/meridian-relay.html`) already supports `SUPABASE_INSERT_TRIGGER` — we add new action types for reads and generic inserts.
+- **Shadow DOM isolation.** The widget mounts inside a shadow root to prevent SF's CSS from bleeding in. All styles are inline within the shadow DOM.
+- **No pending_triggers.** The old CT bookmarklet inserted a `pending_triggers` row and a separate popup window reacted. The new widget IS the CT surface — it reads the case number from the DOM directly and renders the UI inline. No separate window, no Realtime subscription needed for case starts.
+- **Write to ct_activity_log directly.** When the agent resolves/reclassifies/calls, the widget writes to `ct_activity_log` via the relay (not `ct_cases`). Same table the dashboard reads.
+- **Stats from ct_activity_log.** On load, the widget queries today's activity counts via the relay.
+- **Single active case.** One case at a time in the overlay. Agent navigates to a new case page → clicks bookmarklet → widget refreshes with new case number.
+- **Timer is client-side.** `setInterval` in the widget IIFE. Elapsed seconds stored in widget state, sent as `time_spent_seconds` on log.
+- **Do NOT touch src/ files.** The CtApp.jsx, CtPipBar.jsx, and all React code from the previous PRD remain untouched. The overlay widget is an independent vanilla JS file.
+- **Do NOT touch MplApp or MPL widget.** MPL stays as a popup window — only CT gets the overlay treatment.
 
-## File Structure (Target)
+## File Structure
 
 ```
+public/
+├── ct-widget.js                ← NEW: vanilla JS widget (loaded by relay, injected into SF page)
+├── meridian-relay.html         ← MODIFY: add SUPABASE_GET and SUPABASE_POST actions for widget
+├── meridian-trigger.js         ← MODIFY: on SF case pages, load ct-widget.js instead of inserting pending_trigger
 src/
-├── main.jsx                    ← MODIFY: add routing for ct-widget / mpl-widget modes
-├── App.jsx                     ← DO NOT TOUCH (combined fallback)
-├── PipBar.jsx                  ← DO NOT TOUCH (combined fallback)
-├── ct/
-│   ├── CtApp.jsx               ← NEW: CT orchestrator (forked from App.jsx, cases only)
-│   └── CtPipBar.jsx            ← NEW: CT bar component (forked from PipBar.jsx, no process UI)
-├── mpl/
-│   ├── MplApp.jsx              ← NEW: MPL orchestrator (new build, processes only)
-│   └── MplPipBar.jsx           ← NEW: MPL bar component with Start/Quick Log buttons
-├── components/                 ← shared components (DO NOT MOVE, already correct)
-│   ├── StatButton.jsx
-│   ├── MinimizeButton.jsx
-│   ├── MinimizedStrip.jsx
-│   ├── CasePill.jsx
-│   ├── ProcessPill.jsx
-│   ├── CategoryDrillDown.jsx
-│   ├── ManualEntryForm.jsx
-│   ├── overlays/ProcessPicker.jsx
-│   ├── overlays/RFCPrompt.jsx
-│   ├── SwimlaneTray.jsx
-│   ├── PillZone.jsx
-│   ├── PipErrorBoundary.jsx
-│   └── onboarding/Step3Bookmarklet.jsx  ← MODIFY: show two bookmarklets
-│   ...
-├── hooks/                      ← shared hooks (DO NOT MOVE)
-│   ├── usePipWindow.js
-│   ├── usePendingTriggers.js
-│   ├── useStats.js
-│   ├── useTimer.js
-│   ...
-├── lib/
-│   ├── constants.js            ← MODIFY: add CT-specific and MPL-specific size configs
-│   ├── supabase.js             ← DO NOT TOUCH
-│   └── timezone.js             ← DO NOT TOUCH
+├── components/
+│   └── onboarding/
+│       └── Step3Bookmarklet.jsx ← MODIFY: CT bookmarklet no longer opens popup, just injects relay
 ```
 
 ## Environment & Setup
 
-- Supabase URL and anon key are in `src/lib/supabase.js` — already configured
-- Deployment URL: `https://meridian-hlag.vercel.app`
-- Build command: `npx vite build`
-- No `.env` files needed — keys are hardcoded in supabase.js and bookmarklet
+- Same Supabase project: `https://wluynppocsoqjdbmwass.supabase.co`
+- Same anon key (baked into relay and widget)
+- Relay at `https://meridian-hlag.vercel.app/meridian-relay.html`
+- Widget JS at `https://meridian-hlag.vercel.app/ct-widget.js`
+- No env vars needed — keys are hardcoded in the files (same pattern as existing)
+- `ct_activity_log` table columns: `id`, `user_id`, `type`, `case_number`, `case_type`, `case_subtype`, `notes`, `is_rfc`, `time_spent_seconds`, `timer_was_used`, `entry_date`, `source`, `created_at`
+- `type` values: `'Resolved'`, `'Reclassified'`, `'incoming_call'`, `'Awaiting_Info'`
+- `entry_date` format: `'YYYY-MM-DD'` in America/New_York timezone
+- `source` value for widget entries: `'widget'`
 
 ## Tasks
 
-### Phase 1: CT Widget (Cases Only)
+### Phase 1: Relay Upgrades
 
-- [x] **Task 1: Create CT size constants**
-  - What: Add CT-specific height/width configs to `src/lib/constants.js`
-  - Add `CT_HEIGHTS` object: `{ minimized: 32, idle: 64, caseActive: 64, bothActive: 64, rfcBanner: 114, trayOpen: 276 }` (no categoryScreen, subcategoryScreen, manualEntryForm, overlay — those are MPL-only)
-  - Add `CT_STATE_BASE_WIDTHS` object: same as current `STATE_BASE_WIDTHS` but remove `categoryScreen`, `subcategoryScreen`, `manualEntryForm`, `overlay` keys
-  - Add `CT_STAT_BUTTON_WIDTHS`: same as current but remove `processes` key
-  - Add `getCtBarWidth(stateKey, statButtons)` and `getCtSizeForState(stateKey, statButtons)` functions following the same pattern as existing ones
-  - Keep all existing exports unchanged
-  - Files: `src/lib/constants.js`
-  - Test: `npx vite build 2>&1 | tail -8` — no errors
-
-- [x] **Task 2: Create CtPipBar.jsx**
-  - What: Fork `src/PipBar.jsx` → `src/ct/CtPipBar.jsx`
-  - Remove: `+ Process` button, process-related props (`processes`, `onLogProcess`, `onCloseProcess`, `onNewProcess`, `onProcessPause`, `onProcessResume`, `onProcessLog`, `onProcessDiscard`, `onStartProcess`), process pill rendering from PillZone usage, `processes` stat button from STAT_BUTTON_CONFIG
-  - Keep: M° logo, `+ Case` input, case pills via PillZone (pass empty `processes={[]}` to PillZone), stat buttons (resolved, reclass, calls, total), minimize button, connection dot, toast, SnapButton (still hidden with `{false && ...}`), all case-related props
-  - The default `stat_buttons` for CT should be `['resolved', 'reclass', 'calls', 'total']` (no 'processes')
-  - Import paths: adjust to `../components/PillZone.jsx`, `../components/StatButton.jsx`, etc.
-  - Files: Create `src/ct/CtPipBar.jsx`
-  - Test: `npx vite build 2>&1 | tail -8` — no errors
-
-- [x] **Task 3: Create CtApp.jsx — Core shell**
-  - What: Fork `src/App.jsx` → `src/ct/CtApp.jsx`
-  - This is the largest task. Copy App.jsx, then remove all process-related code:
-    - Remove state: `processes`, `pickerPending`, `manualEntryOpen`, `pendingProcessLog`, process-related refs
-    - Remove functions: `startProcessTimer`, `stopProcessTimer`, `handleProcessStart`, `handleLogProcess`, `handleProcessLogFromStrip`, `handleCloseProcess`, `handleNewProcess`, `handleManualEntryClose`, `handleManualLog`, `handlePickerConfirm`, `handlePickerScreenChange`, `handlePickerCancel`, `handleProcessPause`, `handleProcessResume`, `handleConfirmProcess`
-    - Remove from `syncTimers`: process timer logic (keep case timer logic only)
-    - Remove imports: ManualEntryForm, ProcessPicker, CategoryDrillDown
-    - Change `getBarMode` to only check cases/tray/rfcBanner (no process conditions)
-    - Update `buildPipBar()` to render `CtPipBar` instead of `PipBar`, pass only case-related props
-    - Use `getCtSizeForState` from constants instead of `getSizeForState`
-    - Keep: all auth logic, case handlers, case timers, RFC flow, swimlane tray, pending trigger handling (but only `handleCaseStart` — replace `handleProcessStart` with a no-op or remove it from usePendingTriggers callback), bar_sessions, localStorage state persistence, connection ping
-    - In `usePendingTriggers` call: pass `handleProcessStart: () => {}` (no-op) since CT ignores process triggers
-    - The `isWidgetMode` check should look for `mode=ct-widget`: `const isWidgetMode = new URLSearchParams(window.location.search).get('mode') === 'ct-widget'`
-    - Import `CtPipBar` from `./CtPipBar.jsx`
-    - For the JSX return section (the dashboard fallback when not in widget mode): render a simple centered message like "CT Widget — use bookmarklet to launch" or redirect to root. Actually, in widget mode the JSX return is the widget itself — keep the same pattern as App.jsx's widget mode rendering but with CtPipBar.
-  - Files: Create `src/ct/CtApp.jsx`
-  - Test: `npx vite build 2>&1 | tail -8` — no errors
-
-- [x] **Task 4: Wire CT widget routing in main.jsx**
-  - What: Modify `src/main.jsx` to check `window.location.search` for `mode=ct-widget` and render `CtApp` instead of `App`
-  - Pattern:
-    ```jsx
-    import App from './App.jsx'
-    import CtApp from './ct/CtApp.jsx'
-    import MplApp from './mpl/MplApp.jsx'  // will exist after Phase 2
-    
-    const mode = new URLSearchParams(window.location.search).get('mode')
-    const Root = mode === 'ct-widget' ? CtApp
-               : mode === 'mpl-widget' ? MplApp
-               : App
-    
-    createRoot(document.getElementById('root')).render(
-      <StrictMode><Root /></StrictMode>
-    )
+- [x] **Task 1: Add SUPABASE_GET and SUPABASE_POST actions to relay**
+  - What: Modify `public/meridian-relay.html` to handle two new action types alongside the existing `SUPABASE_INSERT_TRIGGER`
+  - **SUPABASE_POST action:**
+    ```js
+    // Message format:
+    { relay: 'MERIDIAN_TRIGGER', id: '...', action: 'SUPABASE_POST', payload: { table: 'ct_activity_log', body: {...} } }
     ```
-  - Since MplApp doesn't exist yet, create a temporary placeholder: `src/mpl/MplApp.jsx` that exports a simple `function MplApp() { return <div>MPL Widget — coming soon</div> }` so the import doesn't break the build.
-  - Files: Modify `src/main.jsx`, create `src/mpl/MplApp.jsx` (placeholder)
+    - Relay does: `POST /rest/v1/{table}` with anon key, `Prefer: return=minimal`, JSON body
+    - Returns: `{ relay: 'MERIDIAN_TRIGGER_RESPONSE', id, success: true }` or `{ ..., success: false, error }`
+  - **SUPABASE_GET action:**
+    ```js
+    // Message format:
+    { relay: 'MERIDIAN_TRIGGER', id: '...', action: 'SUPABASE_GET', payload: { table: 'ct_activity_log', query: 'user_id=eq.xxx&entry_date=eq.2026-04-12&select=type' } }
+    ```
+    - Relay does: `GET /rest/v1/{table}?{query}` with anon key
+    - **Important:** GET requests need the `Authorization: Bearer {user_access_token}` header, NOT the anon key for auth. BUT we don't have the user's session token in the relay context. So we use the anon key for auth AND the GET must work with anon-level RLS. This means `ct_activity_log` needs a SELECT policy for anon that filters by user_id. **WAIT — we can't change RLS (out of scope).** Alternative: the widget passes the user's access_token (from a Supabase auth session stored in the widget's state or localStorage) via the payload. The relay uses that token for the GET.
+    - Actually, simpler approach: **The widget tracks stats client-side.** Every time the widget logs an action, it increments a local counter. Stats don't need a GET query at all — just count what was logged during this session. For historical stats (today's total), the widget can query on initial load.
+    - For the initial stats fetch: the payload includes `token` field. Relay uses it as the Authorization Bearer. If no token provided, relay uses anon key.
+    - Relay code for GET:
+      ```js
+      if (action === 'SUPABASE_GET') {
+        const token = payload.token || SUPABASE_ANON_KEY;
+        const resp = await fetch(SUPABASE_URL + '/rest/v1/' + payload.table + '?' + payload.query, {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + token,
+          }
+        });
+        if (!resp.ok) throw new Error(resp.status + ': ' + await resp.text());
+        result = await resp.json();
+      }
+      ```
+  - Keep the existing `SUPABASE_INSERT_TRIGGER` handler unchanged
+  - Files: `public/meridian-relay.html`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors (relay is static HTML, build just copies it)
+
+### Phase 2: CT Widget (Vanilla JS)
+
+- [ ] **Task 2: Create ct-widget.js — Core structure and UI rendering**
+  - What: Create `public/ct-widget.js` — a vanilla JS IIFE that renders a floating CT widget inside a shadow DOM
+  - **Double-injection guard:** Check `document.getElementById('meridian-ct-widget')`. If exists, toggle visibility and refresh case data. Return early.
+  - **Shadow DOM setup:**
+    ```js
+    var host = document.createElement('div');
+    host.id = 'meridian-ct-widget';
+    host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;';
+    document.body.appendChild(host);
+    var shadow = host.attachShadow({ mode: 'closed' });
+    ```
+  - **Widget state object:**
+    ```js
+    var state = {
+      userId: MERIDIAN_PAYLOAD.userId,
+      relay: MERIDIAN_PAYLOAD.relayFrame,
+      caseNumber: '',
+      caseType: '',
+      caseSubtype: '',
+      accountId: '',
+      elapsed: 0,
+      timerRunning: false,
+      timerId: null,
+      isMinimized: false,
+      stats: { resolved: 0, reclass: 0, calls: 0 },
+      toastMsg: null,
+      toastTimer: null,
+    };
+    ```
+  - **MERIDIAN_PAYLOAD** is injected by the trigger code (same pattern as existing `meridian-trigger.js`). It contains `{ userId, relayFrame }`.
+  - **Render function** `render()`: Rebuilds the widget HTML from state and sets `shadow.innerHTML`. Called after every state change.
+  - **Widget layout** (all inline styles, dark theme matching Meridian design tokens):
+    - **Header bar** (48px): Meridian M logo (just a styled div with "M"), case number display (monospace, orange), timer display (mm:ss, white), minimize button (—), close button (×)
+    - **Action buttons row** (hidden when minimized): Resolved (green), Reclassified (red), Call (teal), Awaiting (amber)
+    - **Stats row** (always visible): "R: 3 | RC: 1 | C: 2" — compact stat line
+    - **Minimized state**: Just the header bar with case number + timer, no action buttons
+  - **Design tokens** (hardcoded, matching Meridian):
+    ```js
+    var T = {
+      bg: '#1a1a2e',
+      bgDeep: '#0f0f1e',
+      blue: '#003087',
+      orange: '#E8540A',
+      resolved: '#22c55e',
+      reclass: '#ef4444',
+      calls: '#0d9488',
+      awaiting: '#f59e0b',
+      textPri: 'rgba(255,255,255,0.92)',
+      textSec: 'rgba(255,255,255,0.55)',
+      textDim: 'rgba(255,255,255,0.3)',
+      border: 'rgba(255,255,255,0.12)',
+      divider: 'rgba(255,255,255,0.08)',
+      font: '"Segoe UI", system-ui, -apple-system, sans-serif',
+    };
+    ```
+  - **Widget dimensions:** ~320px wide, auto height. Minimized: ~320×48. Expanded: ~320×140.
+  - **Draggable:** The header bar is draggable. On mousedown on header, track mousemove, update `host.style.left/top`. Save position to localStorage key `meridian-ct-pos`.
+  - **Toast:** Small toast div at bottom of widget for success/error messages, auto-dismisses after 2s.
+  - This task creates the file with render() and UI only — no Supabase calls yet. Timer, logging, and stats are wired in subsequent tasks.
+  - Files: Create `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-### Phase 2: MPL Widget (Processes Only)
-
-- [x] **Task 5: Create MPL size constants**
-  - What: Add MPL-specific height/width configs to `src/lib/constants.js`
-  - Add `MPL_HEIGHTS`: `{ minimized: 32, idle: 100, timerActive: 140, categoryPicker: 480, manualEntry: 480 }`
-  - Add `MPL_STATE_BASE_WIDTHS`: `{ idle: 160, timerActive: 200, categoryPicker: 200, manualEntry: 200 }`
-  - Add `MPL_STAT_BUTTON_WIDTHS`: `{ processes: 114, total: 90 }` (MPL only shows process count and total)
-  - Add `getMplBarWidth(stateKey, statButtons)` and `getMplSizeForState(stateKey, statButtons)` functions
-  - MPL widget width should be 400px for all states (use 400 as fixed width, or base 200 + stat buttons)
-  - Files: `src/lib/constants.js`
+- [ ] **Task 3: Wire timer functionality**
+  - What: Add timer start/stop/display to `public/ct-widget.js`
+  - **Auto-start on injection:** When the widget loads and `state.caseNumber` is found (scraped from page title by the trigger code), start the timer immediately: `state.timerRunning = true; state.timerId = setInterval(tick, 1000);`
+  - **tick():** Increments `state.elapsed++` and calls `render()` (or just updates the timer display element directly for performance — find the timer span in shadow DOM and update textContent)
+  - **Awaiting Info button:** Pauses timer (`clearInterval`, `state.timerRunning = false`). Shows "▶ Resume" button. On resume, restarts interval.
+  - **Timer display format:** `mm:ss` — `String(Math.floor(elapsed/60)).padStart(2,'0') + ':' + String(elapsed%60).padStart(2,'0')`
+  - **Timer resets** on new case (when bookmarklet re-injects with different case number)
+  - Files: Modify `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 6: Create MplPipBar.jsx**
-  - What: Build a new bar component for the MPL widget from scratch (NOT a fork of PipBar.jsx — it's different enough)
-  - **Idle state** (no active timer): Shows M° logo, **Start** button (blue, prominent), **Quick Log** button (secondary), process count stat, connection dot, minimize button
-  - **Timer running state**: Shows M° logo, active process pill with elapsed timer (blue pill, mm:ss format), **Log** button (blue, triggers category picker), **Discard** button (subtle), process count stat, connection dot, minimize button
-  - **Category picker / manual entry state**: The bar area stays the same, but `children` slot expands below with CategoryDrillDown or ManualEntryForm
-  - Props:
+- [ ] **Task 4: Wire relay communication helpers**
+  - What: Add `relayPost(table, body)` and `relayGet(table, query, token)` helper functions to `public/ct-widget.js`
+  - These functions send postMessage to `state.relay` (the relay iframe's contentWindow) and return a Promise that resolves with the response.
+  - **relayPost(table, body):**
+    ```js
+    function relayPost(table, body) {
+      return new Promise(function(resolve, reject) {
+        var msgId = 'ct_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+        function onResponse(e) {
+          if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+          if (e.data.id !== msgId) return;
+          window.removeEventListener('message', onResponse);
+          if (e.data.success) resolve(e.data.data);
+          else reject(new Error(e.data.error || 'Unknown error'));
+        }
+        window.addEventListener('message', onResponse);
+        state.relay.postMessage({
+          relay: 'MERIDIAN_TRIGGER',
+          id: msgId,
+          action: 'SUPABASE_POST',
+          payload: { table: table, body: body }
+        }, '*');
+        setTimeout(function() { window.removeEventListener('message', onResponse); reject(new Error('Timeout')); }, 10000);
+      });
+    }
     ```
-    activeProcess       — { id, elapsed, paused } or null
-    processCount        — number (today's completed processes)
-    mplState            — 'idle' | 'timerActive' | 'categoryPicker' | 'manualEntry'
-    onOpenDashboard     — click M° logo
-    onStart             — click Start button (begins timer)
-    onQuickLog          — click Quick Log button (opens manual entry)
-    onLog               — click Log button (opens category picker for active timer)
-    onDiscard           — click Discard button
-    onPause             — pause active process
-    onResume            — resume paused process
-    onMinimize          — minimize to strip
-    onRestore           — restore from strip
-    isMinimized         — boolean
-    connectionStatus    — 'connected' | 'degraded' | 'offline'
-    pipToast            — string or null
-    children            — overlay/picker slot
-    ```
-  - Styling: Use same design tokens from `src/lib/constants.js` (`C` object). Blue accent (`C.process` / `C.processNavy`) as primary color. Same dark background, same font family.
-  - **Start button**: Height 28px, padding 0 14px, borderRadius 14, background `rgba(96,165,250,0.15)`, border `1px solid rgba(96,165,250,0.3)`, color `#60a5fa`, fontSize 11, fontWeight 700, text "▶ Start"
-  - **Quick Log button**: Same dimensions but more subtle — background transparent, border `1px solid var(--border)`, color `var(--text-sec)`, text "Quick Log"
-  - **Log button** (when timer active): Same style as Start but text "Log" 
-  - **Discard button**: background none, border none, color `var(--text-dim)`, fontSize 10, text "✕"
-  - **Active process pill**: Same style as existing ProcessPill component but inline in the bar — blue dot + mm:ss elapsed time
-  - Files: Create `src/mpl/MplPipBar.jsx`
+  - **relayGet(table, query):** Same pattern but with `action: 'SUPABASE_GET'`
+  - Files: Modify `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 7: Create MplApp.jsx — Full implementation**
-  - What: Replace the placeholder `src/mpl/MplApp.jsx` with the full MPL orchestrator
-  - This is a NEW component, not a fork of App.jsx. It's much simpler because it only handles processes.
-  - **State:**
-    - `user`, `profile`, `authLoading` — same auth pattern as App.jsx (copy the auth useEffect)
-    - `activeProcess` — `{ id, elapsed, paused } | null` — only ONE active process at a time (simpler than App.jsx which supports multiple)
-    - `mplState` — `'idle' | 'timerActive' | 'categoryPicker' | 'manualEntry'`
-    - `categories` — fetched from `mpl_categories` + `mpl_subcategories` (same query as App.jsx)
-    - `processCount` — today's completed process count
-    - `isMinimized`, `connectionStatus`, `pipToast`
-  - **Timer:** Single `useRef` interval. `startTimer()` increments `activeProcess.elapsed` every second. `stopTimer()` clears interval.
-  - **Key handlers:**
-    - `handleStart()` — creates `activeProcess = { id: crypto.randomUUID(), elapsed: 0, paused: false }`, starts timer, sets `mplState = 'timerActive'`, resizes window
-    - `handleQuickLog()` — sets `mplState = 'manualEntry'`, resizes window to 480 height. No timer started.
-    - `handleLog()` — stops timer, sets `mplState = 'categoryPicker'`, resizes window to 480 height
-    - `handleDiscard()` — stops timer, sets `activeProcess = null`, `mplState = 'idle'`, resizes window
-    - `handlePickerConfirm(categoryId, subcategoryId, durationSeconds)` — writes to `mpl_activity_log`, increments `processCount`, resets to idle
-    - `handleManualLog(categoryId, subcategoryId, minutes)` — writes to `mpl_activity_log` with `source: 'manual'` and `duration_s: minutes * 60`, increments `processCount`, resets to idle
-    - `handlePause()` / `handleResume()` — pause/resume timer
-  - **Widget mode:** Same pattern as App.jsx — checks `?mode=mpl-widget`. In widget mode, renders MplPipBar directly in the page. In non-widget mode, uses PiP via `usePipWindow` hook.
-  - **Realtime:** Subscribe to `pending_triggers` for `MERIDIAN_PROCESS_START` type only — call `handleStart()`. Use `usePendingTriggers` hook but pass `handleCaseStart: () => {}` (no-op).
-  - **Writing to mpl_activity_log:** Insert with fields: `user_id`, `category_id`, `subcategory_id`, `duration_s`, `source` ('timer' or 'manual'), `entry_date` (NY timezone date string), `created_at` (auto)
-  - **Category fetching:** On auth, fetch categories the same way App.jsx does — query `mpl_categories` with `mpl_subcategories(*)` join, filtered by the user's team haulage_type from `profile.team` or the team's `haulage_type`. Check how App.jsx currently fetches categories and replicate that exact query.
-  - **Connection ping:** Same 30s pattern as App.jsx
-  - **Sizing:** Use `getMplSizeForState` from constants. Resize via `window.resizeTo()` in widget mode (same pattern as App.jsx's `pin()` function).
-  - **JSX structure when in widget mode:**
-    ```jsx
-    <MplPipBar ...props>
-      {mplState === 'categoryPicker' && <ProcessPicker ... />}
-      {mplState === 'manualEntry' && <ManualEntryForm ... />}
-    </MplPipBar>
+- [ ] **Task 5: Wire action buttons — Resolved, Reclassified, Call**
+  - What: Add click handlers for the three main action buttons in `public/ct-widget.js`
+  - **handleResolved():**
+    - Stop timer
+    - Call `relayPost('ct_activity_log', { user_id: state.userId, type: 'Resolved', case_number: state.caseNumber, case_type: state.caseType, case_subtype: state.caseSubtype, time_spent_seconds: state.elapsed, timer_was_used: true, entry_date: getTodayNY(), source: 'widget' })`
+    - On success: `state.stats.resolved++`, show toast "✓ Resolved — Case {num}", reset timer to 0, `render()`
+    - On error: show toast with error message
+  - **handleReclass():** Same as resolved but `type: 'Reclassified'`, increments `state.stats.reclass`, toast "↩ Reclassified — Case {num}"
+  - **handleCall():**
+    - Does NOT stop the timer (calls happen while working a case)
+    - Call `relayPost('ct_activity_log', { user_id: state.userId, type: 'incoming_call', case_number: state.caseNumber || null, time_spent_seconds: null, timer_was_used: false, entry_date: getTodayNY(), source: 'widget' })`
+    - On success: `state.stats.calls++`, show toast "📞 Call logged", `render()`
+  - **getTodayNY()** helper: Returns today's date in `YYYY-MM-DD` format, America/New_York timezone:
+    ```js
+    function getTodayNY() {
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    }
     ```
-  - Files: Replace `src/mpl/MplApp.jsx`
+  - **Event binding:** After each `render()`, query shadow DOM for buttons by id and bind click handlers. OR use event delegation on the shadow root.
+  - **Important:** Use event delegation on the shadow root to avoid re-binding after every render:
+    ```js
+    shadow.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      if (action === 'resolve') handleResolved();
+      if (action === 'reclass') handleReclass();
+      // etc.
+    });
+    ```
+    Set this up once after shadow DOM is created, not inside render().
+  - Files: Modify `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-### Phase 3: Bookmarklets & Onboarding
-
-- [x] **Task 8: Create MPL bookmarklet builder function**
-  - What: Create a helper function `buildMplBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
-  - The MPL bookmarklet is much simpler than the CT bookmarklet:
-    1. Opens `https://meridian-hlag.vercel.app?mode=mpl-widget` as a popup window named `meridian-mpl` with `width=400,height=100,top=0,left=<screen.availWidth - 416>`
-    2. Inserts a `pending_triggers` row with type `MERIDIAN_PROCESS_START` via direct fetch to Supabase REST (same anon key pattern as the non-SF path in the existing bookmarklet)
-    3. Shows a toast on the page: "✓ Meridian — Process widget opened"
-    4. No relay iframe needed. No DOM scraping. No SF detection.
-  - The full bookmarklet code (minified into the href):
-    ```javascript
-    javascript:(function(){
-      window.open('https://meridian-hlag.vercel.app?mode=mpl-widget','meridian-mpl','popup,width=400,height=100,top=0,left='+(screen.availWidth-416));
-      var SUPABASE_URL='https://wluynppocsoqjdbmwass.supabase.co';
-      var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXlucHBvY3NvcWpkYm13YXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDU4NzIsImV4cCI6MjA4ODIyMTg3Mn0.x9-t_038hz4eJUciA1F9-DWE8UN_V58KE0i43cpOAMk';
-      var USER_ID='${userId}';
-      fetch(SUPABASE_URL+'/rest/v1/pending_triggers',{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_id:USER_ID,type:'MERIDIAN_PROCESS_START',page_url:window.location.href})}).catch(function(err){console.error('[Meridian]',err)});
-      try{var et=document.getElementById('meridian-toast');if(et)et.remove();var t=document.createElement('div');t.id='meridian-toast';t.textContent='\u2713 Meridian \u2014 Process widget opened';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#003087;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:"Segoe UI",sans-serif;z-index:2147483647;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3);border-left:3px solid #60a5fa;transition:opacity 300ms';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0'},2200);setTimeout(function(){t.remove()},2500)}catch(e){}
-    })();
+- [ ] **Task 6: Wire stats display**
+  - What: Show today's stats in the widget and update them on each log action
+  - **Client-side tracking:** The widget tracks `state.stats = { resolved: 0, reclass: 0, calls: 0 }` and increments on each successful log. This gives accurate counts for the current session.
+  - **Stats display in render():** Show a compact stats row below the action buttons:
+    ```html
+    <div style="...">
+      <span style="color:#22c55e;font-weight:700;">{resolved}</span> Res
+      <span style="color:rgba(255,255,255,0.15);margin:0 4px;">|</span>
+      <span style="color:#ef4444;font-weight:700;">{reclass}</span> Rec
+      <span style="color:rgba(255,255,255,0.15);margin:0 4px;">|</span>
+      <span style="color:#0d9488;font-weight:700;">{calls}</span> Call
+    </div>
     ```
-  - This must be minified into a single line (no newlines) in the href attribute, same as the existing CT bookmarklet.
+  - **No initial stats fetch for now.** Stats start at 0 each time the bookmarklet is clicked. This is the same behavior as CT 1.0. A future enhancement could fetch today's existing counts on load, but it requires auth token management which adds complexity. Skip for now.
+  - Files: Modify `public/ct-widget.js`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+### Phase 3: Trigger Code & Bookmarklet Updates
+
+- [ ] **Task 7: Update meridian-trigger.js to inject CT widget on SF pages**
+  - What: Modify `public/meridian-trigger.js` so that on SF case pages, instead of inserting a `pending_triggers` row, it injects the CT widget directly
+  - **Current behavior (SF + case detected):** Inserts `pending_triggers` row with `MERIDIAN_CASE_START` → separate popup reacts
+  - **New behavior (SF + case detected):**
+    1. Scrape case data from DOM (keep existing scraping logic — `extractAccountId()`, `extractCaseTypeSubtype()`)
+    2. Set `MERIDIAN_PAYLOAD.caseNumber`, `MERIDIAN_PAYLOAD.caseType`, `MERIDIAN_PAYLOAD.caseSubtype`, `MERIDIAN_PAYLOAD.accountId`
+    3. Fetch `ct-widget.js` from the relay origin: the trigger code is already running via `new Function('MERIDIAN_PAYLOAD', code)` from the relay. So `MERIDIAN_PAYLOAD.relayOrigin` should contain the relay origin URL. Fetch `MERIDIAN_PAYLOAD.relayOrigin + '/ct-widget.js?v=' + Date.now()`
+    4. Execute the widget code via `new Function('MERIDIAN_PAYLOAD', widgetCode)(MERIDIAN_PAYLOAD)`
+    5. Remove the `pending_triggers` insert for the SF case path entirely
+  - **For SF + no case detected:** Show toast "Meridian: No case detected on this page". Do NOT inject widget. Do NOT insert `pending_triggers`.
+  - **For non-SF pages:** Leave unchanged — the non-SF path was already updated by the previous PRD to do nothing (CT bookmarklet on non-SF pages just opens the popup). Actually, check the current code — the previous PRD's Task 9 removed the fetch from non-SF branch. The non-SF branch should now just show a toast. If it still does something else, just ensure it shows a toast and returns.
+  - **Add relayOrigin to MERIDIAN_PAYLOAD:** The bookmarklet (in Step3Bookmarklet.jsx) passes the relay origin. But we shouldn't modify Step3Bookmarklet.jsx in this task — instead, derive it from the relay iframe's src in the trigger code:
+    ```js
+    // The relay iframe's origin is the same as where this trigger code was loaded from
+    // We can use the relay reference to determine the origin
+    var relayOrigin = 'https://meridian-hlag.vercel.app'; // hardcode for now, same as NS_HOST
+    ```
+  - **Loading ct-widget.js:** The trigger code runs on the SF page. It can't fetch from `meridian-hlag.vercel.app` directly (CSP blocks it). Instead, send a message to the relay asking it to fetch the widget code:
+    - Add a new message type to the relay: `FETCH_WIDGET_CODE`
+    - OR — simpler — have the relay load ct-widget.js the same way it loads meridian-trigger.js. Modify `meridian-relay.html` to support `?load=ct-widget` which fetches `/ct-widget.js` and sends the code back via postMessage.
+    - The trigger code, after detecting a case, sends a message to the relay requesting the widget code, then executes it.
+    - Actually, simplest approach: **chain the loading.** The bookmarklet loads the relay, the relay loads meridian-trigger.js and sends it back. meridian-trigger.js runs, detects SF case, then asks the relay to load ct-widget.js and send it back. Two round-trips but it works within CSP.
+  - **Implementation:**
+    1. In meridian-trigger.js, after detecting SF case, send message to relay: `relay.postMessage({ relay: 'MERIDIAN_TRIGGER', id: msgId, action: 'FETCH_CODE', payload: { file: 'ct-widget.js' } }, '*')`
+    2. Wait for response with the code
+    3. Execute: `(new Function('MERIDIAN_PAYLOAD', code))(MERIDIAN_PAYLOAD)` — MERIDIAN_PAYLOAD now includes `caseNumber`, `caseType`, etc.
+  - Files: Modify `public/meridian-trigger.js`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 8: Add FETCH_CODE action to relay**
+  - What: Modify `public/meridian-relay.html` to handle `FETCH_CODE` action
+  - When relay receives `{ action: 'FETCH_CODE', payload: { file: 'ct-widget.js' } }`:
+    ```js
+    if (action === 'FETCH_CODE') {
+      const resp = await fetch('/' + payload.file + '?v=' + Date.now());
+      if (!resp.ok) throw new Error('Failed to fetch ' + payload.file + ': ' + resp.status);
+      const code = await resp.text();
+      // Send code back
+      event.source.postMessage({
+        relay: 'MERIDIAN_TRIGGER_RESPONSE',
+        id: id,
+        success: true,
+        data: { code: code }
+      }, '*');
+    }
+    ```
+  - Files: Modify `public/meridian-relay.html`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 9: Update CT bookmarklet to remove popup window.open**
+  - What: Modify `buildCtBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
+  - **Remove** the `window.open('...?mode=ct-widget', 'meridian-ct', ...)` call. The CT bookmarklet no longer opens a popup. It only injects the relay iframe (on SF pages) or shows a toast (on non-SF pages).
+  - **SF path stays the same:** Insert relay iframe → relay loads meridian-trigger.js → trigger code runs → (now) injects ct-widget.js overlay instead of pending_trigger
+  - **Non-SF path:** Just show toast "Meridian: Open a Salesforce case page to use Case Tracker". No popup, no fetch.
+  - The bookmarklet becomes simpler — just the relay injection on SF, toast on non-SF.
   - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 9: Update CT bookmarklet to open CT widget specifically**
-  - What: Modify `buildBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
-  - Change the `window.open` URL from `https://meridian-hlag.vercel.app?mode=widget` to `https://meridian-hlag.vercel.app?mode=ct-widget`
-  - Change the popup window name from `meridian-widget` to `meridian-ct`
-  - Everything else stays the same — relay iframe for SF, direct fetch for non-SF, SF DOM scraping
-  - Also update the non-SF branch: currently it sends `type:'MERIDIAN_PROCESS_START'` for non-SF pages. Change this to `type:'MERIDIAN_CASE_START'` since the CT bookmarklet should always trigger case behavior. Actually — on non-SF pages the CT bookmarklet should just open the CT widget without triggering anything specific. Change the non-SF `fetch` to not insert a pending_trigger at all — just open the popup. The agent can use the `+ Case` button in the widget to manually enter a case number.
-  - So for non-SF pages: just `window.open(...)` + toast. Remove the `fetch()` call from the `else` branch.
-  - Rename the existing function from `buildBmHref` to `buildCtBmHref` for clarity
-  - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
-  - Test: `npx vite build 2>&1 | tail -8` — no errors
+### Phase 4: Cleanup & Verification
 
-- [x] **Task 10: Update onboarding Step 3 to show two bookmarklets**
-  - What: Modify the JSX in `Step3Bookmarklet.jsx` to show both bookmarklets
-  - Show two draggable anchors:
-    1. **"⚡ Cases"** — orange background (#E8540A), uses `buildCtBmHref(userId)`
-    2. **"⚡ Processes"** — blue background (#4a90d9), uses `buildMplBmHref(userId)`
-  - Side by side in a flex row with gap 12
-  - Update instruction step 3 text to: "Drag both buttons to your bookmarks bar. Use Cases on Salesforce pages, Processes for manual work tracking."
-  - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
-  - Test: `npx vite build 2>&1 | tail -8` — no errors
-
-### Phase 4: Dashboard Integration
-
-- [x] **Task 11: Add dual launch buttons to Dashboard**
-  - What: Modify `src/components/Dashboard.jsx`
-  - Find the existing "Launch Widget" button/section
-  - Replace with two buttons side by side:
-    1. **"Launch Cases"** — orange accent, opens `?mode=ct-widget` as popup (same pattern as existing launch)
-    2. **"Launch Processes"** — blue accent, opens `?mode=mpl-widget` as popup
-  - Both use `window.open()` with appropriate dimensions (CT: 600×64, MPL: 400×100)
-  - Files: Modify `src/components/Dashboard.jsx`
-  - Test: `npx vite build 2>&1 | tail -8` — no errors
-
-- [x] **Task 12: Final build verification**
-  - What: Run `npx vite build` and verify zero errors, zero warnings
-  - Check that all imports resolve correctly
-  - Check that no circular dependencies exist
-  - If any issues found, fix them
+- [ ] **Task 10: Final build verification and sanity checks**
+  - What: Run full build, verify all files are correct
+  - Verify: `npx vite build 2>&1 | tail -8` — clean build
+  - Verify: `public/ct-widget.js` exists and is valid JS (no syntax errors): `node -c public/ct-widget.js`
+  - Verify: `public/meridian-relay.html` handles all four actions: `SUPABASE_INSERT_TRIGGER`, `SUPABASE_POST`, `SUPABASE_GET`, `FETCH_CODE`
+  - Verify: `public/meridian-trigger.js` on SF+case path loads ct-widget.js via relay, does NOT insert pending_triggers
+  - Verify: `grep -c 'pending_triggers' public/meridian-trigger.js` — should return 0 or only in comments (no active pending_triggers inserts on the SF case path)
+  - Verify: CT bookmarklet in Step3Bookmarklet.jsx does NOT contain `window.open.*ct-widget`
   - Files: Any files with issues
-  - Test: `npx vite build 2>&1 | tail -8` — clean build with no errors or warnings
+  - Test: All checks above pass
 
 ## Testing Strategy
 
-- Primary: `npx vite build 2>&1 | tail -8` — must show "built in Xs" with no errors
-- Secondary: `grep -r "from '.*App'" src/ct/ src/mpl/` to verify import paths are correct
-- Sanity check: `grep -rn "handleProcessStart\|handleLogProcess\|ManualEntryForm\|ProcessPicker" src/ct/` should return zero results (no process code in CT)
-- Sanity check: `grep -rn "handleCaseStart\|handleResolve\|handleReclass\|RFCPrompt\|SwimlaneTray" src/mpl/` should return zero results (no case code in MPL)
+- Primary: `npx vite build 2>&1 | tail -8` — must build with no errors
+- JS syntax: `node -c public/ct-widget.js` — must parse without errors
+- Relay completeness: `grep -c 'SUPABASE_POST\|SUPABASE_GET\|FETCH_CODE\|SUPABASE_INSERT_TRIGGER' public/meridian-relay.html` — should return 4+ matches
+- No popup in CT bookmarklet: `grep -c 'ct-widget.*popup\|mode=ct-widget' src/components/onboarding/Step3Bookmarklet.jsx` — should return 0
+- Widget isolation: `grep -c 'attachShadow' public/ct-widget.js` — should return 1
 
 ## Out of Scope
 
-- No Supabase schema changes
-- No RLS policy changes
-- No new npm dependencies
-- No changes to `src/App.jsx` or `src/PipBar.jsx` (preserved as combined fallback)
-- No changes to `public/meridian-relay.html` or `public/meridian-trigger.js`
-- No PiP mode for MPL widget (popup only for now — PiP can be added later)
-- No supervisor dashboard / Insights work
-- No role hierarchy schema changes
-- No Salesforce API integration
-- No CSS variable changes in index.css
-- No widget corner snapping work
+- No React changes to CtApp.jsx or CtPipBar.jsx (those remain as fallback/unused)
+- No Supabase schema or RLS changes
+- No MPL widget changes
+- No dashboard changes
+- No auth token management (stats start at 0 per session)
+- No RFC (Resolved First Contact) flow — can be added later
+- No swimlane tray / multiple simultaneous cases — one case at a time
+- No notes modal — can be added later
+- No PiP mode
+- No widget persistence across page navigations (dies on nav, re-injected by bookmarklet)
 
 ## Notes for Ralph
 
-### Critical patterns already in the codebase:
+### Critical patterns:
 
-1. **Widget mode detection:** `const isWidgetMode = new URLSearchParams(window.location.search).get('mode') === 'widget'` — the CT widget should check for `'ct-widget'`, MPL for `'mpl-widget'`
+1. **MERIDIAN_PAYLOAD is the bridge.** The trigger code (`meridian-trigger.js`) already receives this object via `new Function('MERIDIAN_PAYLOAD', code)(payload)`. The CT widget will receive the same object, extended with case data. Fields: `userId`, `relayFrame`, `caseNumber`, `caseType`, `caseSubtype`, `accountId`.
 
-2. **PiP window CSS vars:** The `usePipWindow.js` hook injects CSS variables into the PiP window's `<head>`. Both widgets inherit this if using PiP mode. For popup/widget mode, vars come from index.css.
+2. **Relay postMessage pattern.** Every relay call uses: `{ relay: 'MERIDIAN_TRIGGER', id: uniqueId, action: '...', payload: {...} }`. Response comes back as: `{ relay: 'MERIDIAN_TRIGGER_RESPONSE', id: sameId, success: true/false, data/error }`. Match on `id` to correlate request/response.
 
-3. **`resizeTo()` requires user activation:** Cannot call from useEffect or async callbacks. The `pin()` function in App.jsx handles this — replicate the pattern but don't expect it to always succeed from Realtime callbacks.
+3. **Shadow DOM for style isolation.** SF's CSS is aggressive. Without shadow DOM, SF styles will break the widget layout. Use `attachShadow({ mode: 'closed' })` — closed mode prevents SF JS from reaching into the widget.
 
-4. **Supabase anon key RLS:** The bookmarklet uses the anon key. `pending_triggers` has RLS policies that allow anon inserts with `WITH CHECK (true)`. Don't change RLS.
+4. **Event delegation on shadow root.** Don't re-bind click handlers after every render(). Set up one delegated listener on the shadow root, use `data-action` attributes on buttons to dispatch.
 
-5. **`Prefer: return=minimal`:** Bookmarklet fetches to Supabase must use this header. `return=representation` causes 401 for anon role.
+5. **`Prefer: return=minimal` for all POSTs.** The anon key can INSERT but can't SELECT. `return=representation` would fail.
 
-6. **Category fetching pattern:** Look at how App.jsx fetches categories around line 390-410. The query joins `mpl_categories` with `mpl_subcategories`. The haulage type filter comes from the user's team. Replicate this exact query in MplApp.jsx.
+6. **CT 1.0 widget reference:** The original CT 1.0 widget in `public/bookmarklet-widget.js` on the `case-tracker-app.vercel.app` repo is the design reference. It had: orange header, case number display, timer, resolution dropdown, log button, stats cards, notes modal, toast notifications, draggable header, minimize/close buttons. The new widget should have the same core features but with Meridian's dark theme design language.
 
-7. **Activity log writes:** When logging a process, write to `mpl_activity_log` table. Check existing `handleManualLog` and `handleConfirmProcess` in App.jsx (around lines 1045-1090) for the exact column names and patterns.
+7. **Double-injection toggle:** If the bookmarklet is clicked while the widget is already on the page, toggle its visibility. Check `document.getElementById('meridian-ct-widget')`. If found: toggle display, update case number from current page title if different. If not found: inject fresh.
 
-8. **New York timezone dates:** Always use `getNewYorkDateKey()` from `src/lib/timezone.js` for `entry_date` values.
+8. **Timer continues across minimize/maximize.** The interval keeps running when minimized — only the display is hidden.
 
-9. **Import paths from ct/ and mpl/ subdirectories:** Components are at `../components/X.jsx`, hooks at `../hooks/X.js`, lib at `../lib/X.js`.
+9. **ct-widget.js is loaded via relay, not directly.** The flow is: bookmarklet → relay iframe → relay loads trigger.js → trigger.js asks relay to load ct-widget.js → relay sends code back → trigger.js executes ct-widget.js with payload. Two relay round-trips total.
 
-10. **The ManualEntryForm component** expects `categories` array and calls `onLog(categoryId, subcategoryId, minutes)`. The ProcessPicker expects `categories`, `elapsed`, and calls `onConfirm(categoryId, subcategoryId, durationSeconds)`. Both are in `src/components/`.
-
-11. **Bar session tracking:** The `bar_sessions` table tracks when a widget is opened/closed. App.jsx has `createBarSession()` around line 224. CT widget should replicate this. MPL widget should too but can be simpler.
-
-12. **`body.widget-mode` class:** App.jsx adds this to document.body when in widget mode (check around line 290-300). Both CT and MPL widgets should do the same.
-
-13. **Process timer is client-side only:** Unlike cases (which are persisted to `ct_cases` on start), process timers only exist in React state until the agent logs them. The elapsed time is passed to `mpl_activity_log.duration_s` on log. MplApp should follow this same pattern — no `mpl_sessions` table write on Start, only write to `mpl_activity_log` on Log.
+10. **The relay iframe persists on the page.** After injection, the relay iframe stays in the DOM (hidden) so the widget can use it for Supabase calls throughout its lifetime. Don't remove it on a timer like the current trigger code does.
