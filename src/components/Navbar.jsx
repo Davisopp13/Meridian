@@ -19,8 +19,9 @@ function getInitials(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletModal, onSettings }) {
-    const [isLaunchHovered, setIsLaunchHovered] = useState(false);
+export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings }) {
+    const [isCtHovered, setIsCtHovered] = useState(false);
+    const [isMplHovered, setIsMplHovered] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
 
     const containerStyle = {
@@ -152,26 +153,48 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
         gap: 8,
     };
 
-    const launchBtnStyle = {
+    const launchCtBtnStyle = {
         height: 42,
-        padding: '0 24px',
+        padding: '0 20px',
         borderRadius: 12,
         border: 'none',
-        background: isLaunchHovered
-            ? `linear-gradient(135deg, ${C.mBtn}, #1e40af)`
-            : `linear-gradient(135deg, #002566, ${C.mBtn})`,
+        background: isCtHovered
+            ? 'linear-gradient(135deg, #c94600, #E8540A)'
+            : 'linear-gradient(135deg, #b33d00, #c94600)',
         color: '#fff',
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 700,
         cursor: 'pointer',
-        boxShadow: isLaunchHovered
-            ? '0 6px 20px rgba(0, 48, 135, 0.4)'
-            : '0 4px 12px rgba(0, 48, 135, 0.2)',
+        boxShadow: isCtHovered
+            ? '0 6px 20px rgba(232, 84, 10, 0.4)'
+            : '0 4px 12px rgba(232, 84, 10, 0.2)',
         transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
-        transform: isLaunchHovered ? 'translateY(-1px)' : 'none',
+        gap: 7,
+        transform: isCtHovered ? 'translateY(-1px)' : 'none',
+    };
+
+    const launchMplBtnStyle = {
+        height: 42,
+        padding: '0 20px',
+        borderRadius: 12,
+        border: 'none',
+        background: isMplHovered
+            ? 'linear-gradient(135deg, #2563eb, #3b82f6)'
+            : 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+        color: '#fff',
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: 'pointer',
+        boxShadow: isMplHovered
+            ? '0 6px 20px rgba(59, 130, 246, 0.4)'
+            : '0 4px 12px rgba(59, 130, 246, 0.2)',
+        transition: 'all 0.3s cubic-bezier(0.23, 1, 0.32, 1)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 7,
+        transform: isMplHovered ? 'translateY(-1px)' : 'none',
     };
 
     const hoverOn = (e) => {
@@ -203,13 +226,23 @@ export default function Navbar({ user, profile, onLaunchPip, setShowBookmarkletM
                 </button>
 
                 <button
-                    style={launchBtnStyle}
-                    onClick={onLaunchPip}
-                    onMouseEnter={() => setIsLaunchHovered(true)}
-                    onMouseLeave={() => setIsLaunchHovered(false)}
+                    style={launchCtBtnStyle}
+                    onClick={onLaunchCt}
+                    onMouseEnter={() => setIsCtHovered(true)}
+                    onMouseLeave={() => setIsCtHovered(false)}
                 >
-                    <span style={{ fontSize: 18 }}>🚀</span>
-                    <span>Launch Widget</span>
+                    <span style={{ fontSize: 16 }}>⚡</span>
+                    <span>Launch Cases</span>
+                </button>
+
+                <button
+                    style={launchMplBtnStyle}
+                    onClick={onLaunchMpl}
+                    onMouseEnter={() => setIsMplHovered(true)}
+                    onMouseLeave={() => setIsMplHovered(false)}
+                >
+                    <span style={{ fontSize: 16 }}>▶</span>
+                    <span>Launch Processes</span>
                 </button>
 
                 {profile?.full_name && (

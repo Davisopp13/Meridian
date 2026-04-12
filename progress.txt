@@ -1845,3 +1845,55 @@ Learnings for future iterations:
   - Unicode escapes in template literals need double backslash: '\\u2713' not '\u2713'
   - existing MPL anchor already in the JSX — just wire it to the new function, no JSX restructure needed for Task 8
 ---
+---
+
+## Iteration N - Task 9: Update CT bookmarklet to open CT widget specifically
+- Renamed buildBmHref → buildCtBmHref in Step3Bookmarklet.jsx
+- Changed popup URL from ?mode=widget to ?mode=ct-widget
+- Changed popup window name from meridian-widget to meridian-ct
+- Removed fetch() call from non-SF else branch (CT widget needs no trigger on non-SF pages)
+- Updated non-SF toast text from "Process timer started" to "CT widget opened"
+- Updated call site: buildBmHref(userId) → buildCtBmHref(userId)
+- Build passes — 0 errors
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx
+  PRD.md (Task 9 marked [x])
+
+Learnings for future iterations:
+  - The else{fetch(...)} block was a single contiguous string segment — easy to remove with Edit tool
+  - Non-SF branch of CT bookmarklet now just: window.open + toast (no Supabase insert)
+  - SF branch unchanged — relay iframe + SF DOM scraping still intact
+
+## Iteration Split-10 - Task 10 (Dual-Widget Split PRD): Update onboarding Step 3 to show two bookmarklets
+- Updated button labels: "⚡ Meridian — Log" → "⚡ Cases", "📋 MPL — Log Process" → "⚡ Processes"
+- Updated Processes button color: #3b82f6 → #4a90d9
+- Updated step 3 instruction text to: "Drag both buttons to your bookmarks bar. Use Cases on Salesforce pages, Processes for manual work tracking."
+- Both buildCtBmHref and buildMplBmHref functions were already in place from Tasks 8 & 9
+- npm run build passes — 0 errors
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx (labels, color, instruction text)
+  PRD.md (Task 10 marked [x])
+
+Learnings for future iterations:
+  - Step3Bookmarklet already had both anchors from prior work — only labels/color/instruction needed updating
+  - PRD specifies #4a90d9 for Processes blue (not #3b82f6)
+---
+
+## Iteration [N] - Task 11: Add dual launch buttons to Dashboard
+- Replaced single "Launch Widget" button in Navbar.jsx with two buttons: "Launch Cases" (orange) and "Launch Processes" (blue)
+- Dashboard.jsx: added handleLaunchCt() and handleLaunchMpl() functions using window.open() with popup dimensions (CT: 600×64, MPL: 400×100)
+- Dashboard.jsx: passes onLaunchCt and onLaunchMpl as new props to Navbar
+- Navbar.jsx: accepts new props, replaced isLaunchHovered state with isCtHovered + isMplHovered, replaced single launch button JSX with two styled buttons
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/components/Dashboard.jsx
+  src/components/Navbar.jsx
+
+Learnings for future iterations:
+  - Launch buttons use window.location.origin + '/?mode=...' for dev/prod portability
+  - Kept onLaunchPip prop in Navbar signature to avoid breaking App.jsx's prop passing (App.jsx is DO NOT TOUCH)
+  - CT popup: width=600,height=64; MPL popup: width=400,height=100 per PRD specs
+---

@@ -49,6 +49,16 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
   const [showBookmarkletModal, setShowBookmarkletModal] = useState(false);
   const [view, setView] = useState('dashboard');
 
+  function handleLaunchCt() {
+    const url = window.location.origin + '/?mode=ct-widget';
+    window.open(url, 'meridian-ct', 'popup,width=600,height=64,top=0,left=' + (screen.availWidth - 616));
+  }
+
+  function handleLaunchMpl() {
+    const url = window.location.origin + '/?mode=mpl-widget';
+    window.open(url, 'meridian-mpl', 'popup,width=400,height=100,top=0,left=' + (screen.availWidth - 416));
+  }
+
   const stats = useDashboardStats({ userId: user.id, period });
 
   const bodyStyle = {
@@ -91,7 +101,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
 
   return (
     <div style={{ background: C.bgDeep, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} />
+      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={handleLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} />
 
 
       {view === 'settings' ? (
