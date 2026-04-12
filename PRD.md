@@ -243,7 +243,7 @@ src/
 
 ### Phase 3: Trigger Code & Bookmarklet Updates
 
-- [ ] **Task 7: Update meridian-trigger.js to inject CT widget on SF pages**
+- [x] **Task 7: Update meridian-trigger.js to inject CT widget on SF pages**
   - What: Modify `public/meridian-trigger.js` so that on SF case pages, instead of inserting a `pending_triggers` row, it injects the CT widget directly
   - **Current behavior (SF + case detected):** Inserts `pending_triggers` row with `MERIDIAN_CASE_START` → separate popup reacts
   - **New behavior (SF + case detected):**

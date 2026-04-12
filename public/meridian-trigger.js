@@ -7,23 +7,15 @@
 //   - userId: the Meridian user's UUID, baked into the bookmarklet at onboarding
 //   - relayFrame: reference to the relay iframe's contentWindow (null on non-SF pages)
 //
-// On Salesforce pages the relay iframe proxies Supabase inserts (SF CSP blocks
-// direct fetch to external domains). On all other pages we call Supabase REST
-// directly — no relay needed.
-//
 // Flow:
 // 1. Detects whether the current page is Salesforce
-// 2. Detects if we're on a Salesforce case page (8+ digit number in title)
-// 3. Extracts case metadata from the page if available
-// 4a. [SF]     Sends a SUPABASE_INSERT_TRIGGER message to the relay iframe
-// 4b. [non-SF] Calls Supabase REST directly via fetch()
-// 5. The Meridian app receives the pending_triggers row via Realtime subscription
-// 6. Shows a toast on the page confirming the action
+// 2. On non-SF: shows a toast and returns
+// 3. On SF: detects if we're on a case page (8+ digit number in title)
+// 4. On SF + no case: shows a toast and returns
+// 5. On SF + case: scrapes case metadata, asks relay to load ct-widget.js,
+//    executes the widget with extended MERIDIAN_PAYLOAD
 
 (function() {
-  var SUPABASE_URL = 'https://wluynppocsoqjdbmwass.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXlucHBvY3NvcWpkYm13YXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDU4NzIsImV4cCI6MjA4ODIyMTg3Mn0.x9-t_038hz4eJUciA1F9-DWE8UN_V58KE0i43cpOAMk';
-
   var userId = MERIDIAN_PAYLOAD.userId;
   var relay = MERIDIAN_PAYLOAD.relayFrame;
 
@@ -37,118 +29,71 @@
     return;
   }
 
-  if (isSalesforce && !relay) {
+  // ── Non-SF path ─────────────────────────────────────────────────────────
+  if (!isSalesforce) {
+    showToast('Meridian: Open a Salesforce case page to use Case Tracker', 'info');
+    return;
+  }
+
+  // ── SF path — relay required ─────────────────────────────────────────────
+  if (!relay) {
     showToast('Meridian: Missing relay. Try re-installing the bookmarklet from Meridian.', 'error');
     return;
   }
 
-  // ── Detect Salesforce case ──────────────────────────────────────────────
+  // ── Detect Salesforce case ───────────────────────────────────────────────
   var title = document.title || '';
   var caseMatch = title.match(/(\d{8,})/);
 
-  var triggerType, body;
-
-  if (caseMatch) {
-    // Salesforce case page
-    var caseNumber = caseMatch[1];
-
-    // Try to extract account ID from the page
-    var accountId = extractAccountId();
-
-    // Try to extract type/subtype from page
-    var typeInfo = extractCaseTypeSubtype();
-
-    triggerType = 'MERIDIAN_CASE_START';
-    body = {
-      user_id: userId,
-      type: triggerType,
-      case_number: caseNumber,
-      account_id: accountId || null,
-      case_type: typeInfo.type || null,
-      case_subtype: typeInfo.subtype || null,
-    };
-
-    showToast('Meridian: Starting case ' + caseNumber + '...', 'info');
-  } else {
-    // Non-Salesforce page → process trigger
-    triggerType = 'MERIDIAN_PROCESS_START';
-    body = {
-      user_id: userId,
-      type: triggerType,
-      page_url: window.location.href,
-    };
-
-    showToast('Meridian: Starting process timer...', 'info');
+  if (!caseMatch) {
+    showToast('Meridian: No case detected on this page', 'info');
+    return;
   }
 
-  // ── Send trigger ────────────────────────────────────────────────────────
-  if (isSalesforce) {
-    // SF path: Salesforce CSP blocks direct fetch to Supabase, use relay iframe
-    var msgId = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  var caseNumber = caseMatch[1];
+  var accountId = extractAccountId();
+  var typeInfo = extractCaseTypeSubtype();
 
-    function onRelayResponse(e) {
-      if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
-      if (e.data.id !== msgId) return;
-      window.removeEventListener('message', onRelayResponse);
+  // Extend MERIDIAN_PAYLOAD with case data so ct-widget.js can read it
+  MERIDIAN_PAYLOAD.caseNumber = caseNumber;
+  MERIDIAN_PAYLOAD.caseType = typeInfo.type || '';
+  MERIDIAN_PAYLOAD.caseSubtype = typeInfo.subtype || '';
+  MERIDIAN_PAYLOAD.accountId = accountId || '';
 
-      if (e.data.success) {
-        if (triggerType === 'MERIDIAN_CASE_START') {
-          showToast('Meridian: Case ' + body.case_number + ' sent!', 'success');
-        } else {
-          showToast('Meridian: Process timer started!', 'success');
-        }
-      } else {
-        showToast('Meridian: Failed — ' + (e.data.error || 'unknown error'), 'error');
+  // ── Ask relay to fetch ct-widget.js ─────────────────────────────────────
+  var msgId = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+
+  function onRelayResponse(e) {
+    if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+    if (e.data.id !== msgId) return;
+    window.removeEventListener('message', onRelayResponse);
+
+    if (e.data.success && e.data.data && e.data.data.code) {
+      try {
+        (new Function('MERIDIAN_PAYLOAD', e.data.data.code))(MERIDIAN_PAYLOAD);
+      } catch (err) {
+        showToast('Meridian: Widget error — ' + err.message, 'error');
+        console.error('[Meridian] Widget execution error:', err);
       }
-    }
-    window.addEventListener('message', onRelayResponse);
-
-    relay.postMessage({
-      relay: 'MERIDIAN_TRIGGER',
-      id: msgId,
-      action: 'SUPABASE_INSERT_TRIGGER',
-      payload: {
-        body: body,
-      }
-    }, '*');
-
-    // Timeout — clean up listener if no response in 10s
-    setTimeout(function() {
-      window.removeEventListener('message', onRelayResponse);
-    }, 10000);
-  } else {
-    // Non-SF path: call Supabase REST directly (no relay needed)
-    directInsert(body).then(function() {
-      if (triggerType === 'MERIDIAN_CASE_START') {
-        showToast('Meridian: Case ' + body.case_number + ' sent!', 'success');
-      } else {
-        showToast('Meridian: Process timer started!', 'success');
-      }
-    }).catch(function(err) {
-      console.error('[Meridian]', err);
-      showToast('Meridian: Failed — ' + err.message, 'error');
-    });
-  }
-
-  async function directInsert(payload) {
-    var res = await fetch(SUPABASE_URL + '/rest/v1/pending_triggers', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!res.ok) {
-      var err = await res.text();
-      throw new Error('Supabase insert failed: ' + res.status + ' ' + err);
+    } else {
+      showToast('Meridian: Failed to load widget — ' + (e.data.error || 'unknown error'), 'error');
     }
   }
+  window.addEventListener('message', onRelayResponse);
 
-  // ── Page scraping helpers ───────────────────────────────────────────────
+  relay.postMessage({
+    relay: 'MERIDIAN_TRIGGER',
+    id: msgId,
+    action: 'FETCH_CODE',
+    payload: { file: 'ct-widget.js' }
+  }, '*');
+
+  // Clean up listener if no response in 10s
+  setTimeout(function() {
+    window.removeEventListener('message', onRelayResponse);
+  }, 10000);
+
+  // ── Page scraping helpers ────────────────────────────────────────────────
 
   function extractAccountId() {
     try {
@@ -195,7 +140,7 @@
     }
   }
 
-  // ── Toast UI ────────────────────────────────────────────────────────────
+  // ── Toast UI ─────────────────────────────────────────────────────────────
 
   function showToast(message, level) {
     try {
