@@ -2092,3 +2092,21 @@ Files changed:
 Learnings for future iterations:
   - The relay iframe removal setTimeout was a gotcha: removing it breaks the widget since ct-widget.js needs the relay to stay alive for Supabase postMessage calls throughout its lifetime
   - bookmarklet href is a single-line template literal — use Edit with old/new string spanning the full function
+
+## Iteration CT-10 - Task 10 (CT Widget PRD): Final build verification and sanity checks
+- Ran all PRD-specified verification checks:
+  1. `npx vite build` → clean, 2463 modules, 0 errors
+  2. `node -c public/ct-widget.js` → no syntax errors
+  3. `grep -c 'SUPABASE_POST|SUPABASE_GET|FETCH_CODE|SUPABASE_INSERT_TRIGGER' public/meridian-relay.html` → 4 (all four handlers present)
+  4. `grep -c 'pending_triggers' public/meridian-trigger.js` → 0 (no active pending_trigger inserts)
+  5. `grep -c 'ct-widget.*popup|mode=ct-widget' src/components/onboarding/Step3Bookmarklet.jsx` → 0 (no popup)
+  6. `grep -c 'attachShadow' public/ct-widget.js` → 1 (shadow DOM isolation in place)
+- No code changes needed — all checks passed on first run
+
+Files changed:
+  PRD.md (Task 10 marked [x])
+
+Learnings for future iterations:
+  - All CT overlay widget tasks (Tasks 1-10) are now complete — the PRD is fully done
+  - Verification-only tasks: run the checks, confirm they pass, mark done without touching code
+---

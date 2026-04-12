@@ -303,7 +303,7 @@ src/
 
 ### Phase 4: Cleanup & Verification
 
-- [ ] **Task 10: Final build verification and sanity checks**
+- [x] **Task 10: Final build verification and sanity checks**
   - What: Run full build, verify all files are correct
   - Verify: `npx vite build 2>&1 | tail -8` — clean build
   - Verify: `public/ct-widget.js` exists and is valid JS (no syntax errors): `node -c public/ct-widget.js`
