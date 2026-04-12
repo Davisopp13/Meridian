@@ -49,6 +49,7 @@
     elapsed:      0,
     timerRunning: false,
     timerId:      null,
+    isAwaiting:   false,
     isMinimized:  false,
     stats:        { resolved: 0, reclass: 0, calls: 0 },
     toastMsg:     null,
@@ -72,6 +73,25 @@
 
   document.body.appendChild(host);
   var shadow = host.attachShadow({ mode: 'closed' });
+
+  // ── Timer ────────────────────────────────────────────────────────────────
+  function tick() {
+    state.elapsed++;
+    // Update timer display directly — avoid full re-render every second
+    var timerEl = shadow.querySelector('#ct-timer');
+    if (timerEl) timerEl.textContent = fmtTime(state.elapsed);
+  }
+
+  function startTimer() {
+    if (state.timerId) clearInterval(state.timerId);
+    state.timerId = setInterval(tick, 1000);
+    state.timerRunning = true;
+  }
+
+  function stopTimer() {
+    if (state.timerId) { clearInterval(state.timerId); state.timerId = null; }
+    state.timerRunning = false;
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   function fmtTime(secs) {
@@ -121,7 +141,7 @@
           'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
         '">' + caseLabel + '</span>' +
         // Timer display
-        '<span style="' +
+        '<span id="ct-timer" style="' +
           'flex-shrink:0;' +
           'color:' + T.textPri + ';' +
           'font:600 13px/1 "Courier New",monospace;' +
@@ -172,9 +192,10 @@
         '">Call</button>' +
         '<button data-action="awaiting" style="' +
           'flex:1;height:28px;border:none;border-radius:6px;' +
-          'background:' + T.awaiting + ';color:#fff;' +
+          'background:' + (state.isAwaiting ? 'rgba(245,158,11,0.25)' : T.awaiting) + ';color:#fff;' +
           'font:700 11px/1 ' + T.font + ';cursor:pointer;letter-spacing:0.02em;' +
-        '">Await</button>' +
+          'border:' + (state.isAwaiting ? '1px solid ' + T.awaiting : 'none') + ';' +
+        '">' + (state.isAwaiting ? '\u25b6 Resume' : 'Await') + '</button>' +
       '</div>';
 
     // Stats row (hidden when minimized)
@@ -225,6 +246,9 @@
   // Initial render
   render();
 
+  // Auto-start timer if a case number was provided
+  if (state.caseNumber) startTimer();
+
   // ── Expose refresh hook for double-injection guard ────────────────────────
   host._meridianRefresh = function (payload) {
     if (payload.caseNumber && payload.caseNumber !== state.caseNumber) {
@@ -233,7 +257,9 @@
       state.caseSubtype = payload.caseSubtype || '';
       state.accountId   = payload.accountId   || '';
       state.elapsed     = 0;
-      // Timer restart handled by Task 3
+      state.isAwaiting  = false;
+      stopTimer();
+      if (state.caseNumber) startTimer();
     }
     render();
   };
@@ -248,7 +274,7 @@
       state.isMinimized = !state.isMinimized;
       render();
     } else if (action === 'close') {
-      if (state.timerId) clearInterval(state.timerId);
+      stopTimer();
       host.remove();
     } else if (action === 'resolve') {
       // Wired in Task 5 — handleResolved()
@@ -257,7 +283,16 @@
     } else if (action === 'call') {
       // Wired in Task 5 — handleCall()
     } else if (action === 'awaiting') {
-      // Wired in Task 3 — pauses timer
+      if (state.isAwaiting) {
+        // Resume
+        state.isAwaiting = false;
+        startTimer();
+      } else {
+        // Pause
+        state.isAwaiting = true;
+        stopTimer();
+      }
+      render();
     }
   });
 

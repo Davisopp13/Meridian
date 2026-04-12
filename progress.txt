@@ -1961,3 +1961,26 @@ Learnings for future iterations:
   - node --check is the correct flag for JS syntax checking (node -c doesn't work)
   - MERIDIAN_PAYLOAD.relayFrame may be null on first load (task 7 will populate it from trigger); guard with || null
 ---
+
+## Iteration CT-3 - Task 3 (CT Widget PRD): Wire timer functionality
+- Added `isAwaiting: false` field to state object
+- Added `tick()` — increments state.elapsed, updates #ct-timer textContent directly (no full re-render per tick)
+- Added `startTimer()` — clears any existing interval, starts new 1s interval, sets timerRunning = true
+- Added `stopTimer()` — clears interval, nulls timerId, sets timerRunning = false
+- Added `id="ct-timer"` to timer span in render() so tick() can find it via shadow.querySelector
+- Updated Awaiting button in render(): shows "▶ Resume" with dimmed background when state.isAwaiting, normal amber when not
+- Wired `awaiting` click action: toggles isAwaiting, calls stopTimer/startTimer, calls render()
+- Auto-starts timer after initial render if state.caseNumber is present
+- Updated `_meridianRefresh`: resets isAwaiting, calls stopTimer, restarts timer for new case
+- Changed close handler to use stopTimer() instead of inline clearInterval
+- `node --check` passes, `npx vite build` passes
+
+Files changed:
+  public/ct-widget.js
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - Direct DOM update for timer (shadow.querySelector('#ct-timer').textContent) avoids full shadow.innerHTML rebuild every second — much more efficient
+  - Awaiting button uses conditional background/border in render() so it visually reflects pause state without a separate render() call on every tick
+  - startTimer() guard (clearInterval before setInterval) prevents stacked intervals if called twice
+  - The Awaiting button uses border style in HTML string: must use single quotes inside the template string or escape carefully — used concatenation instead

@@ -150,7 +150,7 @@ src/
   - Files: Create `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 3: Wire timer functionality**
+- [x] **Task 3: Wire timer functionality**
   - What: Add timer start/stop/display to `public/ct-widget.js`
   - **Auto-start on injection:** When the widget loads and `state.caseNumber` is found (scraped from page title by the trigger code), start the timer immediately: `state.timerRunning = true; state.timerId = setInterval(tick, 1000);`
   - **tick():** Increments `state.elapsed++` and calls `render()` (or just updates the timer display element directly for performance — find the timer span in shadow DOM and update textContent)
