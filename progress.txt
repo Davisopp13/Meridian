@@ -1826,3 +1826,22 @@ Learnings for future iterations:
   - ProcessPicker onConfirm receives (categoryId, subcategoryId, durationSeconds) — elapsed from activeProcess is passed as third arg
   - handleStart() can be called directly from usePendingTriggers handleProcessStart (same function reference)
 ---
+
+## Iteration N - Task 8 (Phase 3): Create MPL bookmarklet builder function
+- Added `buildMplBmHref(userId)` function to src/components/onboarding/Step3Bookmarklet.jsx
+- Opens `?mode=mpl-widget` popup named `meridian-mpl` at width=400,height=100, pinned top-right
+- Inserts MERIDIAN_PROCESS_START pending_trigger via Supabase REST (anon key, return=minimal header)
+- Shows toast "✓ Meridian — Process widget opened" with blue-left-border accent (#60a5fa)
+- No relay iframe, no SF detection, no DOM scraping — simpler than CT bookmarklet
+- Updated mplBmHref const and wired existing MPL anchor to use the new function
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx (buildMplBmHref added, anchor updated)
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - MPL bookmarklet is a template literal with `${userId}` interpolated — same pattern as buildBmHref
+  - Unicode escapes in template literals need double backslash: '\\u2713' not '\u2713'
+  - existing MPL anchor already in the JSX — just wire it to the new function, no JSX restructure needed for Task 8
+---

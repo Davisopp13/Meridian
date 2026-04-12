@@ -212,7 +212,7 @@ src/
 
 ### Phase 3: Bookmarklets & Onboarding
 
-- [ ] **Task 8: Create MPL bookmarklet builder function**
+- [x] **Task 8: Create MPL bookmarklet builder function**
   - What: Create a helper function `buildMplBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
   - The MPL bookmarklet is much simpler than the CT bookmarklet:
     1. Opens `https://meridian-hlag.vercel.app?mode=mpl-widget` as a popup window named `meridian-mpl` with `width=400,height=100,top=0,left=<screen.availWidth - 416>`
