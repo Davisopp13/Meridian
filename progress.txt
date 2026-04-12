@@ -2002,3 +2002,36 @@ Learnings for future iterations:
   - token param in relayGet is optional; pass `token || undefined` so the relay falls back to anon key when not provided
   - state.relay guard must be the FIRST thing in each function (before addEventListener) to avoid memory leaks from orphaned listeners
 ---
+
+## Iteration N - Task 5: Wire action buttons — Resolved, Reclassified, Call
+- Added getTodayNY() helper (en-CA locale + America/New_York timezone = YYYY-MM-DD)
+- Added handleResolved(), handleReclass(), handleCall() functions
+- All three call relayPost('ct_activity_log', {...}) with correct field mapping per PRD spec
+- handleResolved/handleReclass stop timer, reset elapsed to 0 on success, increment stats
+- handleCall does NOT stop timer (calls happen while working a case), sets time_spent_seconds=null
+- Wired handlers into the shadow root click delegation (replacing the stub comments)
+- Files changed: public/ct-widget.js, PRD.md
+- Test: vite build ✓, node --check ✓
+
+Learnings for future iterations:
+  - Toast function (showWidgetToast) calls render() immediately — no need to call render() again after showWidgetToast, but updating stats before the call is safe since render reads from state
+  - stats are incremented client-side only (no initial DB fetch) — this matches PRD Task 6 spec
+  - node -c is shorthand for node --check; both work for syntax validation
+---
+
+## Iteration CT-6 - Task 6 (CT Widget PRD): Wire stats display
+- No code changes required — stats display was already fully implemented by prior tasks
+- state.stats = { resolved: 0, reclass: 0, calls: 0 } initialized in Task 2 state object
+- stats row in render() already present from Task 2: compact flex row with colored counts
+- handleResolved/handleReclass/handleCall already increment state.stats.* on success (Task 5)
+- No initial stats fetch — stats start at 0 per session per PRD spec
+- npx vite build passes — 0 errors, node -c passes
+
+Files changed:
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - Task 6 was pre-implemented across Tasks 2 and 5 — always scan existing code before writing
+  - Stats display is in the statsHtml variable in render(), shown when !state.isMinimized and no toast
+  - Toast replaces stats row when present: `state.toastMsg ? toastHtml : statsHtml`
+---

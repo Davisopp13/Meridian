@@ -224,7 +224,7 @@ src/
   - Files: Modify `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 6: Wire stats display**
+- [x] **Task 6: Wire stats display**
   - What: Show today's stats in the widget and update them on each log action
   - **Client-side tracking:** The widget tracks `state.stats = { resolved: 0, reclass: 0, calls: 0 }` and increments on each successful log. This gives accurate counts for the current session.
   - **Stats display in render():** Show a compact stats row below the action buttons:
