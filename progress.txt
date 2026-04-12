@@ -1657,3 +1657,39 @@ Learnings for future iterations:
   - flexWrap: 'wrap' on the anchor row ensures graceful layout on narrow screens
   - Unicode escapes (\u2014) needed in template literals for em-dash in instruction strings
 ---
+
+## Iteration MPL-7 - Task 7 (MPL PRD): Remove process UI from PipBar
+- Removed the `+ Process` button JSX from PipBar.jsx (lines 243-251)
+- Changed `processes={processes}` to `processes={[]}` in buildPipBar() in App.jsx
+- Changed DEFAULT_SETTINGS.stat_buttons from ['resolved','reclass','calls','processes','total'] to ['resolved','reclass','calls','total'] in constants.js
+- All process props kept in PipBar function signature — only the rendered button removed
+- `npm run build` passes — 2458 modules, 0 errors
+
+Files changed:
+  src/PipBar.jsx (removed + Process button)
+  src/App.jsx (processes={[]} in buildPipBar)
+  src/lib/constants.js (removed 'processes' from stat_buttons)
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - constants.js requires Read before Edit (like all files) — the Read→Edit sequence is mandatory even for small changes
+  - All tasks in the MPL PRD are now complete — PRD is fully done
+---
+
+## Iteration Split-1 - Task 1 (Dual-Widget Split PRD): Create CT size constants
+- Added CT_HEIGHTS, CT_STATE_BASE_WIDTHS, CT_STAT_BUTTON_WIDTHS objects to src/lib/constants.js
+- Added getCtBarWidth() and getCtSizeForState() functions following same pattern as existing getBarWidth/getSizeForState
+- CT_HEIGHTS excludes processActive, categoryScreen, subcategoryScreen, manualEntryForm, overlay (CT is case-only)
+- CT_STATE_BASE_WIDTHS excludes processActive, categoryScreen, subcategoryScreen, manualEntryForm, overlay
+- CT_STAT_BUTTON_WIDTHS excludes 'processes' key
+- npm run build passes — 0 errors
+
+Files changed:
+  src/lib/constants.js (CT_HEIGHTS, CT_STATE_BASE_WIDTHS, CT_STAT_BUTTON_WIDTHS, getCtBarWidth, getCtSizeForState added)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - getCtBarWidth still uses BUTTON_GAP from module scope — no need to duplicate it
+  - getMiniWidth reused unchanged for CT minimized state (minimized strip is same for both widgets)
+  - New PRD is "Meridian Dual-Widget Split PRD" — active task list starts at Phase 1 Task 1
+---

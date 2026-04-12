@@ -1,235 +1,327 @@
-# Meridian: MPL Separation PRD
+# Meridian Dual-Widget Split PRD
 
 ## Project Overview
 
-Separate the Manual Process Logger (MPL) from the Case Tracker widget into its own standalone surface. Currently both CT and MPL share one PipBar widget, making it overcrowded and confusing. After this work, CT keeps its existing PiP widget (unchanged) and MPL gets its own dedicated page accessible via `?mode=mpl`. Both tools share the same Supabase backend, auth, and dashboard. This is a Vite + React 18 app with Supabase backend, inline styles, no TypeScript.
+Split Meridian's single combined widget into two focused widgets: **CT Widget** (cases only) and **MPL Widget** (manual processes only). Both open via separate bookmarklets, share the same Supabase backend and auth, and write to existing tables. The dashboard unifies data from both.
+
+**Stack:** Vite + React 18, Supabase, Vercel deployment  
+**Repo:** Already cloned, working directory is root  
+**Success:** Two independently launchable widgets — CT handles case logging, MPL handles process timing/logging — both reachable via bookmarklets, Vite build passes with no errors.
 
 ## Architecture & Key Decisions
 
-- **Framework:** Vite + React 18, no TypeScript, inline styles using `C` color tokens from `src/lib/constants.js`
-- **Database:** Supabase — MPL writes to `mpl_entries` table, calls write to `case_events` table with `session_id: null`
-- **Mode detection:** `?mode=mpl` URL parameter detected in App.jsx, similar to existing `?mode=widget` pattern
-- **The CT PiP widget (PipBar.jsx) must NOT change** — James and Carlos are daily users. Do not modify any CT-specific code paths.
-- **Reuse existing components:** `CategoryDrillDown.jsx`, `ManualEntryForm.jsx`, and `ProcessPicker.jsx` are used by the new MPL widget. Do not duplicate them — import them.
-- **Styling:** Dark theme, `#0f1117` background, Segoe UI / Inter font stack, 8px grid. Use `C` tokens from constants.js for all colors.
-- **Stats hook:** Reuse `useStats()` from `src/hooks/useStats.js` — it already counts processes and calls.
+- **No new dependencies.** Both widgets use existing React, Supabase, Lucide icons.
+- **Fork, don't rewrite.** CT widget is a copy of App.jsx with process code stripped. MPL widget is a new streamlined component.
+- **Routing via query param.** `?mode=ct-widget` renders CtApp. `?mode=mpl-widget` renders MplApp. Default (no param) renders existing Dashboard/App.
+- **Shared components stay shared.** StatButton, MinimizeButton, PipErrorBoundary, CasePill, CategoryDrillDown — these live in `src/components/` and are imported by both widgets.
+- **Shared hooks stay shared.** usePipWindow, usePendingTriggers, useStats, useTimer — parameterized where needed.
+- **Two bookmarklets.** CT bookmarklet opens `?mode=ct-widget` and runs SF scraping. MPL bookmarklet opens `?mode=mpl-widget` with no scraping.
+- **MPL widget has Start button.** Idle state shows Start (timer mode) and Quick Log (manual entry mode). Start begins a timer immediately; category is selected when logging (after timer).
+- **Do NOT modify or delete the existing App.jsx or PipBar.jsx.** They remain as the combined fallback. New files are created alongside them.
+- **Do NOT modify Supabase schema or RLS policies.** All existing tables and policies are correct.
+- **CSS variables are defined in index.css.** Both widgets inherit them. For PiP windows, the `usePipWindow.js` hook already injects `:root` vars into the PiP document head.
+
+## File Structure (Target)
+
+```
+src/
+├── main.jsx                    ← MODIFY: add routing for ct-widget / mpl-widget modes
+├── App.jsx                     ← DO NOT TOUCH (combined fallback)
+├── PipBar.jsx                  ← DO NOT TOUCH (combined fallback)
+├── ct/
+│   ├── CtApp.jsx               ← NEW: CT orchestrator (forked from App.jsx, cases only)
+│   └── CtPipBar.jsx            ← NEW: CT bar component (forked from PipBar.jsx, no process UI)
+├── mpl/
+│   ├── MplApp.jsx              ← NEW: MPL orchestrator (new build, processes only)
+│   └── MplPipBar.jsx           ← NEW: MPL bar component with Start/Quick Log buttons
+├── components/                 ← shared components (DO NOT MOVE, already correct)
+│   ├── StatButton.jsx
+│   ├── MinimizeButton.jsx
+│   ├── MinimizedStrip.jsx
+│   ├── CasePill.jsx
+│   ├── ProcessPill.jsx
+│   ├── CategoryDrillDown.jsx
+│   ├── ManualEntryForm.jsx
+│   ├── overlays/ProcessPicker.jsx
+│   ├── overlays/RFCPrompt.jsx
+│   ├── SwimlaneTray.jsx
+│   ├── PillZone.jsx
+│   ├── PipErrorBoundary.jsx
+│   └── onboarding/Step3Bookmarklet.jsx  ← MODIFY: show two bookmarklets
+│   ...
+├── hooks/                      ← shared hooks (DO NOT MOVE)
+│   ├── usePipWindow.js
+│   ├── usePendingTriggers.js
+│   ├── useStats.js
+│   ├── useTimer.js
+│   ...
+├── lib/
+│   ├── constants.js            ← MODIFY: add CT-specific and MPL-specific size configs
+│   ├── supabase.js             ← DO NOT TOUCH
+│   └── timezone.js             ← DO NOT TOUCH
+```
 
 ## Environment & Setup
 
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` set in `.env.local`
-- Supabase tables `mpl_entries`, `mpl_categories`, `mpl_subcategories`, `case_events`, `platform_users` already exist
-- `mpl_categories` has columns: `id`, `name`, `team`, `is_active`, `display_order`, with related `mpl_subcategories`
-- `case_events` supports `session_id: null` for calls not associated with a case
-- No new npm dependencies needed
+- Supabase URL and anon key are in `src/lib/supabase.js` — already configured
+- Deployment URL: `https://meridian-hlag.vercel.app`
+- Build command: `npx vite build`
+- No `.env` files needed — keys are hardcoded in supabase.js and bookmarklet
 
 ## Tasks
 
-### Phase 1: Create the MPL Widget Component
+### Phase 1: CT Widget (Cases Only)
 
-- [x] **Task 1: Create MplWidget.jsx**
-  - What to build: Create `src/components/MplWidget.jsx` — a standalone, full-page MPL interface. This is the primary deliverable.
-  - **Layout:** Full viewport height, dark background (`#0f1117`). Two zones:
-    - **Top bar (60px):** Meridian icon (links to dashboard), active timer pill (if running), current category label, Log Call button, stats display (processes count, calls count), connection status dot
-    - **Main area (fills remaining space):** Shows either the idle state, active timer state, or category picker
-  - **States:**
-    - **Idle:** Shows a prominent "Start Timer" button and a "Manual Entry" button. Also shows today's process count and call count.
-    - **Timer running:** Shows the elapsed timer, a "Log" button (opens category picker), a "Pause" button, and a "Discard" button
-    - **Category picker open:** Shows the `CategoryDrillDown` component for selecting category/subcategory. When selected, logs the entry and returns to idle.
-    - **Manual entry:** Shows the `ManualEntryForm` component (duration chips + category selection). When complete, returns to idle.
-  - **Log Call button:** Always visible in the top bar. Clicking it inserts to `case_events` with `{ user_id, type: 'call', session_id: null, excluded: false, rfc: false }` and shows a brief confirmation. Increments the calls stat.
-  - **Props:** `user`, `profile`, `categories`, `stats` (from useStats), `refetch` (to refresh stats after logging), `onLog` (async function for timer-based entries), `onManualLog` (async function for manual entries), `onCall` (async function for call logging)
-  - **Internal state:** `timerRunning` (bool), `elapsed` (seconds), `paused` (bool), `showPicker` (bool), `showManualEntry` (bool)
-  - **Timer:** Use `setInterval` for the timer, same pattern as App.jsx's `startProcessTimer`/`stopProcessTimer`. Timer is local state — no Supabase row created until the entry is logged.
-  - **Logging:** When category is selected (from picker or manual entry), call the `onLog` prop with `(categoryId, subcategoryId, minutes, source)`. The parent (App.jsx) handles the Supabase insert.
-  - Files to create: `src/components/MplWidget.jsx`
-  - Acceptance criteria: Component renders all states (idle, timer, picker, manual entry). Log Call button is present. Build passes.
-  - Test command: `npm run build` completes with 0 errors
+- [x] **Task 1: Create CT size constants**
+  - What: Add CT-specific height/width configs to `src/lib/constants.js`
+  - Add `CT_HEIGHTS` object: `{ minimized: 32, idle: 64, caseActive: 64, bothActive: 64, rfcBanner: 114, trayOpen: 276 }` (no categoryScreen, subcategoryScreen, manualEntryForm, overlay — those are MPL-only)
+  - Add `CT_STATE_BASE_WIDTHS` object: same as current `STATE_BASE_WIDTHS` but remove `categoryScreen`, `subcategoryScreen`, `manualEntryForm`, `overlay` keys
+  - Add `CT_STAT_BUTTON_WIDTHS`: same as current but remove `processes` key
+  - Add `getCtBarWidth(stateKey, statButtons)` and `getCtSizeForState(stateKey, statButtons)` functions following the same pattern as existing ones
+  - Keep all existing exports unchanged
+  - Files: `src/lib/constants.js`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 2: Style the MplWidget top bar**
-  - What to build: Polish the top bar to match the Meridian design system. It should feel like a sibling of the PipBar — same visual language but focused on MPL.
-  - **Top bar layout (left to right):**
-    - Meridian icon (32x32, rounded 8px, clickable — opens dashboard via `window.open(origin, 'meridian-dashboard')`)
-    - Vertical divider (1px, `C.divider`)
-    - Timer pill (when timer is running): shows `● HH:MM:SS` with process blue accent (`C.process`), includes Pause/Resume toggle
-    - Category label (when timer is running and category pre-selected): shows the category name in `C.process` color
-    - Flex spacer
-    - Log Call button: phone icon + "N Calls" label, blue accent (`C.calls`), always enabled
-    - Process stat: "N Processes" with process color
-    - Connection status dot (6px circle, green when connected)
-  - **Timer pill styling:**
-    - Running: `background: rgba(96,165,250,0.12)`, `border: 1px solid rgba(96,165,250,0.3)`, white text
-    - Paused: `background: rgba(245,158,11,0.12)`, `border: 1px solid rgba(245,158,11,0.3)`, amber text
-  - Use inline styles with `C` token references. Match the 60px bar height, 12px horizontal padding, 8px gap pattern from PipBar.
-  - Files to modify: `src/components/MplWidget.jsx`
-  - Acceptance criteria: Top bar visually matches Meridian design system. Timer pill changes appearance when paused vs running.
-  - Test command: `npm run build` completes with 0 errors
+- [ ] **Task 2: Create CtPipBar.jsx**
+  - What: Fork `src/PipBar.jsx` → `src/ct/CtPipBar.jsx`
+  - Remove: `+ Process` button, process-related props (`processes`, `onLogProcess`, `onCloseProcess`, `onNewProcess`, `onProcessPause`, `onProcessResume`, `onProcessLog`, `onProcessDiscard`, `onStartProcess`), process pill rendering from PillZone usage, `processes` stat button from STAT_BUTTON_CONFIG
+  - Keep: M° logo, `+ Case` input, case pills via PillZone (pass empty `processes={[]}` to PillZone), stat buttons (resolved, reclass, calls, total), minimize button, connection dot, toast, SnapButton (still hidden with `{false && ...}`), all case-related props
+  - The default `stat_buttons` for CT should be `['resolved', 'reclass', 'calls', 'total']` (no 'processes')
+  - Import paths: adjust to `../components/PillZone.jsx`, `../components/StatButton.jsx`, etc.
+  - Files: Create `src/ct/CtPipBar.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 3: Implement timer logic in MplWidget**
-  - What to build: Add start/pause/resume/discard timer functionality using local state and `setInterval`.
-  - **Start:** Set `timerRunning = true`, `elapsed = 0`, `paused = false`. Start interval that increments `elapsed` every second.
-  - **Pause:** Set `paused = true`. Clear the interval but keep `elapsed` value.
-  - **Resume:** Set `paused = false`. Restart the interval from current `elapsed`.
-  - **Discard:** Clear interval, reset all timer state to idle.
-  - **Log (opens picker):** Set `showPicker = true`. The picker component receives `elapsed` and handles category selection.
-  - Use `useRef` for the interval ID to avoid stale closures. Clean up interval on unmount via `useEffect` return.
-  - Timer display: Use `formatElapsed` from `src/lib/constants.js`.
-  - Files to modify: `src/components/MplWidget.jsx`
-  - Acceptance criteria: Timer starts, pauses, resumes, and discards correctly. Elapsed time displays formatted. Interval is cleaned up on unmount.
-  - Test command: `npm run build` completes with 0 errors
+- [ ] **Task 3: Create CtApp.jsx — Core shell**
+  - What: Fork `src/App.jsx` → `src/ct/CtApp.jsx`
+  - This is the largest task. Copy App.jsx, then remove all process-related code:
+    - Remove state: `processes`, `pickerPending`, `manualEntryOpen`, `pendingProcessLog`, process-related refs
+    - Remove functions: `startProcessTimer`, `stopProcessTimer`, `handleProcessStart`, `handleLogProcess`, `handleProcessLogFromStrip`, `handleCloseProcess`, `handleNewProcess`, `handleManualEntryClose`, `handleManualLog`, `handlePickerConfirm`, `handlePickerScreenChange`, `handlePickerCancel`, `handleProcessPause`, `handleProcessResume`, `handleConfirmProcess`
+    - Remove from `syncTimers`: process timer logic (keep case timer logic only)
+    - Remove imports: ManualEntryForm, ProcessPicker, CategoryDrillDown
+    - Change `getBarMode` to only check cases/tray/rfcBanner (no process conditions)
+    - Update `buildPipBar()` to render `CtPipBar` instead of `PipBar`, pass only case-related props
+    - Use `getCtSizeForState` from constants instead of `getSizeForState`
+    - Keep: all auth logic, case handlers, case timers, RFC flow, swimlane tray, pending trigger handling (but only `handleCaseStart` — replace `handleProcessStart` with a no-op or remove it from usePendingTriggers callback), bar_sessions, localStorage state persistence, connection ping
+    - In `usePendingTriggers` call: pass `handleProcessStart: () => {}` (no-op) since CT ignores process triggers
+    - The `isWidgetMode` check should look for `mode=ct-widget`: `const isWidgetMode = new URLSearchParams(window.location.search).get('mode') === 'ct-widget'`
+    - Import `CtPipBar` from `./CtPipBar.jsx`
+    - For the JSX return section (the dashboard fallback when not in widget mode): render a simple centered message like "CT Widget — use bookmarklet to launch" or redirect to root. Actually, in widget mode the JSX return is the widget itself — keep the same pattern as App.jsx's widget mode rendering but with CtPipBar.
+  - Files: Create `src/ct/CtApp.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 4: Integrate CategoryDrillDown and ManualEntryForm**
-  - What to build: Wire the category picker and manual entry form into MplWidget's main area.
-  - **When `showPicker` is true:** Render `ProcessPicker` component below the top bar, passing `categories`, `elapsed`, `onConfirm`, `onCancel`, and `onScreenChange`. The `onConfirm` callback receives `(categoryId, subcategoryId, durationSeconds)` — convert to minutes via `Math.round(durationSeconds / 60) || 1`, call `onLog(categoryId, subcategoryId, minutes, 'mpl_timer')`, then reset timer state to idle. Set `showPicker = false`, `timerRunning = false`, `elapsed = 0`.
-  - **When `showManualEntry` is true:** Render `ManualEntryForm` below the top bar, passing `categories`, `onClose` (sets `showManualEntry = false`), and `onLog` (receives `(categoryId, subcategoryId, minutes)` — call `onManualLog(categoryId, subcategoryId, minutes)`, then set `showManualEntry = false`).
-  - **The main area** should use `flex: 1, minHeight: 0, overflow: hidden` so the picker/form fills available space below the 60px top bar.
-  - When neither picker nor manual entry is open, show the idle state with "Start Timer" and "Manual Entry" buttons.
-  - Files to modify: `src/components/MplWidget.jsx`
-  - Acceptance criteria: Category picker opens when Log is clicked on running timer. Manual entry form opens from idle. Both correctly log entries via props. State resets to idle after logging.
-  - Test command: `npm run build` completes with 0 errors
-
-### Phase 2: Wire MPL Mode into App.jsx
-
-- [x] **Task 5: Add isMplMode detection and render branch**
-  - What to build: In `src/App.jsx`, detect `?mode=mpl` in the URL and render MplWidget instead of Dashboard.
-  - **Add near the existing `isWidgetMode` detection** (around line 92):
-    ```javascript
-    const isMplMode = new URLSearchParams(window.location.search).get('mode') === 'mpl'
-    ```
-  - **Add an MPL init effect** (similar to the widget init effect around line 286):
-    ```javascript
-    const mplInitRef = useRef(false)
-    useEffect(() => {
-      if (!isMplMode) return
-      if (authLoading || !user || !profile?.onboarding_complete) return
-      if (mplInitRef.current) return
-      mplInitRef.current = true
-      document.body.classList.add('widget-mode')
-    }, [isMplMode, authLoading, user, profile])
-    ```
-  - **Add render branch** — BEFORE the `isWidgetMode` check and BEFORE the Dashboard return, add:
+- [ ] **Task 4: Wire CT widget routing in main.jsx**
+  - What: Modify `src/main.jsx` to check `window.location.search` for `mode=ct-widget` and render `CtApp` instead of `App`
+  - Pattern:
     ```jsx
-    if (isMplMode) {
-      return (
-        <div style={{
-          width: '100%',
-          height: '100vh',
-          background: '#0f1117',
-          overflow: 'hidden',
-          fontFamily: '"Inter", system-ui, sans-serif',
-        }}>
-          <MplWidget
-            user={user}
-            profile={profile}
-            categories={categories}
-            stats={stats}
-            refetch={refetch}
-            onLog={async (categoryId, subcategoryId, minutes, source) => {
-              await safeWrite(supabase.from('mpl_entries').insert({
-                user_id: user.id,
-                category_id: categoryId,
-                subcategory_id: subcategoryId,
-                minutes,
-                source: source || 'mpl_widget',
-              }))
-              refetch()
-            }}
-            onManualLog={async (categoryId, subcategoryId, minutes) => {
-              await safeWrite(supabase.from('mpl_entries').insert({
-                user_id: user.id,
-                category_id: categoryId,
-                subcategory_id: subcategoryId,
-                minutes,
-                source: 'manual',
-              }))
-              refetch()
-            }}
-            onCall={async () => {
-              await safeWrite(supabase.from('case_events').insert({
-                session_id: null,
-                user_id: user.id,
-                type: 'call',
-                excluded: false,
-                rfc: false,
-              }))
-              refetch()
-            }}
-          />
-        </div>
-      )
-    }
+    import App from './App.jsx'
+    import CtApp from './ct/CtApp.jsx'
+    import MplApp from './mpl/MplApp.jsx'  // will exist after Phase 2
+    
+    const mode = new URLSearchParams(window.location.search).get('mode')
+    const Root = mode === 'ct-widget' ? CtApp
+               : mode === 'mpl-widget' ? MplApp
+               : App
+    
+    createRoot(document.getElementById('root')).render(
+      <StrictMode><Root /></StrictMode>
+    )
     ```
-  - **Add import** at the top of App.jsx: `import MplWidget from './components/MplWidget.jsx'`
-  - Files to modify: `src/App.jsx`
-  - Acceptance criteria: Navigating to `?mode=mpl` renders MplWidget. Auth works (shared session). Categories load based on profile team. Build passes.
-  - Test command: `npm run build` completes with 0 errors
+  - Since MplApp doesn't exist yet, create a temporary placeholder: `src/mpl/MplApp.jsx` that exports a simple `function MplApp() { return <div>MPL Widget — coming soon</div> }` so the import doesn't break the build.
+  - Files: Modify `src/main.jsx`, create `src/mpl/MplApp.jsx` (placeholder)
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [x] **Task 6: Add MPL bookmarklet entry point**
-  - What to build: Update the bookmarklet screens so agents have a way to launch MPL.
-  - **In `src/components/onboarding/Step3Bookmarklet.jsx`:** Add a second bookmarklet anchor below the existing CT one. This one opens `?mode=mpl`:
-    ```javascript
-    const mplBmHref = `javascript:(function(){window.open('https://meridian-hlag.vercel.app?mode=mpl','meridian-mpl');})();`;
+### Phase 2: MPL Widget (Processes Only)
+
+- [ ] **Task 5: Create MPL size constants**
+  - What: Add MPL-specific height/width configs to `src/lib/constants.js`
+  - Add `MPL_HEIGHTS`: `{ minimized: 32, idle: 100, timerActive: 140, categoryPicker: 480, manualEntry: 480 }`
+  - Add `MPL_STATE_BASE_WIDTHS`: `{ idle: 160, timerActive: 200, categoryPicker: 200, manualEntry: 200 }`
+  - Add `MPL_STAT_BUTTON_WIDTHS`: `{ processes: 114, total: 90 }` (MPL only shows process count and total)
+  - Add `getMplBarWidth(stateKey, statButtons)` and `getMplSizeForState(stateKey, statButtons)` functions
+  - MPL widget width should be 400px for all states (use 400 as fixed width, or base 200 + stat buttons)
+  - Files: `src/lib/constants.js`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 6: Create MplPipBar.jsx**
+  - What: Build a new bar component for the MPL widget from scratch (NOT a fork of PipBar.jsx — it's different enough)
+  - **Idle state** (no active timer): Shows M° logo, **Start** button (blue, prominent), **Quick Log** button (secondary), process count stat, connection dot, minimize button
+  - **Timer running state**: Shows M° logo, active process pill with elapsed timer (blue pill, mm:ss format), **Log** button (blue, triggers category picker), **Discard** button (subtle), process count stat, connection dot, minimize button
+  - **Category picker / manual entry state**: The bar area stays the same, but `children` slot expands below with CategoryDrillDown or ManualEntryForm
+  - Props:
     ```
-    Render as a second draggable button with blue (`#3b82f6`) background:
+    activeProcess       — { id, elapsed, paused } or null
+    processCount        — number (today's completed processes)
+    mplState            — 'idle' | 'timerActive' | 'categoryPicker' | 'manualEntry'
+    onOpenDashboard     — click M° logo
+    onStart             — click Start button (begins timer)
+    onQuickLog          — click Quick Log button (opens manual entry)
+    onLog               — click Log button (opens category picker for active timer)
+    onDiscard           — click Discard button
+    onPause             — pause active process
+    onResume            — resume paused process
+    onMinimize          — minimize to strip
+    onRestore           — restore from strip
+    isMinimized         — boolean
+    connectionStatus    — 'connected' | 'degraded' | 'offline'
+    pipToast            — string or null
+    children            — overlay/picker slot
+    ```
+  - Styling: Use same design tokens from `src/lib/constants.js` (`C` object). Blue accent (`C.process` / `C.processNavy`) as primary color. Same dark background, same font family.
+  - **Start button**: Height 28px, padding 0 14px, borderRadius 14, background `rgba(96,165,250,0.15)`, border `1px solid rgba(96,165,250,0.3)`, color `#60a5fa`, fontSize 11, fontWeight 700, text "▶ Start"
+  - **Quick Log button**: Same dimensions but more subtle — background transparent, border `1px solid var(--border)`, color `var(--text-sec)`, text "Quick Log"
+  - **Log button** (when timer active): Same style as Start but text "Log" 
+  - **Discard button**: background none, border none, color `var(--text-dim)`, fontSize 10, text "✕"
+  - **Active process pill**: Same style as existing ProcessPill component but inline in the bar — blue dot + mm:ss elapsed time
+  - Files: Create `src/mpl/MplPipBar.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 7: Create MplApp.jsx — Full implementation**
+  - What: Replace the placeholder `src/mpl/MplApp.jsx` with the full MPL orchestrator
+  - This is a NEW component, not a fork of App.jsx. It's much simpler because it only handles processes.
+  - **State:**
+    - `user`, `profile`, `authLoading` — same auth pattern as App.jsx (copy the auth useEffect)
+    - `activeProcess` — `{ id, elapsed, paused } | null` — only ONE active process at a time (simpler than App.jsx which supports multiple)
+    - `mplState` — `'idle' | 'timerActive' | 'categoryPicker' | 'manualEntry'`
+    - `categories` — fetched from `mpl_categories` + `mpl_subcategories` (same query as App.jsx)
+    - `processCount` — today's completed process count
+    - `isMinimized`, `connectionStatus`, `pipToast`
+  - **Timer:** Single `useRef` interval. `startTimer()` increments `activeProcess.elapsed` every second. `stopTimer()` clears interval.
+  - **Key handlers:**
+    - `handleStart()` — creates `activeProcess = { id: crypto.randomUUID(), elapsed: 0, paused: false }`, starts timer, sets `mplState = 'timerActive'`, resizes window
+    - `handleQuickLog()` — sets `mplState = 'manualEntry'`, resizes window to 480 height. No timer started.
+    - `handleLog()` — stops timer, sets `mplState = 'categoryPicker'`, resizes window to 480 height
+    - `handleDiscard()` — stops timer, sets `activeProcess = null`, `mplState = 'idle'`, resizes window
+    - `handlePickerConfirm(categoryId, subcategoryId, durationSeconds)` — writes to `mpl_activity_log`, increments `processCount`, resets to idle
+    - `handleManualLog(categoryId, subcategoryId, minutes)` — writes to `mpl_activity_log` with `source: 'manual'` and `duration_s: minutes * 60`, increments `processCount`, resets to idle
+    - `handlePause()` / `handleResume()` — pause/resume timer
+  - **Widget mode:** Same pattern as App.jsx — checks `?mode=mpl-widget`. In widget mode, renders MplPipBar directly in the page. In non-widget mode, uses PiP via `usePipWindow` hook.
+  - **Realtime:** Subscribe to `pending_triggers` for `MERIDIAN_PROCESS_START` type only — call `handleStart()`. Use `usePendingTriggers` hook but pass `handleCaseStart: () => {}` (no-op).
+  - **Writing to mpl_activity_log:** Insert with fields: `user_id`, `category_id`, `subcategory_id`, `duration_s`, `source` ('timer' or 'manual'), `entry_date` (NY timezone date string), `created_at` (auto)
+  - **Category fetching:** On auth, fetch categories the same way App.jsx does — query `mpl_categories` with `mpl_subcategories(*)` join, filtered by the user's team haulage_type from `profile.team` or the team's `haulage_type`. Check how App.jsx currently fetches categories and replicate that exact query.
+  - **Connection ping:** Same 30s pattern as App.jsx
+  - **Sizing:** Use `getMplSizeForState` from constants. Resize via `window.resizeTo()` in widget mode (same pattern as App.jsx's `pin()` function).
+  - **JSX structure when in widget mode:**
     ```jsx
-    <a href={mplBmHref} draggable="true" style={{
-      display: 'inline-block', background: '#3b82f6', color: '#fff',
-      fontWeight: 700, fontSize: 14, padding: '10px 24px', borderRadius: 20,
-      cursor: 'grab', userSelect: 'none', textDecoration: 'none',
-    }} onClick={e => e.preventDefault()}>
-      📋 MPL — Log Process
-    </a>
+    <MplPipBar ...props>
+      {mplState === 'categoryPicker' && <ProcessPicker ... />}
+      {mplState === 'manualEntry' && <ManualEntryForm ... />}
+    </MplPipBar>
     ```
-    Place it in a flex row next to the existing bookmarklet with `gap: 12px`.
-  - **In `src/components/BookmarkletModal.jsx`:** Same second bookmarklet anchor.
-  - **Update instruction text** in both files:
-    - Step 3: `'Click "Meridian — Log" on Salesforce to log cases. Click "MPL — Log Process" to time manual work.'`
-  - Files to modify: `src/components/onboarding/Step3Bookmarklet.jsx`, `src/components/BookmarkletModal.jsx`
-  - Acceptance criteria: Both bookmarklet anchors render. CT bookmarklet unchanged. MPL bookmarklet opens `?mode=mpl`. Build passes.
-  - Test command: `npm run build` completes with 0 errors
+  - Files: Replace `src/mpl/MplApp.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-### Phase 3: Clean Up PipBar (CT-only)
+### Phase 3: Bookmarklets & Onboarding
 
-- [x] **Task 7: Remove process UI from PipBar**
-  - What to build: Remove the `+ Process` button from PipBar since MPL now has its own surface. Take a conservative approach — minimize changes to PipBar.jsx.
-  - **In `src/PipBar.jsx`:** Remove ONLY the `+ Process` button JSX (the button with text "+ Process" and `onClick={() => onStartProcess && onStartProcess()}`). Keep the `+ Case` button. Keep all props in the function signature — just don't render the process button.
-  - **In `src/App.jsx` `buildPipBar()` function:** Change `processes={processes}` to `processes={[]}` so no process pills render in the CT widget. This is the safest approach — PipBar.jsx still accepts the prop but receives an empty array.
-  - **In `src/lib/constants.js`:** Change `DEFAULT_SETTINGS.stat_buttons` from `['resolved', 'reclass', 'calls', 'processes', 'total']` to `['resolved', 'reclass', 'calls', 'total']`.
-  - **DO NOT** remove process props from PipBar's function signature. DO NOT refactor PillZone.jsx or SwimlaneTray.jsx. Just stop passing process data and remove the + Process button UI.
-  - Files to modify: `src/PipBar.jsx` (remove + Process button only), `src/App.jsx` (change processes prop in buildPipBar), `src/lib/constants.js` (update DEFAULT_SETTINGS)
-  - Acceptance criteria: PipBar renders case-only UI. No + Process button. No process pills. Stat buttons show resolved, reclass, calls, total. Build passes.
-  - Test command: `npm run build` completes with 0 errors
+- [ ] **Task 8: Create MPL bookmarklet builder function**
+  - What: Create a helper function `buildMplBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
+  - The MPL bookmarklet is much simpler than the CT bookmarklet:
+    1. Opens `https://meridian-hlag.vercel.app?mode=mpl-widget` as a popup window named `meridian-mpl` with `width=400,height=100,top=0,left=<screen.availWidth - 416>`
+    2. Inserts a `pending_triggers` row with type `MERIDIAN_PROCESS_START` via direct fetch to Supabase REST (same anon key pattern as the non-SF path in the existing bookmarklet)
+    3. Shows a toast on the page: "✓ Meridian — Process widget opened"
+    4. No relay iframe needed. No DOM scraping. No SF detection.
+  - The full bookmarklet code (minified into the href):
+    ```javascript
+    javascript:(function(){
+      window.open('https://meridian-hlag.vercel.app?mode=mpl-widget','meridian-mpl','popup,width=400,height=100,top=0,left='+(screen.availWidth-416));
+      var SUPABASE_URL='https://wluynppocsoqjdbmwass.supabase.co';
+      var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXlucHBvY3NvcWpkYm13YXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDU4NzIsImV4cCI6MjA4ODIyMTg3Mn0.x9-t_038hz4eJUciA1F9-DWE8UN_V58KE0i43cpOAMk';
+      var USER_ID='${userId}';
+      fetch(SUPABASE_URL+'/rest/v1/pending_triggers',{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_id:USER_ID,type:'MERIDIAN_PROCESS_START',page_url:window.location.href})}).catch(function(err){console.error('[Meridian]',err)});
+      try{var et=document.getElementById('meridian-toast');if(et)et.remove();var t=document.createElement('div');t.id='meridian-toast';t.textContent='\u2713 Meridian \u2014 Process widget opened';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#003087;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:"Segoe UI",sans-serif;z-index:2147483647;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3);border-left:3px solid #60a5fa;transition:opacity 300ms';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0'},2200);setTimeout(function(){t.remove()},2500)}catch(e){}
+    })();
+    ```
+  - This must be minified into a single line (no newlines) in the href attribute, same as the existing CT bookmarklet.
+  - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 9: Update CT bookmarklet to open CT widget specifically**
+  - What: Modify `buildBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
+  - Change the `window.open` URL from `https://meridian-hlag.vercel.app?mode=widget` to `https://meridian-hlag.vercel.app?mode=ct-widget`
+  - Change the popup window name from `meridian-widget` to `meridian-ct`
+  - Everything else stays the same — relay iframe for SF, direct fetch for non-SF, SF DOM scraping
+  - Also update the non-SF branch: currently it sends `type:'MERIDIAN_PROCESS_START'` for non-SF pages. Change this to `type:'MERIDIAN_CASE_START'` since the CT bookmarklet should always trigger case behavior. Actually — on non-SF pages the CT bookmarklet should just open the CT widget without triggering anything specific. Change the non-SF `fetch` to not insert a pending_trigger at all — just open the popup. The agent can use the `+ Case` button in the widget to manually enter a case number.
+  - So for non-SF pages: just `window.open(...)` + toast. Remove the `fetch()` call from the `else` branch.
+  - Rename the existing function from `buildBmHref` to `buildCtBmHref` for clarity
+  - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 10: Update onboarding Step 3 to show two bookmarklets**
+  - What: Modify the JSX in `Step3Bookmarklet.jsx` to show both bookmarklets
+  - Show two draggable anchors:
+    1. **"⚡ Cases"** — orange background (#E8540A), uses `buildCtBmHref(userId)`
+    2. **"⚡ Processes"** — blue background (#4a90d9), uses `buildMplBmHref(userId)`
+  - Side by side in a flex row with gap 12
+  - Update instruction step 3 text to: "Drag both buttons to your bookmarks bar. Use Cases on Salesforce pages, Processes for manual work tracking."
+  - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+### Phase 4: Dashboard Integration
+
+- [ ] **Task 11: Add dual launch buttons to Dashboard**
+  - What: Modify `src/components/Dashboard.jsx`
+  - Find the existing "Launch Widget" button/section
+  - Replace with two buttons side by side:
+    1. **"Launch Cases"** — orange accent, opens `?mode=ct-widget` as popup (same pattern as existing launch)
+    2. **"Launch Processes"** — blue accent, opens `?mode=mpl-widget` as popup
+  - Both use `window.open()` with appropriate dimensions (CT: 600×64, MPL: 400×100)
+  - Files: Modify `src/components/Dashboard.jsx`
+  - Test: `npx vite build 2>&1 | tail -8` — no errors
+
+- [ ] **Task 12: Final build verification**
+  - What: Run `npx vite build` and verify zero errors, zero warnings
+  - Check that all imports resolve correctly
+  - Check that no circular dependencies exist
+  - If any issues found, fix them
+  - Files: Any files with issues
+  - Test: `npx vite build 2>&1 | tail -8` — clean build with no errors or warnings
 
 ## Testing Strategy
 
-- Primary: `npm run build` completes with 0 errors after each task
-- Every task must pass build before being marked complete
-- Do NOT attempt to run `npm run dev` or start a dev server — just verify the build
+- Primary: `npx vite build 2>&1 | tail -8` — must show "built in Xs" with no errors
+- Secondary: `grep -r "from '.*App'" src/ct/ src/mpl/` to verify import paths are correct
+- Sanity check: `grep -rn "handleProcessStart\|handleLogProcess\|ManualEntryForm\|ProcessPicker" src/ct/` should return zero results (no process code in CT)
+- Sanity check: `grep -rn "handleCaseStart\|handleResolve\|handleReclass\|RFCPrompt\|SwimlaneTray" src/mpl/` should return zero results (no case code in MPL)
 
 ## Out of Scope
 
-- No Supabase schema changes (tables already exist)
-- No changes to the Dashboard component
-- No changes to the activity log or edit feature
-- No changes to the auth flow
-- No changes to `usePipWindow.js` or the Document PiP API
-- No changes to `meridian-trigger.js` or `meridian-relay.html`
-- No CSS framework changes (keep inline styles)
-- Do NOT add react-router or any routing library
-- Do NOT create separate Vite entry points
-- Do NOT modify existing handler functions in App.jsx (handleProcessStart, handlePickerConfirm, etc.) — MPL mode defines its own handlers via props
-- Do NOT touch CaseLaneRow.jsx, CasePill.jsx, CasesLane.jsx, RFCPrompt.jsx, or any CT-specific component
+- No Supabase schema changes
+- No RLS policy changes
+- No new npm dependencies
+- No changes to `src/App.jsx` or `src/PipBar.jsx` (preserved as combined fallback)
+- No changes to `public/meridian-relay.html` or `public/meridian-trigger.js`
+- No PiP mode for MPL widget (popup only for now — PiP can be added later)
+- No supervisor dashboard / Insights work
+- No role hierarchy schema changes
+- No Salesforce API integration
+- No CSS variable changes in index.css
+- No widget corner snapping work
 
 ## Notes for Ralph
 
-- **Import paths:** Components are in `src/components/`. Hooks are in `src/hooks/`. Constants in `src/lib/constants.js`. Supabase client in `src/lib/supabase.js`.
-- **Color tokens:** Always use `C.xxx` from constants.js. Never hardcode hex in components. Exception: background colors like `#0f1117` for page-level backgrounds are OK.
-- **`formatElapsed(seconds)`:** Exported from `src/lib/constants.js`. Returns `MM:SS` format string.
-- **`categories` array shape:** `[{ id, name, team, display_order, mpl_subcategories: [{ id, name, display_order }] }]`
-- **`mpl_entries` insert shape:** `{ user_id, category_id, subcategory_id, minutes, source }` — `subcategory_id` can be null.
-- **`case_events` call insert shape:** `{ session_id: null, user_id, type: 'call', excluded: false, rfc: false }`
-- **The `?mode=widget` path already exists** — check how it's implemented (around line 92 and line 1336 in App.jsx) and follow the exact same pattern for `?mode=mpl`.
-- **ProcessPicker props:** `{ categories, elapsed, onConfirm, onCancel, onScreenChange }`. `onConfirm` is called with `(categoryId, subcategoryId, durationSeconds)`.
-- **ManualEntryForm props:** `{ categories, onClose, onLog }`. `onLog` is called with `(categoryId, subcategoryId, minutes)`.
-- **Use lucide-react for icons** — it's already a dependency. Import like: `import { Phone, Play, Pause, Square, Clock, Plus } from 'lucide-react'`
-- **PipBar.jsx uses `useState`** for local state (case input). When removing the + Process button, only remove that specific JSX block. Don't restructure the component.
-- **The `safeWrite` function** is defined in App.jsx and shows error toasts. All Supabase writes in the MPL render branch should use it via the inline async functions passed as props.
+### Critical patterns already in the codebase:
+
+1. **Widget mode detection:** `const isWidgetMode = new URLSearchParams(window.location.search).get('mode') === 'widget'` — the CT widget should check for `'ct-widget'`, MPL for `'mpl-widget'`
+
+2. **PiP window CSS vars:** The `usePipWindow.js` hook injects CSS variables into the PiP window's `<head>`. Both widgets inherit this if using PiP mode. For popup/widget mode, vars come from index.css.
+
+3. **`resizeTo()` requires user activation:** Cannot call from useEffect or async callbacks. The `pin()` function in App.jsx handles this — replicate the pattern but don't expect it to always succeed from Realtime callbacks.
+
+4. **Supabase anon key RLS:** The bookmarklet uses the anon key. `pending_triggers` has RLS policies that allow anon inserts with `WITH CHECK (true)`. Don't change RLS.
+
+5. **`Prefer: return=minimal`:** Bookmarklet fetches to Supabase must use this header. `return=representation` causes 401 for anon role.
+
+6. **Category fetching pattern:** Look at how App.jsx fetches categories around line 390-410. The query joins `mpl_categories` with `mpl_subcategories`. The haulage type filter comes from the user's team. Replicate this exact query in MplApp.jsx.
+
+7. **Activity log writes:** When logging a process, write to `mpl_activity_log` table. Check existing `handleManualLog` and `handleConfirmProcess` in App.jsx (around lines 1045-1090) for the exact column names and patterns.
+
+8. **New York timezone dates:** Always use `getNewYorkDateKey()` from `src/lib/timezone.js` for `entry_date` values.
+
+9. **Import paths from ct/ and mpl/ subdirectories:** Components are at `../components/X.jsx`, hooks at `../hooks/X.js`, lib at `../lib/X.js`.
+
+10. **The ManualEntryForm component** expects `categories` array and calls `onLog(categoryId, subcategoryId, minutes)`. The ProcessPicker expects `categories`, `elapsed`, and calls `onConfirm(categoryId, subcategoryId, durationSeconds)`. Both are in `src/components/`.
+
+11. **Bar session tracking:** The `bar_sessions` table tracks when a widget is opened/closed. App.jsx has `createBarSession()` around line 224. CT widget should replicate this. MPL widget should too but can be simpler.
+
+12. **`body.widget-mode` class:** App.jsx adds this to document.body when in widget mode (check around line 290-300). Both CT and MPL widgets should do the same.
+
+13. **Process timer is client-side only:** Unlike cases (which are persisted to `ct_cases` on start), process timers only exist in React state until the agent logs them. The elapsed time is passed to `mpl_activity_log.duration_s` on log. MplApp should follow this same pattern — no `mpl_sessions` table write on Start, only write to `mpl_activity_log` on Log.

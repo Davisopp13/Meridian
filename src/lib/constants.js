@@ -77,6 +77,44 @@ export function getSizeForState(stateKey, statButtons) {
   return { width: getBarWidth(stateKey, statButtons), height: HEIGHTS[stateKey] || 64 }
 }
 
+// ── CT Widget Sizing (cases only) ─────────────────────────────────
+
+export const CT_HEIGHTS = {
+  minimized: 32,
+  idle: 64,
+  caseActive: 64,
+  bothActive: 64,
+  rfcBanner: 114,
+  trayOpen: 276,
+}
+
+export const CT_STATE_BASE_WIDTHS = {
+  idle: 160,
+  caseActive: 260,
+  bothActive: 350,
+  rfcBanner: 260,
+  trayOpen: 380,
+}
+
+export const CT_STAT_BUTTON_WIDTHS = {
+  resolved: 110, reclass: 100,
+  calls: 90, total: 90,
+}
+
+export function getCtBarWidth(stateKey, statButtons) {
+  const base = CT_STATE_BASE_WIDTHS[stateKey] || 240
+  const btnW = statButtons.reduce((sum, k) => sum + (CT_STAT_BUTTON_WIDTHS[k] || 0), 0)
+  const gaps = Math.max(0, statButtons.length - 1) * BUTTON_GAP
+  return base + btnW + gaps
+}
+
+export function getCtSizeForState(stateKey, statButtons) {
+  if (stateKey === 'minimized') {
+    return { width: getMiniWidth(statButtons), height: CT_HEIGHTS.minimized }
+  }
+  return { width: getCtBarWidth(stateKey, statButtons), height: CT_HEIGHTS[stateKey] || 64 }
+}
+
 export function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
