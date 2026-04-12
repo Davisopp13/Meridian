@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 function getCutoff(rangeDays) {
@@ -17,12 +17,23 @@ const TYPE_LABEL = {
   rfc: 'RFC',
 };
 
+const TYPE_DB = {
+  Resolved: 'resolved',
+  Reclassified: 'reclassified',
+  Call: 'call',
+  'Not a Case': 'not_a_case',
+  RFC: 'rfc',
+};
+
 function normalizeCaseEvent(row) {
   return {
     id: row.id,
     type: TYPE_LABEL[row.type] || row.type,
+    rawType: row.type,
     src: 'case',
+    session_id: row.session_id || null,
     case_number: row.ct_cases?.case_number || null,
+    case_id: row.ct_cases?.id || null,
     category: '',
     dur: row.ct_cases?.duration_s || 0,
     rfc: row.rfc || false,
@@ -34,10 +45,16 @@ function normalizeMplEntry(row) {
   return {
     id: row.id,
     type: 'Process',
+    rawType: 'process',
     src: 'process',
+    session_id: null,
     case_number: null,
+    case_id: null,
     category: row.mpl_categories?.name || '',
+    category_id: row.category_id || null,
+    subcategory_id: row.subcategory_id || null,
     dur: (row.minutes || 0) * 60,
+    minutes: row.minutes || 0,
     rfc: false,
     ts: new Date(row.created_at),
   };
@@ -47,69 +64,130 @@ export function useActivityData({ userId, rangeDays }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const cancelledRef = useRef(false);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const cutoff = getCutoff(rangeDays);
+
+    const [caseResult, mplResult] = await Promise.all([
+      supabase
+        .from('case_events')
+        .select('id, type, rfc, timestamp, session_id, ct_cases(id, case_number, duration_s)')
+        .eq('user_id', userId)
+        .gte('timestamp', cutoff.toISOString()),
+      supabase
+        .from('mpl_entries')
+        .select('id, minutes, created_at, category_id, subcategory_id, mpl_categories(name)')
+        .eq('user_id', userId)
+        .gte('created_at', cutoff.toISOString()),
+    ]);
+
+    if (cancelledRef.current) return;
+
+    if (caseResult.error || mplResult.error) {
+      setError(caseResult.error || mplResult.error);
+      setLoading(false);
+      return;
+    }
+
+    const caseEntries = (caseResult.data || []).map(normalizeCaseEvent);
+    const mplEntries  = (mplResult.data  || []).map(normalizeMplEntry);
+
+    const merged = [...caseEntries, ...mplEntries].sort((a, b) => b.ts - a.ts);
+
+    setEntries(merged);
+    setLoading(false);
+  }, [userId, rangeDays]);
+
+  const editEntry = useCallback(async (entry, updates) => {
+    if (!userId) return false;
+
+    if (entry.src === 'case') {
+      const eventPayload = {};
+      if (updates.type !== undefined) eventPayload.type = TYPE_DB[updates.type] || updates.type;
+      if (updates.rfc !== undefined) eventPayload.rfc = updates.rfc;
+
+      if (Object.keys(eventPayload).length > 0) {
+        const { error } = await supabase
+          .from('case_events')
+          .update(eventPayload)
+          .eq('id', entry.id)
+          .eq('user_id', userId);
+        if (error) { console.error('[Meridian] edit case_events failed', error); return false; }
+      }
+
+      if (entry.case_id && (updates.case_number !== undefined || updates.dur !== undefined)) {
+        const casePayload = {};
+        if (updates.case_number !== undefined) casePayload.case_number = updates.case_number;
+        if (updates.dur !== undefined) casePayload.duration_s = updates.dur;
+
+        const { error } = await supabase
+          .from('ct_cases')
+          .update(casePayload)
+          .eq('id', entry.case_id);
+        if (error) { console.error('[Meridian] edit ct_cases failed', error); return false; }
+      }
+    } else if (entry.src === 'process') {
+      const payload = {};
+      if (updates.category_id !== undefined) payload.category_id = updates.category_id;
+      if (updates.subcategory_id !== undefined) payload.subcategory_id = updates.subcategory_id;
+      if (updates.minutes !== undefined) payload.minutes = updates.minutes;
+
+      const { error } = await supabase
+        .from('mpl_entries')
+        .update(payload)
+        .eq('id', entry.id)
+        .eq('user_id', userId);
+      if (error) { console.error('[Meridian] edit mpl_entries failed', error); return false; }
+    }
+
+    await fetchData();
+    return true;
+  }, [userId, fetchData]);
+
+  const deleteEntry = useCallback(async (entry) => {
+    if (!userId) return false;
+
+    const table = entry.src === 'case' ? 'case_events' : 'mpl_entries';
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', entry.id)
+      .eq('user_id', userId);
+
+    if (error) { console.error(`[Meridian] delete ${table} failed`, error); return false; }
+    await fetchData();
+    return true;
+  }, [userId, fetchData]);
 
   useEffect(() => {
     if (!userId) return;
 
-    let cancelled = false;
-
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
-
-      const cutoff = getCutoff(rangeDays);
-
-      const [caseResult, mplResult] = await Promise.all([
-        supabase
-          .from('case_events')
-          .select('id, type, rfc, timestamp, ct_cases(case_number, duration_s)')
-          .eq('user_id', userId)
-          .gte('timestamp', cutoff.toISOString()),
-        supabase
-          .from('mpl_entries')
-          .select('id, minutes, created_at, mpl_categories(name)')
-          .eq('user_id', userId)
-          .gte('created_at', cutoff.toISOString()),
-      ]);
-
-      if (cancelled) return;
-
-      if (caseResult.error || mplResult.error) {
-        setError(caseResult.error || mplResult.error);
-        setLoading(false);
-        return;
-      }
-
-      const caseEntries = (caseResult.data || []).map(normalizeCaseEvent);
-      const mplEntries  = (mplResult.data  || []).map(normalizeMplEntry);
-
-      const merged = [...caseEntries, ...mplEntries].sort((a, b) => b.ts - a.ts);
-
-      setEntries(merged);
-      setLoading(false);
-    }
-
+    cancelledRef.current = false;
     fetchData();
 
     const channel = supabase
       .channel(`activity-${userId}-${rangeDays}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'case_events', filter: `user_id=eq.${userId}` },
+        { event: '*', schema: 'public', table: 'case_events', filter: `user_id=eq.${userId}` },
         () => { fetchData(); }
       )
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'mpl_entries', filter: `user_id=eq.${userId}` },
+        { event: '*', schema: 'public', table: 'mpl_entries', filter: `user_id=eq.${userId}` },
         () => { fetchData(); }
       )
       .subscribe();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
       supabase.removeChannel(channel);
     };
-  }, [userId, rangeDays]);
+  }, [userId, rangeDays, fetchData]);
 
-  return { entries, loading, error };
+  return { entries, loading, error, refetch: fetchData, editEntry, deleteEntry };
 }

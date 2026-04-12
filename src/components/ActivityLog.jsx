@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useActivityData } from '../hooks/useActivityData';
 
 const C = {
@@ -177,8 +177,464 @@ function FilterTab({ filterKey, label, count, active, onClick }) {
   );
 }
 
+const CASE_TYPE_OPTIONS = [
+  { value: 'Resolved', label: 'Resolved' },
+  { value: 'Reclassified', label: 'Reclassified' },
+  { value: 'Call', label: 'Call' },
+  { value: 'Not a Case', label: 'Not a Case' },
+];
+
+const MINUTES_CHIPS = [5, 10, 15, 20, 30, 45, 60];
+
+const MC = {
+  bgCard: '#1a1d27',
+  bgInput: '#141720',
+  border: 'rgba(255,255,255,0.07)',
+  borderFocus: 'rgba(232,84,10,0.5)',
+  orange: '#E8540A',
+  orangeBg: 'rgba(232,84,10,0.12)',
+  orangeBorder: 'rgba(232,84,10,0.28)',
+  green: '#16a34a',
+  greenBg: 'rgba(22,163,74,0.12)',
+  greenBorder: 'rgba(22,163,74,0.28)',
+  red: '#dc2626',
+  redBg: 'rgba(220,38,38,0.12)',
+  redBorder: 'rgba(220,38,38,0.28)',
+  blue: '#0284c7',
+  blueBg: 'rgba(2,132,199,0.12)',
+  blueBorder: 'rgba(2,132,199,0.28)',
+  lightBlue: '#60a5fa',
+  lightBlueBg: 'rgba(96,165,250,0.12)',
+  lightBlueBorder: 'rgba(96,165,250,0.28)',
+  textPrimary: '#f1f5f9',
+  textSecondary: '#cbd5e1',
+  textMuted: '#6b7280',
+};
+
+const TYPE_COLOR = {
+  Resolved: { color: MC.green, bg: MC.greenBg, border: MC.greenBorder },
+  Reclassified: { color: MC.red, bg: MC.redBg, border: MC.redBorder },
+  Call: { color: MC.blue, bg: MC.blueBg, border: MC.blueBorder },
+  'Not a Case': { color: MC.textMuted, bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.28)' },
+};
+
+function EditModal({ entry, onClose, onSave, onDelete }) {
+  const isCaseEntry = entry.src === 'case';
+
+  const [type, setType] = useState(entry.type);
+  const [caseNumber, setCaseNumber] = useState(entry.case_number || '');
+  const [durMinutes, setDurMinutes] = useState(Math.floor(entry.dur / 60));
+  const [durSeconds, setDurSeconds] = useState(entry.dur % 60);
+  const [minutes, setMinutes] = useState(entry.minutes || Math.round(entry.dur / 60));
+  const [rfc, setRfc] = useState(entry.rfc || false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      if (isCaseEntry) {
+        await onSave(entry, {
+          type,
+          rfc,
+          case_number: caseNumber.trim() || null,
+          dur: durMinutes * 60 + durSeconds,
+        });
+      } else {
+        await onSave(entry, { minutes: parseInt(minutes, 10) || 0 });
+      }
+      onClose();
+    } catch { /* parent handles */ } finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await onDelete(entry);
+      onClose();
+    } catch { /* parent handles */ } finally { setDeleting(false); }
+  };
+
+  const inputStyle = {
+    background: MC.bgInput,
+    border: `1px solid ${MC.border}`,
+    borderRadius: 8,
+    color: MC.textPrimary,
+    outline: 'none',
+  };
+
+  const labelStyle = {
+    color: MC.textMuted,
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    marginBottom: 8,
+  };
+
+  return (
+    <>
+      <style>{`@keyframes editSlideUp { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }`}</style>
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: MC.bgCard,
+            border: `1px solid ${MC.border}`,
+            borderRadius: 12,
+            width: '100%',
+            maxWidth: 420,
+            margin: '0 16px',
+            overflow: 'hidden',
+            animation: 'editSlideUp 180ms ease-out',
+          }}
+        >
+          {showDeleteConfirm ? (
+            <div style={{ padding: 24 }}>
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>⚠</div>
+                <div style={{ color: MC.textPrimary, fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+                  Delete this entry?
+                </div>
+                <div style={{ color: MC.textMuted, fontSize: 13 }}>
+                  This action cannot be undone.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  style={{
+                    flex: 1,
+                    height: 36,
+                    borderRadius: 8,
+                    border: `1px solid ${MC.border}`,
+                    background: 'transparent',
+                    color: MC.textSecondary,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  style={{
+                    flex: 1,
+                    height: 36,
+                    borderRadius: 8,
+                    border: 'none',
+                    background: MC.red,
+                    color: '#fff',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: deleting ? 'default' : 'pointer',
+                    opacity: deleting ? 0.7 : 1,
+                  }}
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  background: 'linear-gradient(135deg, rgba(232,84,10,0.15) 0%, rgba(232,84,10,0.05) 100%)',
+                  borderBottom: `1px solid ${MC.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: MC.orange, fontSize: 14 }}>✎</span>
+                  <span style={{ color: MC.textPrimary, fontSize: 14, fontWeight: 600 }}>Edit Activity</span>
+                  {entry.case_number && (
+                    <span style={{ color: MC.textMuted, fontSize: 12, fontFamily: 'monospace' }}>
+                      #{entry.case_number}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={onClose}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: MC.textMuted,
+                    fontSize: 18,
+                    cursor: 'pointer',
+                    lineHeight: 1,
+                    padding: '0 2px',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {isCaseEntry ? (
+                  <>
+                    {/* Status pills */}
+                    <div>
+                      <div style={labelStyle}>Status</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {CASE_TYPE_OPTIONS.map(opt => {
+                          const tc = TYPE_COLOR[opt.value] || { color: MC.textMuted, bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.28)' };
+                          const active = type === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => setType(opt.value)}
+                              style={{
+                                padding: '0 12px',
+                                height: 30,
+                                borderRadius: 15,
+                                border: `1px solid ${active ? tc.border : MC.border}`,
+                                background: active ? tc.bg : 'transparent',
+                                color: active ? tc.color : MC.textMuted,
+                                fontSize: 12,
+                                fontWeight: active ? 600 : 400,
+                                cursor: 'pointer',
+                                transition: 'all 120ms',
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Case Number */}
+                    <div>
+                      <div style={labelStyle}>Case Number</div>
+                      <input
+                        value={caseNumber}
+                        onChange={e => setCaseNumber(e.target.value)}
+                        style={{
+                          ...inputStyle,
+                          width: '100%',
+                          height: 36,
+                          fontSize: 13,
+                          fontFamily: 'monospace',
+                          padding: '0 10px',
+                          boxSizing: 'border-box',
+                        }}
+                        onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
+                        onBlur={e => { e.target.style.borderColor = MC.border; }}
+                      />
+                    </div>
+
+                    {/* Duration */}
+                    <div>
+                      <div style={labelStyle}>Duration</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <input
+                            type="number"
+                            min={0}
+                            value={durMinutes}
+                            onChange={e => setDurMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                            style={{ ...inputStyle, width: 64, height: 36, fontSize: 14, fontFamily: 'monospace', textAlign: 'center', padding: 0 }}
+                            onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
+                            onBlur={e => { e.target.style.borderColor = MC.border; }}
+                          />
+                          <span style={{ color: MC.textMuted, fontSize: 11 }}>min</span>
+                        </div>
+                        <span style={{ color: MC.textMuted, fontSize: 16, marginBottom: 18 }}>:</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <input
+                            type="number"
+                            min={0}
+                            max={59}
+                            value={durSeconds}
+                            onChange={e => setDurSeconds(Math.min(59, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                            style={{ ...inputStyle, width: 64, height: 36, fontSize: 14, fontFamily: 'monospace', textAlign: 'center', padding: 0 }}
+                            onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
+                            onBlur={e => { e.target.style.borderColor = MC.border; }}
+                          />
+                          <span style={{ color: MC.textMuted, fontSize: 11 }}>sec</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RFC — only when Resolved */}
+                    {type === 'Resolved' && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={rfc}
+                          onChange={e => setRfc(e.target.checked)}
+                          style={{ width: 15, height: 15, accentColor: MC.orange }}
+                        />
+                        <span style={{ color: MC.textSecondary, fontSize: 13 }}>
+                          Resolved First Contact (RFC)
+                        </span>
+                      </label>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {/* Process: category read-only */}
+                    <div>
+                      <div style={labelStyle}>Category</div>
+                      <div
+                        style={{
+                          color: MC.textSecondary,
+                          fontSize: 13,
+                          padding: '8px 10px',
+                          background: MC.bgInput,
+                          borderRadius: 8,
+                          border: `1px solid ${MC.border}`,
+                        }}
+                      >
+                        {entry.category || '—'}
+                      </div>
+                      <div style={{ color: MC.textMuted, fontSize: 11, marginTop: 6 }}>
+                        Category cannot be changed. Delete and re-log if needed.
+                      </div>
+                    </div>
+
+                    {/* Minutes chips + input */}
+                    <div>
+                      <div style={labelStyle}>Minutes</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                        {MINUTES_CHIPS.map(chip => (
+                          <button
+                            key={chip}
+                            onClick={() => setMinutes(chip)}
+                            style={{
+                              padding: '0 12px',
+                              height: 30,
+                              borderRadius: 15,
+                              border: `1px solid ${minutes === chip ? MC.orangeBorder : MC.border}`,
+                              background: minutes === chip ? MC.orangeBg : 'transparent',
+                              color: minutes === chip ? MC.orange : MC.textMuted,
+                              fontSize: 12,
+                              fontWeight: minutes === chip ? 600 : 400,
+                              cursor: 'pointer',
+                              transition: 'all 120ms',
+                            }}
+                          >
+                            {chip}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="number"
+                        min={1}
+                        value={minutes}
+                        onChange={e => setMinutes(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                        style={{ ...inputStyle, width: 80, height: 36, fontSize: 14, fontFamily: 'monospace', textAlign: 'center', padding: 0 }}
+                        onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
+                        onBlur={e => { e.target.style.borderColor = MC.border; }}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div
+                style={{
+                  padding: '12px 16px',
+                  borderTop: `1px solid ${MC.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  style={{
+                    padding: '0 12px',
+                    height: 34,
+                    borderRadius: 8,
+                    border: `1px solid ${MC.redBorder}`,
+                    background: MC.redBg,
+                    color: MC.red,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Delete
+                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={onClose}
+                    style={{
+                      padding: '0 16px',
+                      height: 34,
+                      borderRadius: 8,
+                      border: `1px solid ${MC.border}`,
+                      background: 'transparent',
+                      color: MC.textSecondary,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      padding: '0 16px',
+                      height: 34,
+                      borderRadius: 8,
+                      border: 'none',
+                      background: MC.orange,
+                      color: '#fff',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: saving ? 'default' : 'pointer',
+                      opacity: saving ? 0.7 : 1,
+                    }}
+                  >
+                    {saving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // Defined outside ActivityLog to avoid hooks-in-loop
-function EntryRow({ entry }) {
+function EntryRow({ entry, onEdit }) {
   const [hovered, setHovered] = useState(false);
   const ts = TYPE_STYLE[entry.type] || { color: C.textMuted, bg: 'transparent', border: C.border };
 
@@ -289,7 +745,7 @@ function EntryRow({ entry }) {
           transition: 'opacity 120ms',
           cursor: 'pointer',
         }}
-        onClick={() => console.log('edit', entry.id)}
+        onClick={() => onEdit(entry)}
       >
         <span style={{ fontSize: 13, color: C.textSecondary }}>✎</span>
       </div>
@@ -300,9 +756,20 @@ function EntryRow({ entry }) {
 export default function ActivityLog({ userId }) {
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [range, setRange] = useState('today');
+  const [editingEntry, setEditingEntry] = useState(null);
 
   const rangeDays = RANGES.find(r => r.key === range)?.days ?? 0;
-  const { entries, loading, error } = useActivityData({ userId, rangeDays });
+  const { entries, loading, error, editEntry, deleteEntry } = useActivityData({ userId, rangeDays });
+
+  async function handleSave(entry, updates) {
+    const ok = await editEntry(entry, updates);
+    if (!ok) throw new Error('Save failed');
+  }
+
+  async function handleDelete(entry) {
+    const ok = await deleteEntry(entry);
+    if (!ok) throw new Error('Delete failed');
+  }
 
   // Count badges reflect total count for range regardless of other active filters
   const typeCounts = useMemo(() => {
@@ -435,6 +902,15 @@ export default function ActivityLog({ userId }) {
         </div>
       </div>
 
+      {editingEntry && (
+        <EditModal
+          entry={editingEntry}
+          onClose={() => setEditingEntry(null)}
+          onSave={handleSave}
+          onDelete={handleDelete}
+        />
+      )}
+
       {/* Feed */}
       <div style={{ maxHeight: 400, overflowY: 'auto', opacity: loading ? 0.5 : 1, transition: 'opacity 200ms' }}>
         {error ? (
@@ -465,7 +941,7 @@ export default function ActivityLog({ userId }) {
               key={entry.id}
               style={{ opacity: isVisible(entry) ? 1 : 0.15, transition: 'opacity 150ms' }}
             >
-              <EntryRow entry={entry} />
+              <EntryRow entry={entry} onEdit={setEditingEntry} />
             </div>
           ))
         )}
