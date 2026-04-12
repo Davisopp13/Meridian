@@ -234,7 +234,7 @@ src/
   - Files: Modify `src/components/onboarding/Step3Bookmarklet.jsx`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 9: Update CT bookmarklet to open CT widget specifically**
+- [x] **Task 9: Update CT bookmarklet to open CT widget specifically**
   - What: Modify `buildBmHref(userId)` in `src/components/onboarding/Step3Bookmarklet.jsx`
   - Change the `window.open` URL from `https://meridian-hlag.vercel.app?mode=widget` to `https://meridian-hlag.vercel.app?mode=ct-widget`
   - Change the popup window name from `meridian-widget` to `meridian-ct`
