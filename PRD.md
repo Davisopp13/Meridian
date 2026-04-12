@@ -160,7 +160,7 @@ src/
   - Files: Modify `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 4: Wire relay communication helpers**
+- [x] **Task 4: Wire relay communication helpers**
   - What: Add `relayPost(table, body)` and `relayGet(table, query, token)` helper functions to `public/ct-widget.js`
   - These functions send postMessage to `state.relay` (the relay iframe's contentWindow) and return a Promise that resolves with the response.
   - **relayPost(table, body):**

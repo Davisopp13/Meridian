@@ -112,6 +112,61 @@
     }, 2000);
   }
 
+  // ── Relay communication helpers ──────────────────────────────────────────
+  function relayPost(table, body) {
+    return new Promise(function (resolve, reject) {
+      if (!state.relay) { reject(new Error('No relay')); return; }
+      var msgId = 'ct_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      var timeoutId;
+      function onResponse(e) {
+        if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+        if (e.data.id !== msgId) return;
+        clearTimeout(timeoutId);
+        window.removeEventListener('message', onResponse);
+        if (e.data.success) resolve(e.data.data);
+        else reject(new Error(e.data.error || 'Unknown error'));
+      }
+      window.addEventListener('message', onResponse);
+      timeoutId = setTimeout(function () {
+        window.removeEventListener('message', onResponse);
+        reject(new Error('Timeout'));
+      }, 10000);
+      state.relay.postMessage({
+        relay: 'MERIDIAN_TRIGGER',
+        id: msgId,
+        action: 'SUPABASE_POST',
+        payload: { table: table, body: body }
+      }, '*');
+    });
+  }
+
+  function relayGet(table, query, token) {
+    return new Promise(function (resolve, reject) {
+      if (!state.relay) { reject(new Error('No relay')); return; }
+      var msgId = 'ct_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      var timeoutId;
+      function onResponse(e) {
+        if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+        if (e.data.id !== msgId) return;
+        clearTimeout(timeoutId);
+        window.removeEventListener('message', onResponse);
+        if (e.data.success) resolve(e.data.data);
+        else reject(new Error(e.data.error || 'Unknown error'));
+      }
+      window.addEventListener('message', onResponse);
+      timeoutId = setTimeout(function () {
+        window.removeEventListener('message', onResponse);
+        reject(new Error('Timeout'));
+      }, 10000);
+      state.relay.postMessage({
+        relay: 'MERIDIAN_TRIGGER',
+        id: msgId,
+        action: 'SUPABASE_GET',
+        payload: { table: table, query: query, token: token || undefined }
+      }, '*');
+    });
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
   function render() {
     var caseLabel  = state.caseNumber ? state.caseNumber : '\u2014';

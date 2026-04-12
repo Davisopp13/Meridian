@@ -1984,3 +1984,21 @@ Learnings for future iterations:
   - Awaiting button uses conditional background/border in render() so it visually reflects pause state without a separate render() call on every tick
   - startTimer() guard (clearInterval before setInterval) prevents stacked intervals if called twice
   - The Awaiting button uses border style in HTML string: must use single quotes inside the template string or escape carefully — used concatenation instead
+
+## Iteration CT-4 - Task 4 (CT Widget PRD): Wire relay communication helpers
+- Added `relayPost(table, body)` and `relayGet(table, query, token)` to public/ct-widget.js
+- Both return Promises that match request/response by msgId
+- Guard: if state.relay is null, reject immediately with 'No relay'
+- timeout: 10s setTimeout clears the listener and rejects with 'Timeout'
+- clearTimeout added alongside removeEventListener to avoid orphaned timers
+- `node --check` passes, `npx vite build` passes
+
+Files changed:
+  public/ct-widget.js (relayPost + relayGet added between showWidgetToast and render)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - clearTimeout(timeoutId) must be called in the onResponse handler to avoid the timeout firing after a successful response
+  - token param in relayGet is optional; pass `token || undefined` so the relay falls back to anon key when not provided
+  - state.relay guard must be the FIRST thing in each function (before addEventListener) to avoid memory leaks from orphaned listeners
+---
