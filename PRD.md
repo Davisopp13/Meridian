@@ -91,7 +91,7 @@ src/
   - Files: Create `src/ct/CtPipBar.jsx`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 3: Create CtApp.jsx — Core shell**
+- [x] **Task 3: Create CtApp.jsx — Core shell**
   - What: Fork `src/App.jsx` → `src/ct/CtApp.jsx`
   - This is the largest task. Copy App.jsx, then remove all process-related code:
     - Remove state: `processes`, `pickerPending`, `manualEntryOpen`, `pendingProcessLog`, process-related refs
