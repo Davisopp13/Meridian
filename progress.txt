@@ -1775,3 +1775,26 @@ Learnings for future iterations:
   - MPL_STAT_BUTTON_WIDTHS only has 'processes' and 'total' keys — getMplBarWidth returns 0 for unknown keys
   - Next task is Task 6: Create MplPipBar.jsx
 ---
+
+## Iteration MPL-1 - Task 6 (Dual-Widget Split PRD): Create MplPipBar.jsx
+- Created src/mpl/MplPipBar.jsx — new bar component for the MPL widget (built from scratch, not forked)
+- Idle state: M° logo, Start button (blue pill, "▶ Start"), Quick Log button (secondary), process count stat, connection dot, minimize button
+- Timer active state: M° logo, active process pill (blue dot + mm:ss elapsed + pause/resume mini button), Log button, Discard (✕) button, same stat/dot/minimize
+- categoryPicker state: same as timerActive (picker mounts as children below bar)
+- manualEntry state: "Quick Log" label in center, children slot used for ManualEntryForm
+- Minimized state: compact 32px strip with restore label, elapsed if active process, connection dot
+- pipToast rendered as a colored banner below bar row when present
+- Children slot renders below bar row (used for CategoryDrillDown, ManualEntryForm)
+- Uses hardcoded color values (not CSS variables) for all bar content — consistent with PiP window pattern
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/mpl/MplPipBar.jsx (created)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - MplPipBar is self-contained — no imports from PipBar.jsx, no shared base component
+  - Pause/resume mini button rendered inside the active process pill (inline, no separate component)
+  - formatElapsed() imported from ../lib/constants.js — correct relative path from mpl/ subdirectory
+  - Children slot is always rendered below bar row (no conditional wrapping) — children=null is a no-op
+---

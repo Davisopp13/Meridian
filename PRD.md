@@ -142,7 +142,7 @@ src/
   - Files: `src/lib/constants.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 6: Create MplPipBar.jsx**
+- [x] **Task 6: Create MplPipBar.jsx**
   - What: Build a new bar component for the MPL widget from scratch (NOT a fork of PipBar.jsx — it's different enough)
   - **Idle state** (no active timer): Shows M° logo, **Start** button (blue, prominent), **Quick Log** button (secondary), process count stat, connection dot, minimize button
   - **Timer running state**: Shows M° logo, active process pill with elapsed timer (blue pill, mm:ss format), **Log** button (blue, triggers category picker), **Discard** button (subtle), process count stat, connection dot, minimize button
