@@ -272,7 +272,7 @@ src/
   - Files: Modify `public/meridian-trigger.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 8: Add FETCH_CODE action to relay**
+- [x] **Task 8: Add FETCH_CODE action to relay**
   - What: Modify `public/meridian-relay.html` to handle `FETCH_CODE` action
   - When relay receives `{ action: 'FETCH_CODE', payload: { file: 'ct-widget.js' } }`:
     ```js

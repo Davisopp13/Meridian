@@ -106,6 +106,13 @@
         result = await resp.json();
       }
 
+      else if (action === 'FETCH_CODE') {
+        const resp = await fetch('/' + payload.file + '?v=' + Date.now());
+        if (!resp.ok) throw new Error('Failed to fetch ' + payload.file + ': ' + resp.status);
+        const code = await resp.text();
+        result = { code: code };
+      }
+
       else {
         throw new Error('Unknown action: ' + action);
       }

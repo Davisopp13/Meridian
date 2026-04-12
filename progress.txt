@@ -2035,3 +2035,43 @@ Learnings for future iterations:
   - Stats display is in the statsHtml variable in render(), shown when !state.isMinimized and no toast
   - Toast replaces stats row when present: `state.toastMsg ? toastHtml : statsHtml`
 ---
+
+## Iteration CT-Widget-7 - Task 7 (CT Widget PRD): Update meridian-trigger.js to inject CT widget
+- Rewrote public/meridian-trigger.js — SF case path now loads ct-widget.js via relay, non-SF and no-case paths show toasts
+- Non-SF pages: show toast "Meridian: Open a Salesforce case page to use Case Tracker", return
+- SF + no case: show toast "Meridian: No case detected on this page", return
+- SF + case detected: extend MERIDIAN_PAYLOAD with caseNumber/caseType/caseSubtype/accountId, send FETCH_CODE to relay, execute returned widget code via new Function('MERIDIAN_PAYLOAD', code)(MERIDIAN_PAYLOAD)
+- Removed: pending_triggers insert, SUPABASE_INSERT_TRIGGER relay call, directInsert() function
+- Kept: extractAccountId(), extractCaseTypeSubtype(), showToast() helpers unchanged
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  public/meridian-trigger.js (rewritten)
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - MERIDIAN_PAYLOAD is the bridge object — extend it with caseNumber/caseType/caseSubtype/accountId before passing to widget
+  - FETCH_CODE relay response format: { relay: 'MERIDIAN_TRIGGER_RESPONSE', id, success: true, data: { code: '...' } }
+  - Execute widget code with: (new Function('MERIDIAN_PAYLOAD', e.data.data.code))(MERIDIAN_PAYLOAD)
+  - Relay timeout cleanup: window.removeEventListener in setTimeout after 10s (same pattern as Task 4)
+  - Task 8 (Add FETCH_CODE action to relay) must be done before this works end-to-end
+---
+
+## Iteration CT-8 - Task 8 (CT Widget PRD): Add FETCH_CODE action to relay
+- Added FETCH_CODE action to public/meridian-relay.html — inserted before the 'Unknown action' else block
+- When relay receives { action: 'FETCH_CODE', payload: { file: 'ct-widget.js' } }: fetches /ct-widget.js?v=<timestamp> from origin, returns { code: '...' } as result
+- Relay sends response as: { relay: 'MERIDIAN_TRIGGER_RESPONSE', id, success: true, data: { code: code } }
+- Error handling via existing try/catch wrapper — no special handling needed
+- All 4 relay actions now present: SUPABASE_INSERT_TRIGGER, SUPABASE_POST, SUPABASE_GET, FETCH_CODE
+- npx vite build passes — 0 errors
+- grep -c returns 4 (all four action types present)
+
+Files changed:
+  public/meridian-relay.html (FETCH_CODE block added)
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - FETCH_CODE is a simple fetch-and-return: no auth headers needed (same-origin static file)
+  - result = { code: code } is then wrapped by the existing postMessage { success: true, data: result } at line 113
+  - meridian-trigger.js (Task 7) consumes this as e.data.data.code — the double .data is because result is { code } and it gets wrapped in data: result
+---
