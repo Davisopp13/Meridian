@@ -167,6 +167,77 @@
     });
   }
 
+  // ── Date helper ─────────────────────────────────────────────────────────
+  function getTodayNY() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  }
+
+  // ── Action handlers ──────────────────────────────────────────────────────
+  function handleResolved() {
+    stopTimer();
+    var caseNum = state.caseNumber;
+    relayPost('ct_activity_log', {
+      user_id:           state.userId,
+      type:              'Resolved',
+      case_number:       caseNum || null,
+      case_type:         state.caseType  || null,
+      case_subtype:      state.caseSubtype || null,
+      time_spent_seconds: state.elapsed,
+      timer_was_used:    true,
+      entry_date:        getTodayNY(),
+      source:            'widget',
+    }).then(function () {
+      state.stats.resolved++;
+      state.elapsed = 0;
+      showWidgetToast('\u2713 Resolved \u2014 Case ' + (caseNum || '\u2014'));
+      render();
+    }).catch(function (err) {
+      showWidgetToast('Error: ' + (err.message || 'Unknown error'));
+    });
+  }
+
+  function handleReclass() {
+    stopTimer();
+    var caseNum = state.caseNumber;
+    relayPost('ct_activity_log', {
+      user_id:           state.userId,
+      type:              'Reclassified',
+      case_number:       caseNum || null,
+      case_type:         state.caseType  || null,
+      case_subtype:      state.caseSubtype || null,
+      time_spent_seconds: state.elapsed,
+      timer_was_used:    true,
+      entry_date:        getTodayNY(),
+      source:            'widget',
+    }).then(function () {
+      state.stats.reclass++;
+      state.elapsed = 0;
+      showWidgetToast('\u21a9 Reclassified \u2014 Case ' + (caseNum || '\u2014'));
+      render();
+    }).catch(function (err) {
+      showWidgetToast('Error: ' + (err.message || 'Unknown error'));
+    });
+  }
+
+  function handleCall() {
+    // Does NOT stop the timer — calls happen while working a case
+    relayPost('ct_activity_log', {
+      user_id:           state.userId,
+      type:              'incoming_call',
+      case_number:       state.caseNumber || null,
+      time_spent_seconds: null,
+      timer_was_used:    false,
+      entry_date:        getTodayNY(),
+      source:            'widget',
+    }).then(function () {
+      state.stats.calls++;
+      showWidgetToast('\uD83D\uDCDE Call logged');
+      render();
+    }).catch(function (err) {
+      showWidgetToast('Error: ' + (err.message || 'Unknown error'));
+    });
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
   function render() {
     var caseLabel  = state.caseNumber ? state.caseNumber : '\u2014';
@@ -332,11 +403,11 @@
       stopTimer();
       host.remove();
     } else if (action === 'resolve') {
-      // Wired in Task 5 — handleResolved()
+      handleResolved();
     } else if (action === 'reclass') {
-      // Wired in Task 5 — handleReclass()
+      handleReclass();
     } else if (action === 'call') {
-      // Wired in Task 5 — handleCall()
+      handleCall();
     } else if (action === 'awaiting') {
       if (state.isAwaiting) {
         // Resume

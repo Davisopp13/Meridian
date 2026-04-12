@@ -190,7 +190,7 @@ src/
   - Files: Modify `public/ct-widget.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 5: Wire action buttons — Resolved, Reclassified, Call**
+- [x] **Task 5: Wire action buttons — Resolved, Reclassified, Call**
   - What: Add click handlers for the three main action buttons in `public/ct-widget.js`
   - **handleResolved():**
     - Stop timer
