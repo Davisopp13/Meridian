@@ -1713,3 +1713,65 @@ Learnings for future iterations:
   - Filter 'processes' from stat_buttons at render time rather than in DEFAULT_SETTINGS (userSettings may still have 'processes' from old profiles)
   - src/ct/ directory must be created manually (mkdir) before writing files
 ---
+
+## Iteration Split-3 - Task 3 (Dual-Widget Split PRD): Create CtApp.jsx — Core shell
+- Forked src/App.jsx → src/ct/CtApp.jsx
+- Removed all process state: processes, pickerPending, manualEntryOpen, pendingProcessLog, processTimers ref
+- Removed all process functions: startProcessTimer, stopProcessTimer, handleProcessStart, handleLogProcess, handleProcessLogFromStrip, handleCloseProcess, handleNewProcess, handleManualEntryClose, handleManualLog, handlePickerConfirm, handlePickerScreenChange, handlePickerCancel, handleProcessPause, handleProcessResume, handleConfirmProcess
+- Removed process imports: ManualEntryForm, ProcessPicker, MplWidget
+- Changed getBarMode → getCtBarMode (cases, trayOpen, rfcBannerOpen only)
+- Changed getSizeForState → getCtSizeForState throughout
+- Storage prefix 'meridian:ct-state' (not 'meridian:pip-state') to avoid collision
+- syncTimers simplified to case-only
+- usePendingTriggers called with handleProcessStart: () => {} (no-op)
+- activeStripSession simplified: always case-based
+- SwimlaneTray still used with processes={[]}, categories={[]}, process handlers as no-ops
+- isWidgetMode checks 'ct-widget' not 'widget'
+- Import paths adjusted to ../hooks/, ../components/, ../lib/
+- npm run build passes — 2458 modules, 0 errors
+
+Files changed:
+  src/ct/CtApp.jsx (created), PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - getCtBarMode only has 4 states: idle, caseActive, trayOpen, rfcBanner
+  - Storage key prefix must differ from combined widget to avoid conflicts
+  - SwimlaneTray with processes={[]} and no-op process handlers is safe
+---
+
+## Iteration Split-4 - Task 4 (Dual-Widget Split PRD): Wire CT widget routing in main.jsx
+- Modified src/main.jsx to route based on `mode` query param
+- Added imports: CtApp from './ct/CtApp.jsx', MplApp from './mpl/MplApp.jsx'
+- Root component selection: mode === 'ct-widget' → CtApp, mode === 'mpl-widget' → MplApp, else → App
+- Created src/mpl/MplApp.jsx placeholder (returns <div>MPL Widget — coming soon</div>)
+- npm run build passes — 0 errors
+
+Files changed:
+  src/main.jsx (routing logic added)
+  src/mpl/MplApp.jsx (placeholder created)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - mpl/ directory must be created manually before writing MplApp.jsx
+  - Placeholder MplApp just needs to export a default function — no imports required
+  - Next task is Task 5: MPL size constants in src/lib/constants.js
+---
+
+## Iteration Split-5 - Task 5 (Dual-Widget Split PRD): Create MPL size constants
+- Added MPL_HEIGHTS, MPL_STATE_BASE_WIDTHS, MPL_STAT_BUTTON_WIDTHS objects to src/lib/constants.js
+- Added getMplBarWidth() and getMplSizeForState() functions following same pattern as CT/combined functions
+- MPL_HEIGHTS: minimized:32, idle:100, timerActive:140, categoryPicker:480, manualEntry:480
+- MPL_STATE_BASE_WIDTHS: idle:160, timerActive:200, categoryPicker:200, manualEntry:200
+- MPL_STAT_BUTTON_WIDTHS: processes:114, total:90
+- getMplSizeForState returns {width: getMplBarWidth(...), height: MPL_HEIGHTS[stateKey] || 100}
+- npm run build passes — 0 errors
+
+Files changed:
+  src/lib/constants.js (MPL_HEIGHTS, MPL_STATE_BASE_WIDTHS, MPL_STAT_BUTTON_WIDTHS, getMplBarWidth, getMplSizeForState added)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - getMplBarWidth uses BUTTON_GAP from module scope (same as CT/combined functions)
+  - MPL_STAT_BUTTON_WIDTHS only has 'processes' and 'total' keys — getMplBarWidth returns 0 for unknown keys
+  - Next task is Task 6: Create MplPipBar.jsx
+---

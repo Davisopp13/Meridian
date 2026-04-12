@@ -132,7 +132,7 @@ src/
 
 ### Phase 2: MPL Widget (Processes Only)
 
-- [ ] **Task 5: Create MPL size constants**
+- [x] **Task 5: Create MPL size constants**
   - What: Add MPL-specific height/width configs to `src/lib/constants.js`
   - Add `MPL_HEIGHTS`: `{ minimized: 32, idle: 100, timerActive: 140, categoryPicker: 480, manualEntry: 480 }`
   - Add `MPL_STATE_BASE_WIDTHS`: `{ idle: 160, timerActive: 200, categoryPicker: 200, manualEntry: 200 }`

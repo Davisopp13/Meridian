@@ -115,6 +115,42 @@ export function getCtSizeForState(stateKey, statButtons) {
   return { width: getCtBarWidth(stateKey, statButtons), height: CT_HEIGHTS[stateKey] || 64 }
 }
 
+// ── MPL Widget Sizing (processes only) ───────────────────────────
+
+export const MPL_HEIGHTS = {
+  minimized: 32,
+  idle: 100,
+  timerActive: 140,
+  categoryPicker: 480,
+  manualEntry: 480,
+}
+
+export const MPL_STATE_BASE_WIDTHS = {
+  idle: 160,
+  timerActive: 200,
+  categoryPicker: 200,
+  manualEntry: 200,
+}
+
+export const MPL_STAT_BUTTON_WIDTHS = {
+  processes: 114,
+  total: 90,
+}
+
+export function getMplBarWidth(stateKey, statButtons) {
+  const base = MPL_STATE_BASE_WIDTHS[stateKey] || 200
+  const btnW = statButtons.reduce((sum, k) => sum + (MPL_STAT_BUTTON_WIDTHS[k] || 0), 0)
+  const gaps = Math.max(0, statButtons.length - 1) * BUTTON_GAP
+  return base + btnW + gaps
+}
+
+export function getMplSizeForState(stateKey, statButtons) {
+  if (stateKey === 'minimized') {
+    return { width: getMiniWidth(statButtons), height: MPL_HEIGHTS.minimized }
+  }
+  return { width: getMplBarWidth(stateKey, statButtons), height: MPL_HEIGHTS[stateKey] || 100 }
+}
+
 export function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
