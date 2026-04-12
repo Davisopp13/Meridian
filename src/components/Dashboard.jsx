@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import Navbar from './Navbar.jsx';
 import { useDashboardStats } from '../hooks/useDashboardStats.js';
 import DashboardStatCard from './DashboardStatCard.jsx';
 import DashboardTable from './DashboardTable.jsx';
-import DashboardChart from './DashboardChart.jsx';
+const DashboardChart = lazy(() => import('./DashboardChart.jsx'));
 import BookmarkletModal from './BookmarkletModal.jsx';
 import ActivityLog from './ActivityLog.jsx';
 import SettingsPage from './SettingsPage.jsx';
@@ -152,12 +152,14 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
           {/* Chart — only for monthly/YTD periods */}
           {CHART_PERIODS.has(period) && !stats.loading && (
             <div style={{ marginTop: 24 }}>
-              <DashboardChart
-                rows={stats.dailyRows}
-                activeMetric={activeMetric}
-                chartType={chartType}
-                onChartTypeChange={setChartType}
-              />
+              <Suspense fallback={null}>
+                <DashboardChart
+                  rows={stats.dailyRows}
+                  activeMetric={activeMetric}
+                  chartType={chartType}
+                  onChartTypeChange={setChartType}
+                />
+              </Suspense>
             </div>
           )}
         </div>

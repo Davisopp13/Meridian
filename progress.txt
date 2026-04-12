@@ -1897,3 +1897,24 @@ Learnings for future iterations:
   - Kept onLaunchPip prop in Navbar signature to avoid breaking App.jsx's prop passing (App.jsx is DO NOT TOUCH)
   - CT popup: width=600,height=64; MPL popup: width=400,height=100 per PRD specs
 ---
+---
+
+## Iteration [N] - Task 12: Final build verification
+- Fixed chunk size warning by lazy-loading DashboardChart (recharts is 370kB gzipped)
+- Updated vite.config.js: added manualChunks for supabase and lucide-react
+- Updated Dashboard.jsx: replaced static import of DashboardChart with React.lazy + Suspense
+- All chunks now under 500kB limit — build is clean with zero errors and zero warnings
+- Final output: 6 chunks, largest is DashboardChart at 369kB
+- Sanity checks passed: CT has no process code, MPL has no case code (only expected no-op callbacks)
+
+Files changed:
+  vite.config.js
+  src/components/Dashboard.jsx
+  PRD.md (Task 12 marked complete)
+
+Learnings for future iterations:
+  - recharts is the heaviest dep (~370kB) — lazy-load DashboardChart to avoid the 500kB warning
+  - React.lazy + Suspense requires the lazy import to be at module level (not inside a component)
+  - manualChunks for supabase and lucide-react keeps vendor code separate from app code
+  - Vite manualChunks creates empty chunk warning if a lib ends up not being directly imported (react/react-dom already bundled by @vitejs/plugin-react)
+---
