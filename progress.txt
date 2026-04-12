@@ -1934,3 +1934,30 @@ Learnings for future iterations:
   - FETCH_CODE action is added in Task 8 — not included here (Task 1 scope only)
   - Active PRD is CT Overlay Widget PRD in PRD.md (tasks marked [ ])
 ---
+
+## Iteration CT-2 - Task 2 (CT Overlay Widget PRD): Create ct-widget.js — Core structure and UI rendering
+- Created public/ct-widget.js — vanilla JS IIFE, no React, no build step
+- Double-injection guard: checks document.getElementById('meridian-ct-widget'); if found, toggles display (show/hide) and calls host._meridianRefresh(MERIDIAN_PAYLOAD) when re-showing
+- Shadow DOM: host div with position:fixed, attachShadow({mode:'closed'})
+- State object: userId, relay, caseNumber, caseType, caseSubtype, accountId, elapsed, timerRunning, timerId, isMinimized, stats {resolved,reclass,calls}, toastMsg, toastTimer
+- Design tokens T: bg, bgDeep, blue, orange, resolved, reclass, calls, awaiting, textPri, textSec, textDim, border, divider, font — all hardcoded per PRD spec
+- render() rebuilds shadow.innerHTML from state: header bar (48px, M logo + case number + timer + minimize + close), action buttons row (Resolved/Reclass/Call/Await), stats row or toast banner
+- Event delegation: one shadow.addEventListener('click') with e.target.closest('[data-action]') dispatch
+- Action handlers: minimize toggle, close (clearInterval + host.remove()), resolve/reclass/call/awaiting stubs for Tasks 3-5
+- Draggable header: mousedown on #ct-header, mousemove on document, right→auto+left+bottom on drag, clamped to viewport, saves to localStorage key 'meridian-ct-pos'
+- Position restore on injection: reads 'meridian-ct-pos' from localStorage, uses left/bottom if found
+- node --check passes, npx vite build passes — 0 errors
+
+Files changed:
+  public/ct-widget.js (created)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - ct-widget.js is a static file in public/ — Vite copies it verbatim, no JSX/React/build needed
+  - Shadow DOM with mode:'closed' prevents SF CSS from leaking in AND prevents external JS from accessing shadow content — host._meridianRefresh is the bridge for re-injection
+  - Event delegation on shadow root is set up ONCE outside render(); data-action attributes on buttons dispatch actions cleanly
+  - For drag: store hostStartLeft/hostStartBottom from getBoundingClientRect() on mousedown; switch host.style.right to 'auto' and set left/bottom on first drag
+  - localStorage works on the Salesforce page (widget runs in host page context, not PiP window)
+  - node --check is the correct flag for JS syntax checking (node -c doesn't work)
+  - MERIDIAN_PAYLOAD.relayFrame may be null on first load (task 7 will populate it from trigger); guard with || null
+---

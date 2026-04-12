@@ -88,7 +88,7 @@ src/
 
 ### Phase 2: CT Widget (Vanilla JS)
 
-- [ ] **Task 2: Create ct-widget.js — Core structure and UI rendering**
+- [x] **Task 2: Create ct-widget.js — Core structure and UI rendering**
   - What: Create `public/ct-widget.js` — a vanilla JS IIFE that renders a floating CT widget inside a shadow DOM
   - **Double-injection guard:** Check `document.getElementById('meridian-ct-widget')`. If exists, toggle visibility and refresh case data. Return early.
   - **Shadow DOM setup:**
