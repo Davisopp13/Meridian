@@ -1693,3 +1693,23 @@ Learnings for future iterations:
   - getMiniWidth reused unchanged for CT minimized state (minimized strip is same for both widgets)
   - New PRD is "Meridian Dual-Widget Split PRD" — active task list starts at Phase 1 Task 1
 ---
+
+## Iteration Split-2 - Task 2 (Dual-Widget Split PRD): Create CtPipBar.jsx
+- Forked src/PipBar.jsx → src/ct/CtPipBar.jsx
+- Removed: + Process button, process-related props (processes, onLogProcess, onCloseProcess, onNewProcess, onProcessPause, onProcessResume, onProcessLog, onProcessDiscard, onStartProcess), ClipboardList icon import
+- Kept: M° logo, + Case input, case pills via PillZone (processes={[]}), stat buttons (resolved, reclass, calls, total), minimize button, connection dot, toast, SnapButton (hidden)
+- CT stat buttons default: ['resolved', 'reclass', 'calls', 'total'] — 'processes' filtered out even if present in userSettings
+- Total stat button excludes 'processes' from total_includes sum
+- Import paths adjusted: ../components/*, ../lib/constants.js
+- MinimizedStrip called with activeProcess={null}, process handlers undefined
+- npm run build passes — 0 errors
+
+Files changed:
+  src/ct/CtPipBar.jsx (created)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - MinimizedStrip accepts process handler props as undefined without errors — safe to omit
+  - Filter 'processes' from stat_buttons at render time rather than in DEFAULT_SETTINGS (userSettings may still have 'processes' from old profiles)
+  - src/ct/ directory must be created manually (mkdir) before writing files
+---

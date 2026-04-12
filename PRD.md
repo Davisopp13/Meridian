@@ -82,7 +82,7 @@ src/
   - Files: `src/lib/constants.js`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 2: Create CtPipBar.jsx**
+- [x] **Task 2: Create CtPipBar.jsx**
   - What: Fork `src/PipBar.jsx` → `src/ct/CtPipBar.jsx`
   - Remove: `+ Process` button, process-related props (`processes`, `onLogProcess`, `onCloseProcess`, `onNewProcess`, `onProcessPause`, `onProcessResume`, `onProcessLog`, `onProcessDiscard`, `onStartProcess`), process pill rendering from PillZone usage, `processes` stat button from STAT_BUTTON_CONFIG
   - Keep: M° logo, `+ Case` input, case pills via PillZone (pass empty `processes={[]}` to PillZone), stat buttons (resolved, reclass, calls, total), minimize button, connection dot, toast, SnapButton (still hidden with `{false && ...}`), all case-related props
