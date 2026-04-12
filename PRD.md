@@ -109,7 +109,7 @@ src/
   - Files: Create `src/ct/CtApp.jsx`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 4: Wire CT widget routing in main.jsx**
+- [x] **Task 4: Wire CT widget routing in main.jsx**
   - What: Modify `src/main.jsx` to check `window.location.search` for `mode=ct-widget` and render `CtApp` instead of `App`
   - Pattern:
     ```jsx
