@@ -175,7 +175,7 @@ src/
   - Files: Create `src/mpl/MplPipBar.jsx`
   - Test: `npx vite build 2>&1 | tail -8` — no errors
 
-- [ ] **Task 7: Create MplApp.jsx — Full implementation**
+- [x] **Task 7: Create MplApp.jsx — Full implementation**
   - What: Replace the placeholder `src/mpl/MplApp.jsx` with the full MPL orchestrator
   - This is a NEW component, not a fork of App.jsx. It's much simpler because it only handles processes.
   - **State:**

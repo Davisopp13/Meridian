@@ -1798,3 +1798,31 @@ Learnings for future iterations:
   - formatElapsed() imported from ../lib/constants.js — correct relative path from mpl/ subdirectory
   - Children slot is always rendered below bar row (no conditional wrapping) — children=null is a no-op
 ---
+
+## Iteration Split-7 - Task 7 (Dual-Widget Split PRD): Create MplApp.jsx — Full implementation
+- Replaced placeholder src/mpl/MplApp.jsx with full MPL orchestrator
+- Auth pattern: identical to CtApp — getSession + onAuthStateChange, fetch platform_users, setAuthLoading
+- Timer: single timerRef (setInterval) + startTimer/stopTimer helpers; setActiveProcess increments elapsed every second
+- State: activeProcess ({id,elapsed,paused}|null), mplState ('idle'|'timerActive'|'categoryPicker'|'manualEntry'), categories, isMinimized, connectionStatus, pipToast
+- processCount from useStats() hook (processes key) — no duplicate Supabase query needed
+- Category fetch: same query as App.jsx — mpl_categories with mpl_subcategories join, team filter, is_active, display_order
+- handlePickerConfirm: stops timer, resizes to idle before await, writes mpl_entries with source:'pip', resets state
+- handleManualLog: resizes to idle before await, writes mpl_entries with source:'manual', resets state
+- usePendingTriggers: handleCaseStart=no-op, handleProcessStart=handleStart
+- Connection ping: 30s interval pattern identical to CtApp
+- Auth gate: loading spinner → AuthScreen (no user) → onboarding incomplete message → widget render
+- Widget render: MplPipBar with ProcessPicker (categoryPicker state) or ManualEntryForm (manualEntry state) as children
+- resizeTo helper uses getMplSizeForState with ['processes','total'] stat_buttons (MPL-specific)
+- npm run build passes — 2462 modules, 0 errors
+
+Files changed:
+  src/mpl/MplApp.jsx (full implementation replacing placeholder)
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - processCount comes from useStats().processes — same hook used by CtApp, no new query needed
+  - stopTimer() before await in picker/manual handlers — user activation is consumed before first await anyway
+  - getMplSizeForState takes (stateKey, statButtons) — pass ['processes','total'] for MPL
+  - ProcessPicker onConfirm receives (categoryId, subcategoryId, durationSeconds) — elapsed from activeProcess is passed as third arg
+  - handleStart() can be called directly from usePendingTriggers handleProcessStart (same function reference)
+---
