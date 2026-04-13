@@ -232,7 +232,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                     onMouseLeave={() => setIsMplHovered(false)}
                 >
                     <span style={{ fontSize: 16 }}>▶</span>
-                    <span>Process Widget</span>
+                    <span>Processes Widget</span>
                 </button>
 
                 {profile?.full_name && (
