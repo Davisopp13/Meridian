@@ -2110,3 +2110,41 @@ Learnings for future iterations:
   - All CT overlay widget tasks (Tasks 1-10) are now complete — the PRD is fully done
   - Verification-only tasks: run the checks, confirm they pass, mark done without touching code
 ---
+
+## Iteration LM-1 - Task 1 (Light Mode PRD): Create ThemeContext
+- Created src/context/ThemeContext.jsx
+- Exports ThemeProvider and useTheme hook
+- ThemeProvider accepts initialTheme prop ('dark'|'light', defaults to 'dark' if null/undefined)
+- Injects `<style id="meridian-theme-vars">` into document.head on mount with both [data-theme="dark"] and [data-theme="light"] CSS variable blocks
+- useEffect on theme change updates document.documentElement.dataset.theme
+- npx vite build passes — 0 errors
+
+Files changed:
+  src/context/ThemeContext.jsx (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - src/context/ directory did not exist — Write tool creates parent directories automatically
+  - injectThemeStyle() uses getElementById guard to avoid duplicate injection on hot reloads
+  - DEFAULT theme ('dark') is enforced by checking === 'light' explicitly (not truthy check) so any invalid value falls back to dark
+---
+
+## Iteration - Task 2 (Light Mode PRD): Wrap App with ThemeProvider
+- Imported ThemeProvider from ./context/ThemeContext.jsx in App.jsx
+- Computed `const initialTheme = profile?.settings?.theme ?? 'dark'` after auth guards pass (after onboarding_complete check, before isMplMode/isWidgetMode/default returns)
+- Wrapped all three authenticated return paths with <ThemeProvider initialTheme={initialTheme}>:
+  - isMplMode return (MplWidget)
+  - isWidgetMode return (PipBar)
+  - Default return (Dashboard + PendingTriggerBanner)
+- Auth/loading/onboarding returns left unwrapped (they stay dark per PRD)
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/App.jsx (import + initialTheme + ThemeProvider wraps)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - App.jsx has THREE authenticated return branches — all three need ThemeProvider wrapping
+  - initialTheme computed after auth guards so profile is guaranteed non-null at that point
+  - profile?.settings?.theme uses ?. because settings JSONB column may be null
+---

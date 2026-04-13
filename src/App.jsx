@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import * as ReactDOM from 'react-dom/client'
+import { ThemeProvider } from './context/ThemeContext.jsx'
 import { usePipWindow } from './hooks/usePipWindow.js'
 import { useStats } from './hooks/useStats.js'
 import { useContextFocus } from './hooks/useContextFocus.js'
@@ -1339,9 +1340,12 @@ export default function App() {
     return <Onboarding user={user} onComplete={handleOnboardingComplete} />
   }
 
+  const initialTheme = profile?.settings?.theme ?? 'dark'
+
   // ── MPL mode: render MplWidget directly (no dashboard) ───────────────────
   if (isMplMode) {
     return (
+      <ThemeProvider initialTheme={initialTheme}>
       <div style={{
         width: '100%',
         height: '100vh',
@@ -1387,12 +1391,14 @@ export default function App() {
           }}
         />
       </div>
+      </ThemeProvider>
     )
   }
 
   // ── Widget mode: render PipBar directly (no dashboard) ───────────────────
   if (isWidgetMode) {
     return (
+      <ThemeProvider initialTheme={initialTheme}>
       <div style={{
         width: '100%',
         height: '100vh',
@@ -1404,17 +1410,18 @@ export default function App() {
           {buildPipBar()}
         </PipErrorBoundary>
       </div>
+      </ThemeProvider>
     )
   }
 
   return (
-    <>
+    <ThemeProvider initialTheme={initialTheme}>
       <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} onRefreshProfile={refreshProfile} />
       <PendingTriggerBanner
         trigger={pendingTrigger}
         onLaunch={handlePendingTriggerLaunch}
         onDismiss={() => setPendingTrigger(null)}
       />
-    </>
+    </ThemeProvider>
   )
 }

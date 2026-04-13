@@ -129,7 +129,7 @@ body { background: #f1f5f9; }
   - Acceptance criteria: File created, exports `ThemeProvider` and `useTheme`, no build errors
   - Test command: `npx vite build 2>&1 | tail -8`
 
-- [ ] **Task 2: Wrap App with ThemeProvider**
+- [x] **Task 2: Wrap App with ThemeProvider**
   - What to build: In `src/App.jsx`, import `ThemeProvider` from `./context/ThemeContext`. Find where `profile` state is set after Supabase auth loads. Extract `initialTheme` as `profile?.settings?.theme ?? 'dark'`. Wrap the entire JSX return (or at minimum the authenticated routes) with `<ThemeProvider initialTheme={initialTheme}>`. Make sure ThemeProvider wraps all routes that include `Dashboard`, `SettingsPage`, and the PiP widget trigger.
   - Files to modify: `src/App.jsx`
   - Acceptance criteria: App compiles, ThemeProvider wraps authenticated UI, no runtime errors
