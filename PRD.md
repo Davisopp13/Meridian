@@ -151,7 +151,7 @@ body { background: #f1f5f9; }
 
 ### Phase 3: Settings Page Wiring
 
-- [ ] **Task 5: Un-disable and wire the Theme section in SettingsPage**
+- [x] **Task 5: Un-disable and wire the Theme section in SettingsPage**
   - What to build: In `src/components/SettingsPage.jsx`, find the Theme section (section 05). It currently has `opacity: 0.4; cursor: not-allowed` or similar disabled styling on the Light option — remove all disabled state. The section should show two cards: "Dark" and "Light" with visual previews. For Dark: a small rounded div with `background: #1a1a2e`. For Light: a small rounded div with `background: #f1f5f9; border: 1px solid rgba(0,0,0,0.1)`. Wire the selection: clicking a card calls `setTheme(value)` from `useTheme()`. The currently active card gets a highlighted border (`border: 2px solid #E8540A`). Save the preference to Supabase: on theme card click, immediately call `supabase.from('platform_users').update({ settings: { ...existingSettings, theme: value } }).eq('user_id', user.id)`. Show a brief inline "Saved" confirmation. Do NOT add a separate save button for this section — save on click like a radio button.
   - Files to modify: `src/components/SettingsPage.jsx`
   - Acceptance criteria: Both theme cards visible and clickable, no disabled styling, `useTheme` consumed, Supabase update fires on click, build passes

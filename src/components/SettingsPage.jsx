@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import { getUserSettings } from '../lib/constants.js'
+import { useTheme } from '../context/ThemeContext.jsx'
 
 const C = {
   bg: '#0f1117',
@@ -224,6 +225,7 @@ function PipPositionDiagram({ selected, onSelect }) {
 
 export default function SettingsPage({ user, profile, onBack, onRefreshProfile }) {
   const initial = getUserSettings(profile)
+  const { theme, setTheme } = useTheme()
 
   const [statButtons, setStatButtons] = useState(initial.stat_buttons)
   const [totalIncludes, setTotalIncludes] = useState(initial.total_includes)
@@ -234,10 +236,22 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
 
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null) // 'success' | 'error'
+  const [themeToast, setThemeToast] = useState(false)
 
   function showToast(type) {
     setToast(type)
     setTimeout(() => setToast(null), 2500)
+  }
+
+  async function handleThemeChange(value) {
+    setTheme(value)
+    const existingSettings = profile?.settings || {}
+    await supabase
+      .from('platform_users')
+      .update({ settings: { ...existingSettings, theme: value } })
+      .eq('id', user.id)
+    setThemeToast(true)
+    setTimeout(() => setThemeToast(false), 2000)
   }
 
   function toggleStatButton(key) {
@@ -271,7 +285,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
       total_includes: totalIncludes,
       pip_position: pipPosition,
       team,
-      theme: 'dark',
+      theme,
       notifications: { toast_on_log: toastOnLog, sound },
     }
 
@@ -433,9 +447,46 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
             title="Theme"
             description="Widget and dashboard appearance."
           />
-          <RadioRow label="Dark" checked={true} onChange={() => {}} />
-          <RadioRow label="Light" checked={false} onChange={() => {}} disabled badge="Coming soon" />
-          <RadioRow label="Auto" checked={false} onChange={() => {}} disabled badge="Coming soon" />
+          <div style={{ display: 'flex', gap: 12 }}>
+            {[
+              { value: 'dark',  label: 'Dark',  previewBg: '#1a1a2e', previewBorder: undefined },
+              { value: 'light', label: 'Light', previewBg: '#f1f5f9', previewBorder: '1px solid rgba(0,0,0,0.1)' },
+            ].map(({ value, label, previewBg, previewBorder }) => {
+              const active = theme === value
+              return (
+                <div
+                  key={value}
+                  onClick={() => handleThemeChange(value)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    border: active ? `2px solid ${C.accent}` : '2px solid rgba(255,255,255,0.1)',
+                    cursor: 'pointer',
+                    background: 'rgba(255,255,255,0.03)',
+                    minWidth: 80,
+                  }}
+                >
+                  <div style={{
+                    width: 48,
+                    height: 32,
+                    borderRadius: 6,
+                    background: previewBg,
+                    border: previewBorder,
+                  }} />
+                  <span style={{ fontSize: 12, color: C.textPri, fontFamily: 'Segoe UI, sans-serif' }}>{label}</span>
+                </div>
+              )
+            })}
+          </div>
+          {themeToast && (
+            <div style={{ fontSize: 11, color: '#22c55e', marginTop: 8, fontFamily: 'Segoe UI, sans-serif' }}>
+              ✓ Saved
+            </div>
+          )}
         </Section>
 
         {/* Section 6: Notifications */}
