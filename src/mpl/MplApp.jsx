@@ -11,6 +11,9 @@ import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
 import { getMplSizeForState } from '../lib/constants.js'
 
+// ── Widget mode detection ──────────────────────────────────────────────────
+const isMplWidget = new URLSearchParams(window.location.search).get('mode') === 'mpl-widget'
+
 export default function MplApp() {
   const { isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
 
@@ -26,7 +29,6 @@ export default function MplApp() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected')
   const [pipToast, setPipToast] = useState(null)
-  const [pendingLaunch, setPendingLaunch] = useState(false)
 
   // ── Stats ──────────────────────────────────────────────────────────────
   const { processes: processCount, refetch } = useStats()
@@ -34,6 +36,7 @@ export default function MplApp() {
   // ── Timer ref ──────────────────────────────────────────────────────────
   const timerRef = useRef(null)
   const toastTimerRef = useRef(null)
+  const widgetInitRef = useRef(false)
 
   // ── Toast helper ──────────────────────────────────────────────────────
   function showToast(message) {
@@ -140,18 +143,30 @@ export default function MplApp() {
     return () => clearInterval(intervalId)
   }, [user])
 
+  // ── Auto-launch PiP when tab opens as ?mode=mpl-widget ───────────────
+  useEffect(() => {
+    if (!isMplWidget) return
+    if (authLoading || !user || !profile?.onboarding_complete) return
+    if (widgetInitRef.current) return
+    widgetInitRef.current = true
+
+    document.body.classList.add('widget-mode')
+
+    ;(async () => {
+      const { width, height } = getMplSizeForState('idle', ['processes', 'total'])
+      const pw = await openPip({ width, height, position: 'bottom-right' })
+      if (!pw) return
+      mountPipWindow(pw)
+      // Close the host tab — it was only opened to spawn the PiP widget.
+      // Only works if opened by script (window.open); silently ignored otherwise.
+      setTimeout(() => { try { window.close() } catch (e) {} }, 400)
+    })()
+  }, [isMplWidget, authLoading, user, profile])
+
   // ── Pending triggers ───────────────────────────────────────────────────
   usePendingTriggers(user?.id, {
     handleCaseStart: () => {},
-    handleProcessStart: () => {
-      if (isOpen) {
-        // PiP already running — start timer directly (no openPip needed)
-        handleStart()
-      } else {
-        // PiP not open — flag it, show prompt on host page for user to click
-        setPendingLaunch(true)
-      }
-    },
+    handleProcessStart: () => handleStart(),
   })
 
   // ── buildMplBar — JSX rendered into PiP window ────────────────────────
@@ -215,12 +230,17 @@ export default function MplApp() {
 
   async function handleStart() {
     if (!isOpen) {
-      const size = getMplSizeForState('timerActive', ['processes', 'total'])
-      const pw = await openPip({ ...size, position: 'bottom-right' })
-      if (!pw) return
-      mountPipWindow(pw)
-      // Close host tab — only works if opened by script; silently ignored otherwise
-      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
+      try {
+        const size = getMplSizeForState('timerActive', ['processes', 'total'])
+        const pw = await openPip({ ...size, position: 'bottom-right' })
+        if (!pw) { showToast('Open the widget first from the dashboard'); return }
+        mountPipWindow(pw)
+        // Close host tab — only works if opened by script; silently ignored otherwise
+        setTimeout(() => { try { window.close() } catch (e) {} }, 300)
+      } catch (e) {
+        showToast('Open the widget first from the dashboard')
+        return
+      }
     } else {
       pin('timerActive')
     }
@@ -356,7 +376,7 @@ export default function MplApp() {
     )
   }
 
-  // ── Launcher page render ───────────────────────────────────────────────
+  // ── Holding page — briefly visible while PiP opens and tab self-closes ──
   return (
     <div style={{
       minHeight: '100vh',
@@ -367,26 +387,11 @@ export default function MplApp() {
       fontFamily: '"Inter", system-ui, sans-serif',
     }}>
       <div style={{ textAlign: 'center' }}>
-        <img src="/meridian-mark-192.png" width={48} height={48} style={{ borderRadius: 10, marginBottom: 16 }} />
-        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-          Meridian — Processes
+        <img src="/meridian-mark-192.png" width={48} height={48}
+          style={{ borderRadius: 10, marginBottom: 16, opacity: 0.8 }} />
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>
+          Opening widget…
         </div>
-        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 24 }}>
-          {isOpen ? 'Widget is running — this tab will close' : pendingLaunch ? 'Trigger received — click to start' : 'Click to launch widget'}
-        </div>
-        {!isOpen && (
-          <button
-            onClick={() => { setPendingLaunch(false); handleStart() }}
-            style={{
-              height: 36, padding: '0 20px', borderRadius: 18,
-              background: pendingLaunch ? 'rgba(96,165,250,0.25)' : 'rgba(96,165,250,0.15)',
-              border: '1px solid rgba(96,165,250,0.3)',
-              color: '#60a5fa', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            ▶ {pendingLaunch ? 'Start Process Timer' : 'Launch Widget'}
-          </button>
-        )}
       </div>
     </div>
   )

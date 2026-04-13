@@ -10,7 +10,7 @@ const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: 
  *   processCount     — number (today's completed processes)
  *   mplState         — 'idle' | 'timerActive' | 'categoryPicker' | 'manualEntry'
  *   onOpenDashboard  — click M° logo
- *   onStart          — click Start button (begins timer)
+ *   onStart          — click Open button (opens/activates widget)
  *   onQuickLog       — click Quick Log button (opens manual entry)
  *   onLog            — click Log button (opens category picker for active timer)
  *   onDiscard        — click Discard button
@@ -120,7 +120,7 @@ export default function MplPipBar({
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           {mplState === 'idle' && (
             <>
-              {/* Start button */}
+              {/* Open button */}
               <button
                 onClick={() => onStart && onStart()}
                 style={{
@@ -138,7 +138,7 @@ export default function MplPipBar({
                   whiteSpace: 'nowrap',
                 }}
               >
-                ▶ Start
+                ▶ Open
               </button>
 
               {/* Quick Log button */}
