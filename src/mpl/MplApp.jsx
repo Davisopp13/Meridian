@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import * as ReactDOM from 'react-dom/client'
+import { usePipWindow } from '../hooks/usePipWindow.js'
 import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
@@ -6,12 +8,12 @@ import MplPipBar from './MplPipBar.jsx'
 import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
+import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
 import { getMplSizeForState } from '../lib/constants.js'
 
-// ── Widget mode detection ──────────────────────────────────────────────────
-const isMplWidget = new URLSearchParams(window.location.search).get('mode') === 'mpl-widget'
-
 export default function MplApp() {
+  const { isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
+
   // ── Auth state ─────────────────────────────────────────────────────────
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -24,6 +26,7 @@ export default function MplApp() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected')
   const [pipToast, setPipToast] = useState(null)
+  const [pendingLaunch, setPendingLaunch] = useState(false)
 
   // ── Stats ──────────────────────────────────────────────────────────────
   const { processes: processCount, refetch } = useStats()
@@ -53,10 +56,10 @@ export default function MplApp() {
     return true
   }
 
-  // ── Resize helper ─────────────────────────────────────────────────────
-  function resizeTo(stateKey) {
+  // ── pin helper (replaces resizeTo) ────────────────────────────────────
+  function pin(stateKey) {
     const { width, height } = getMplSizeForState(stateKey, ['processes', 'total'])
-    try { window.resizeTo(width, height) } catch (e) {}
+    resizeAndPin({ width, height }, 'bottom-right')
   }
 
   // ── Timer helpers ─────────────────────────────────────────────────────
@@ -109,59 +112,6 @@ export default function MplApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // ── Widget mode init ───────────────────────────────────────────────────
-  const widgetInitRef = useRef(false)
-  useEffect(() => {
-    if (!isMplWidget) return
-    if (authLoading || !user || !profile?.onboarding_complete) return
-    if (widgetInitRef.current) return
-    widgetInitRef.current = true
-
-    document.body.classList.add('widget-mode')
-    resizeTo('idle')
-  }, [isMplWidget, authLoading, user, profile])
-
-  // ── Dark theme token injection ────────────────────────────────────────
-  useEffect(() => {
-    if (document.getElementById('meridian-mpl-theme')) return
-    const style = document.createElement('style')
-    style.id = 'meridian-mpl-theme'
-    style.textContent = `
-:root {
-  --bg-body:        #0f1117;
-  --bg-card:        rgba(255,255,255,0.05);
-  --card-bg-subtle: rgba(255,255,255,0.03);
-  --text-pri:       rgba(255,255,255,0.92);
-  --text-sec:       rgba(255,255,255,0.55);
-  --text-dim:       rgba(255,255,255,0.30);
-  --divider:        rgba(255,255,255,0.08);
-  --border:         rgba(255,255,255,0.10);
-  --shadow-subtle:  0 2px 8px rgba(0,0,0,0.4);
-  --case-focus:     rgba(232,84,10,0.10);
-  --case-border:    rgba(232,84,10,0.25);
-  --row-focus:      rgba(255,255,255,0.04);
-  --amber-row:      rgba(217,119,6,0.15);
-  --color-mbtn:     #003087;
-  --color-mmark:    #E8540A;
-  --color-resolved: #22c55e;
-  --color-reclass:  #ef4444;
-  --color-calls:    #3b82f6;
-  --color-process:  #64748b;
-  --color-process-navy: rgba(0,48,135,0.45);
-  --color-awaiting: #f59e0b;
-  --color-active-dot: #4ade80;
-  --dash-bg:        #0f1117;
-  --dash-card:      rgba(255,255,255,0.04);
-  --dash-border:    rgba(255,255,255,0.08);
-  --dash-text-pri:  rgba(255,255,255,0.92);
-  --dash-text-sec:  rgba(255,255,255,0.55);
-  --dash-text-dim:  rgba(255,255,255,0.30);
-}
-body { background: #0f1117; }
-`
-    document.head.appendChild(style)
-  }, [])
-
   // ── Category fetch ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !profile?.team) return
@@ -193,35 +143,114 @@ body { background: #0f1117; }
   // ── Pending triggers ───────────────────────────────────────────────────
   usePendingTriggers(user?.id, {
     handleCaseStart: () => {},
-    handleProcessStart: handleStart,
+    handleProcessStart: () => {
+      if (isOpen) {
+        // PiP already running — start timer directly (no openPip needed)
+        handleStart()
+      } else {
+        // PiP not open — flag it, show prompt on host page for user to click
+        setPendingLaunch(true)
+      }
+    },
+  })
+
+  // ── buildMplBar — JSX rendered into PiP window ────────────────────────
+  function buildMplBar() {
+    return (
+      <MplPipBar
+        activeProcess={activeProcess}
+        processCount={processCount}
+        mplState={mplState}
+        onOpenDashboard={handleOpenDashboard}
+        onStart={handleStart}
+        onQuickLog={handleQuickLog}
+        onLog={handleLog}
+        onDiscard={handleDiscard}
+        onPause={handlePause}
+        onResume={handleResume}
+        onMinimize={handleMinimize}
+        onRestore={handleRestore}
+        isMinimized={isMinimized}
+        connectionStatus={connectionStatus}
+        pipToast={pipToast}
+      >
+        {mplState === 'categoryPicker' && activeProcess && (
+          <ProcessPicker
+            categories={categories}
+            elapsed={activeProcess.elapsed}
+            onConfirm={handlePickerConfirm}
+            onCancel={handleDiscard}
+          />
+        )}
+        {mplState === 'manualEntry' && (
+          <ManualEntryForm
+            categories={categories}
+            onClose={() => { setMplState('idle'); pin('idle') }}
+            onLog={handleManualLog}
+          />
+        )}
+      </MplPipBar>
+    )
+  }
+
+  // ── mountPipWindow — create React root in PiP window ─────────────────
+  function mountPipWindow(pw) {
+    const existing = pw.document.getElementById('meridian-pip-root')
+    if (existing) existing.remove()
+    const container = pw.document.createElement('div')
+    container.id = 'meridian-pip-root'
+    container.style.cssText = 'width:100%;height:100%'
+    pw.document.body.appendChild(container)
+    pipRootRef.current = ReactDOM.createRoot(container)
+    pipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
+  }
+
+  // ── Re-render PiP window after every render ───────────────────────────
+  useEffect(() => {
+    if (!pipRootRef.current) return
+    pipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
   })
 
   // ── Handlers ──────────────────────────────────────────────────────────
 
-  function handleStart() {
+  async function handleStart() {
+    if (!isOpen) {
+      const size = getMplSizeForState('timerActive', ['processes', 'total'])
+      const pw = await openPip({ ...size, position: 'bottom-right' })
+      if (!pw) return
+      mountPipWindow(pw)
+    } else {
+      pin('timerActive')
+    }
     const id = crypto.randomUUID()
     setActiveProcess({ id, elapsed: 0, paused: false })
     setMplState('timerActive')
     startTimer()
-    resizeTo('timerActive')
   }
 
-  function handleQuickLog() {
+  async function handleQuickLog() {
+    if (!isOpen) {
+      const size = getMplSizeForState('manualEntry', ['processes', 'total'])
+      const pw = await openPip({ ...size, position: 'bottom-right' })
+      if (!pw) return
+      mountPipWindow(pw)
+    } else {
+      pin('manualEntry')
+    }
     setMplState('manualEntry')
-    resizeTo('manualEntry')
   }
 
   function handleLog() {
     stopTimer()
     setMplState('categoryPicker')
-    resizeTo('categoryPicker')
+    pin('categoryPicker')
   }
 
   function handleDiscard() {
     stopTimer()
     setActiveProcess(null)
     setMplState('idle')
-    resizeTo('idle')
+    pin('idle')
   }
 
   function handlePause() {
@@ -236,18 +265,17 @@ body { background: #0f1117; }
 
   function handleMinimize() {
     setIsMinimized(true)
-    try { window.resizeTo(300, 32) } catch (e) {}
+    pin('minimized')
   }
 
   function handleRestore() {
     setIsMinimized(false)
-    resizeTo(mplState)
+    pin(mplState)
   }
 
   async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
     if (!user) return
-    // Resize before await (user activation)
-    resizeTo('idle')
+    pin('idle')
     const minutes = Math.round(durationSeconds / 60) || 1
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
@@ -265,7 +293,7 @@ body { background: #0f1117; }
 
   async function handleManualLog(categoryId, subcategoryId, minutes) {
     if (!user) return
-    resizeTo('idle')
+    pin('idle')
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -324,40 +352,38 @@ body { background: #0f1117; }
     )
   }
 
-  // ── Widget mode render ─────────────────────────────────────────────────
+  // ── Launcher page render ───────────────────────────────────────────────
   return (
-    <MplPipBar
-      activeProcess={activeProcess}
-      processCount={processCount}
-      mplState={mplState}
-      onOpenDashboard={handleOpenDashboard}
-      onStart={handleStart}
-      onQuickLog={handleQuickLog}
-      onLog={handleLog}
-      onDiscard={handleDiscard}
-      onPause={handlePause}
-      onResume={handleResume}
-      onMinimize={handleMinimize}
-      onRestore={handleRestore}
-      isMinimized={isMinimized}
-      connectionStatus={connectionStatus}
-      pipToast={pipToast}
-    >
-      {mplState === 'categoryPicker' && activeProcess && (
-        <ProcessPicker
-          categories={categories}
-          elapsed={activeProcess.elapsed}
-          onConfirm={handlePickerConfirm}
-          onCancel={handleDiscard}
-        />
-      )}
-      {mplState === 'manualEntry' && (
-        <ManualEntryForm
-          categories={categories}
-          onClose={() => { setMplState('idle'); resizeTo('idle') }}
-          onLog={handleManualLog}
-        />
-      )}
-    </MplPipBar>
+    <div style={{
+      minHeight: '100vh',
+      background: '#0f1117',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: '"Inter", system-ui, sans-serif',
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <img src="/meridian-mark-192.png" width={48} height={48} style={{ borderRadius: 10, marginBottom: 16 }} />
+        <div style={{ color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
+          Meridian — Processes
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 24 }}>
+          {isOpen ? 'Widget is running' : pendingLaunch ? 'Trigger received — click to start' : 'Click to launch widget'}
+        </div>
+        {!isOpen && (
+          <button
+            onClick={() => { setPendingLaunch(false); handleStart() }}
+            style={{
+              height: 36, padding: '0 20px', borderRadius: 18,
+              background: pendingLaunch ? 'rgba(96,165,250,0.25)' : 'rgba(96,165,250,0.15)',
+              border: '1px solid rgba(96,165,250,0.3)',
+              color: '#60a5fa', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            ▶ {pendingLaunch ? 'Start Process Timer' : 'Launch Widget'}
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
