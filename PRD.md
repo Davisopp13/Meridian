@@ -97,7 +97,7 @@ Everything else (`MplPipBar.jsx`, `CategoryDrillDown.jsx`, `ManualEntryForm.jsx`
 
 ### Phase 3: MplPipBar Idle Layout Fix
 
-- [ ] **Task 3: Fix MplPipBar idle bar height to 64px**
+- [x] **Task 3: Fix MplPipBar idle bar height to 64px**
   - What: `MplPipBar.jsx`'s bar row currently has `minHeight: 60`. It needs to match `64px` so it fills the popup correctly at idle state and doesn't leave a gap.
   - In `src/mpl/MplPipBar.jsx`: find the bar row div (the one with `minHeight: 60, display: 'flex', alignItems: 'center', padding: '0 12px'`) and change `minHeight: 60` → `minHeight: 64`.
   - While in that file, also ensure the root container div has `minHeight: 0` (not just `height: '100%'`) so flex children don't overflow in expanded states.

@@ -92,10 +92,11 @@ export default function MplPipBar({
       borderRadius: 12,
       overflow: 'hidden',
       height: '100%',
+      minHeight: 0,
     }}>
       {/* Bar row */}
       <div style={{
-        minHeight: 60,
+        minHeight: 64,
         display: 'flex',
         alignItems: 'center',
         padding: '0 12px',
