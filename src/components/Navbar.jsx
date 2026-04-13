@@ -225,6 +225,16 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                     <span>Bookmarklet</span>
                 </button>
 
+                <button
+                    style={launchMplBtnStyle}
+                    onClick={onLaunchMpl}
+                    onMouseEnter={() => setIsMplHovered(true)}
+                    onMouseLeave={() => setIsMplHovered(false)}
+                >
+                    <span style={{ fontSize: 16 }}>▶</span>
+                    <span>Process Widget</span>
+                </button>
+
                 {profile?.full_name && (
                     <div style={userChipWrapperStyle}>
                         <div
