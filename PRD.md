@@ -137,7 +137,7 @@ body { background: #f1f5f9; }
 
 ### Phase 2: PiP Widget Theme
 
-- [ ] **Task 3: Theme-aware token injection in usePipWindow**
+- [x] **Task 3: Theme-aware token injection in usePipWindow**
   - What to build: In `src/hooks/usePipWindow.js`, find the `openPip` function (or equivalent) that builds the `style.textContent` string injected into the PiP window `<head>`. The hook must accept a `theme` parameter (string). Add a helper function `buildThemeTokens(theme)` that returns the appropriate `:root { ... }` block + `body { background: ... }` line from the Token Reference section. Inside the style block, replace the current hardcoded `:root` block with a call to `buildThemeTokens(theme)`. Export or accept `theme` via props/argument — whichever pattern already exists in the hook. If the hook currently takes no arguments, add `theme = 'dark'` as a destructured prop from the options object.
   - Files to modify: `src/hooks/usePipWindow.js`
   - Acceptance criteria: `buildThemeTokens('dark')` returns a string containing `--bg-body: #0f1117`, `buildThemeTokens('light')` returns a string containing `--bg-body: #f1f5f9`. Build passes.

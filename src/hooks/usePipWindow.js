@@ -2,6 +2,80 @@ import { useState, useRef, useCallback } from 'react';
 
 const PIP_MARGIN = 16; // px from screen edge when pinned to bottom-right
 
+function buildThemeTokens(theme) {
+  if (theme === 'light') {
+    return `
+      :root {
+        --font-family: 'Inter', system-ui, sans-serif;
+        --bg-body:        #f1f5f9;
+        --bg-deep:        #e2e8f0;
+        --bg-card:        #ffffff;
+        --card-bg-subtle: rgba(0,0,0,0.03);
+        --text-pri:       #0f172a;
+        --text-sec:       #475569;
+        --text-dim:       #94a3b8;
+        --divider:        rgba(0,0,0,0.08);
+        --border:         rgba(0,0,0,0.10);
+        --shadow-subtle:  0 1px 4px rgba(0,0,0,0.08);
+        --shadow-glow:    none;
+        --case-focus:     rgba(0,48,135,0.07);
+        --case-border:    rgba(0,48,135,0.20);
+        --row-focus:      rgba(0,0,0,0.04);
+        --amber-row:      rgba(217,119,6,0.08);
+        --color-mbtn:     #003087;
+        --color-mmark:    #E8540A;
+        --color-resolved: #22c55e;
+        --color-reclass:  #ef4444;
+        --color-calls:    #3b82f6;
+        --color-process:  #64748b;
+        --color-process-navy: rgba(0,48,135,0.15);
+        --color-awaiting: #f59e0b;
+        --color-active-dot: #4ade80;
+      }
+      body { background: #f1f5f9; }
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.30); }
+    `;
+  }
+  // dark (default)
+  return `
+    :root {
+      --font-family: 'Inter', system-ui, sans-serif;
+      --bg-body:        #0f1117;
+      --bg-deep:        #0f172a;
+      --bg-card:        rgba(255,255,255,0.05);
+      --card-bg-subtle: rgba(255,255,255,0.03);
+      --text-pri:       rgba(255,255,255,0.92);
+      --text-sec:       rgba(255,255,255,0.55);
+      --text-dim:       rgba(255,255,255,0.30);
+      --divider:        rgba(255,255,255,0.08);
+      --border:         rgba(255,255,255,0.10);
+      --shadow-subtle:  none;
+      --shadow-glow:    none;
+      --case-focus:     rgba(0,48,135,0.25);
+      --case-border:    rgba(0,48,135,0.5);
+      --row-focus:      rgba(255,255,255,0.04);
+      --amber-row:      rgba(217,119,6,0.15);
+      --color-mbtn:     #003087;
+      --color-mmark:    #E8540A;
+      --color-resolved: #22c55e;
+      --color-reclass:  #ef4444;
+      --color-calls:    #3b82f6;
+      --color-process:  #64748b;
+      --color-process-navy: rgba(0,48,135,0.4);
+      --color-awaiting: #f59e0b;
+      --color-active-dot: #4ade80;
+    }
+    body { background: #0f1117; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+  `;
+}
+
 export function usePipWindow() {
   const [pipWindow, setPipWindow] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -9,7 +83,7 @@ export function usePipWindow() {
   // Ref always holds the latest pipWindow so resizeAndPin never uses a stale closure
   const pipWindowRef = useRef(null);
 
-  const openPip = useCallback(async ({ width, height, position } = {}) => {
+  const openPip = useCallback(async ({ width, height, position, theme = 'dark' } = {}) => {
     if (!window.documentPictureInPicture) {
       console.warn('Document Picture-in-Picture API not supported in this browser.');
       return null;
@@ -57,7 +131,7 @@ export function usePipWindow() {
 
       pw.document.title = 'Meridian';
       pw.document.body.style.cssText =
-        'margin:0;padding:0;overflow:hidden;background:#0f1117;width:100%;height:100%;font-family:"Inter",system-ui,sans-serif';
+        `margin:0;padding:0;overflow:hidden;background:${theme === 'light' ? '#f1f5f9' : '#0f1117'};width:100%;height:100%;font-family:"Inter",system-ui,sans-serif`;
       pw.document.documentElement.style.cssText = 'width:100%;height:100%;margin:0;padding:0;';
 
       // Inject Google Fonts for Inter
@@ -68,38 +142,8 @@ export function usePipWindow() {
 
       // Inject CSS custom properties (PiP window has no access to parent's index.css)
       const style = pw.document.createElement('style');
-      style.textContent = `
-        :root {
-          --font-family: 'Inter', system-ui, sans-serif;
-          --bg-deep: #0f172a;
-          --bg-card: rgba(255,255,255,0.06);
-          --color-mbtn: #003087;
-          --color-mmark: #E8540A;
-          --color-resolved: #22c55e;
-          --color-reclass: #ef4444;
-          --color-calls: #3b82f6;
-          --color-process: #64748b;
-          --color-process-navy: rgba(0,48,135,0.4);
-          --color-awaiting: #f59e0b;
-          --color-active-dot: #4ade80;
-          --divider: rgba(255,255,255,0.08);
-          --border: rgba(255,255,255,0.1);
-          --card-bg-subtle: rgba(255,255,255,0.05);
-          --text-pri: rgba(255,255,255,0.9);
-          --text-sec: rgba(255,255,255,0.55);
-          --text-dim: rgba(255,255,255,0.3);
-          --shadow-subtle: none;
-          --shadow-glow: none;
-          --case-focus: rgba(232,84,10,0.1);
-          --case-border: rgba(232,84,10,0.25);
-          --row-focus: rgba(255,255,255,0.04);
-          --amber-row: rgba(217,119,6,0.12);
-        }
+      style.textContent = buildThemeTokens(theme) + `
         * { box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.22); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         @keyframes meridian-pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
