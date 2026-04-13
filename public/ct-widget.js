@@ -176,19 +176,23 @@
   function handleResolved() {
     stopTimer();
     var caseNum = state.caseNumber;
-    relayPost('case_events', {
-      user_id:           state.userId,
-      type:              'Resolved',
-      case_number:       caseNum || null,
-      case_type:         state.caseType  || null,
-      case_subtype:      state.caseSubtype || null,
-      time_spent_seconds: state.elapsed,
-      timer_was_used:    true,
-      entry_date:        getTodayNY(),
-      source:            'widget',
+    var now = new Date();
+    relayPost('ct_cases', {
+      user_id:     state.userId,
+      case_number: caseNum || null,
+      case_type:   state.caseType    || null,
+      case_subtype: state.caseSubtype || null,
+      duration_s:  state.elapsed,
+      status:      'closed',
+      resolution:  'resolved',
+      is_rfc:      false,
+      source:      'widget',
+      entry_date:  getTodayNY(),
+      started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
+      ended_at:    now.toISOString(),
     }).then(function () {
-      state.stats.resolved++;
       state.elapsed = 0;
+      state.stats.resolved++;
       showWidgetToast('\u2713 Resolved \u2014 Case ' + (caseNum || '\u2014'));
       render();
     }).catch(function (err) {
@@ -199,19 +203,23 @@
   function handleReclass() {
     stopTimer();
     var caseNum = state.caseNumber;
-    relayPost('case_events', {
-      user_id:           state.userId,
-      type:              'Reclassified',
-      case_number:       caseNum || null,
-      case_type:         state.caseType  || null,
-      case_subtype:      state.caseSubtype || null,
-      time_spent_seconds: state.elapsed,
-      timer_was_used:    true,
-      entry_date:        getTodayNY(),
-      source:            'widget',
+    var now = new Date();
+    relayPost('ct_cases', {
+      user_id:     state.userId,
+      case_number: caseNum || null,
+      case_type:   state.caseType    || null,
+      case_subtype: state.caseSubtype || null,
+      duration_s:  state.elapsed,
+      status:      'closed',
+      resolution:  'reclassified',
+      is_rfc:      false,
+      source:      'widget',
+      entry_date:  getTodayNY(),
+      started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
+      ended_at:    now.toISOString(),
     }).then(function () {
-      state.stats.reclass++;
       state.elapsed = 0;
+      state.stats.reclass++;
       showWidgetToast('\u21a9 Reclassified \u2014 Case ' + (caseNum || '\u2014'));
       render();
     }).catch(function (err) {
@@ -221,14 +229,12 @@
 
   function handleCall() {
     // Does NOT stop the timer — calls happen while working a case
-    relayPost('case_events', {
-      user_id:           state.userId,
-      type:              'incoming_call',
-      case_number:       state.caseNumber || null,
-      time_spent_seconds: null,
-      timer_was_used:    false,
-      entry_date:        getTodayNY(),
-      source:            'widget',
+    relayPost('ct_calls', {
+      user_id:    state.userId,
+      case_id:    null,
+      duration_s: null,
+      entry_date: getTodayNY(),
+      notes:      null,
     }).then(function () {
       state.stats.calls++;
       showWidgetToast('\uD83D\uDCDE Call logged');
