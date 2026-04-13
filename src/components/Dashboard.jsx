@@ -96,7 +96,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
       fontSize: 13,
       fontWeight: active ? 700 : 500,
       background: active ? C.mMark : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'),
-      color: active ? '#fff' : C.textSec,
+      color: active ? '#fff' : (theme === 'light' ? '#475569' : 'rgba(255,255,255,0.55)'),
       transition: 'background 150ms, color 150ms',
     };
   }
