@@ -99,6 +99,11 @@ export default function App() {
   const userSettingsRef = useRef(userSettings)
   userSettingsRef.current = userSettings
 
+  // ── Derived theme — read from profile so openPip always has the latest value
+  const currentTheme = profile?.settings?.theme ?? 'dark'
+  const currentThemeRef = useRef(currentTheme)
+  currentThemeRef.current = currentTheme
+
   // ── pin: resize PiP or popup window depending on mode ────────────────────
   const pin = (mode) => {
     const size = getSizeForState(mode, userSettingsRef.current.stat_buttons)
@@ -513,7 +518,7 @@ export default function App() {
   // ── Ensure PiP window is open; restore if minimized ──────────────────────
   async function ensurePipOpen(targetMode = 'idle') {
     if (!isOpen) {
-      const pw = await openPip({ ...getSizeForState(targetMode, userSettingsRef.current.stat_buttons), position: userSettingsRef.current.pip_position })
+      const pw = await openPip({ ...getSizeForState(targetMode, userSettingsRef.current.stat_buttons), position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
       if (!pw) return false
       mountPipWindow(pw)
       if (user) createBarSession(user.id)
@@ -711,7 +716,7 @@ export default function App() {
   async function handleLaunch() {
     if (!user || !profile?.onboarding_complete) return
     const initialSize = getSizeForState('idle', userSettingsRef.current.stat_buttons)
-    const pw = await openPip({ ...initialSize, position: userSettingsRef.current.pip_position })
+    const pw = await openPip({ ...initialSize, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
     if (!pw) return
 
     mountPipWindow(pw)
@@ -736,7 +741,7 @@ export default function App() {
     }
     const { width, height } = getSizeForState(targetMode, userSettingsRef.current.stat_buttons)
 
-    const pw = await openPip({ width, height, position: userSettingsRef.current.pip_position })
+    const pw = await openPip({ width, height, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
     if (!pw) return
 
     mountPipWindow(pw)

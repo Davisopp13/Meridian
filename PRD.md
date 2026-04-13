@@ -143,7 +143,7 @@ body { background: #f1f5f9; }
   - Acceptance criteria: `buildThemeTokens('dark')` returns a string containing `--bg-body: #0f1117`, `buildThemeTokens('light')` returns a string containing `--bg-body: #f1f5f9`. Build passes.
   - Test command: `npx vite build 2>&1 | tail -8`
 
-- [ ] **Task 4: Pass theme to usePipWindow from PipBar or App**
+- [x] **Task 4: Pass theme to usePipWindow from PipBar or App**
   - What to build: Find where `usePipWindow` is called (likely `src/PipBar.jsx` or `src/App.jsx`). Import `useTheme` from `../context/ThemeContext`. Get `theme` from `useTheme()`. Pass `theme` into the hook call. If `usePipWindow` is called as `usePipWindow({ ... })`, add `theme` to the options object. If called differently, adapt accordingly — but do NOT restructure the hook signature beyond adding one parameter.
   - Files to modify: `src/PipBar.jsx` (or wherever usePipWindow is called)
   - Acceptance criteria: Theme value flows from context into hook, build passes
