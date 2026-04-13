@@ -176,7 +176,7 @@
   function handleResolved() {
     stopTimer();
     var caseNum = state.caseNumber;
-    relayPost('ct_activity_log', {
+    relayPost('case_events', {
       user_id:           state.userId,
       type:              'Resolved',
       case_number:       caseNum || null,
@@ -199,7 +199,7 @@
   function handleReclass() {
     stopTimer();
     var caseNum = state.caseNumber;
-    relayPost('ct_activity_log', {
+    relayPost('case_events', {
       user_id:           state.userId,
       type:              'Reclassified',
       case_number:       caseNum || null,
@@ -221,7 +221,7 @@
 
   function handleCall() {
     // Does NOT stop the timer — calls happen while working a case
-    relayPost('ct_activity_log', {
+    relayPost('case_events', {
       user_id:           state.userId,
       type:              'incoming_call',
       case_number:       state.caseNumber || null,
@@ -240,132 +240,117 @@
 
   // ── Render ───────────────────────────────────────────────────────────────
   function render() {
-    var caseLabel  = state.caseNumber ? state.caseNumber : '\u2014';
-    var timerLabel = fmtTime(state.elapsed);
+    var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
 
-    // Header bar (always visible)
-    var headerHtml =
-      '<div id="ct-header" style="' +
-        'display:flex;align-items:center;gap:6px;' +
-        'height:48px;padding:0 8px;' +
-        'background:' + T.bgDeep + ';' +
-        'cursor:move;flex-shrink:0;' +
-      '">' +
-        // M logo mark
-        '<div style="' +
-          'width:24px;height:24px;flex-shrink:0;' +
-          'background:' + T.blue + ';border-radius:5px;' +
-          'display:flex;align-items:center;justify-content:center;' +
-          'color:' + T.orange + ';font:800 12px/1 ' + T.font + ';' +
-        '">M</div>' +
-        // Case number
-        '<span style="' +
-          'flex:1;min-width:0;' +
-          'color:' + T.orange + ';' +
-          'font:700 13px/1 "Courier New",monospace;' +
-          'letter-spacing:0.05em;' +
-          'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' +
-        '">' + caseLabel + '</span>' +
-        // Timer display
-        '<span id="ct-timer" style="' +
-          'flex-shrink:0;' +
-          'color:' + T.textPri + ';' +
-          'font:600 13px/1 "Courier New",monospace;' +
-          'letter-spacing:0.05em;' +
-        '">' + timerLabel + '</span>' +
-        // Minimize toggle
-        '<button data-action="minimize" style="' +
-          'width:22px;height:22px;flex-shrink:0;' +
-          'border:none;border-radius:4px;' +
-          'background:rgba(255,255,255,0.06);' +
-          'color:' + T.textSec + ';' +
-          'font:700 12px/22px ' + T.font + ';' +
-          'cursor:pointer;padding:0;' +
-          'display:flex;align-items:center;justify-content:center;' +
-        '">' + (state.isMinimized ? '\u25b2' : '\u25bc') + '</button>' +
-        // Close button
-        '<button data-action="close" style="' +
-          'width:22px;height:22px;flex-shrink:0;' +
-          'border:none;border-radius:4px;' +
-          'background:rgba(255,255,255,0.06);' +
-          'color:' + T.textSec + ';' +
-          'font:700 15px/22px ' + T.font + ';' +
-          'cursor:pointer;padding:0;' +
-          'display:flex;align-items:center;justify-content:center;' +
-        '">\u00d7</button>' +
-      '</div>';
+    var caseDisplay = state.caseNumber
+      ? '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>'
+      : '<span style="color:rgba(255,255,255,0.3);font-size:11px;">No case</span>';
 
-    // Action buttons (hidden when minimized)
-    var actionsHtml = state.isMinimized ? '' :
-      '<div style="' +
-        'display:flex;gap:4px;padding:6px 8px 4px 8px;' +
-        'border-top:1px solid ' + T.divider + ';' +
-      '">' +
-        '<button data-action="resolve" style="' +
-          'flex:1;height:28px;border:none;border-radius:6px;' +
-          'background:' + T.resolved + ';color:#fff;' +
-          'font:700 11px/1 ' + T.font + ';cursor:pointer;letter-spacing:0.02em;' +
-        '">Resolved</button>' +
-        '<button data-action="reclass" style="' +
-          'flex:1;height:28px;border:none;border-radius:6px;' +
-          'background:' + T.reclass + ';color:#fff;' +
-          'font:700 11px/1 ' + T.font + ';cursor:pointer;letter-spacing:0.02em;' +
-        '">Reclass</button>' +
-        '<button data-action="call" style="' +
-          'flex:1;height:28px;border:none;border-radius:6px;' +
-          'background:' + T.calls + ';color:#fff;' +
-          'font:700 11px/1 ' + T.font + ';cursor:pointer;letter-spacing:0.02em;' +
-        '">Call</button>' +
-        '<button data-action="awaiting" style="' +
-          'flex:1;height:28px;border:none;border-radius:6px;' +
-          'background:' + (state.isAwaiting ? 'rgba(245,158,11,0.25)' : T.awaiting) + ';color:#fff;' +
-          'font:700 11px/1 ' + T.font + ';cursor:pointer;letter-spacing:0.02em;' +
-          'border:' + (state.isAwaiting ? '1px solid ' + T.awaiting : 'none') + ';' +
-        '">' + (state.isAwaiting ? '\u25b6 Resume' : 'Await') + '</button>' +
-      '</div>';
+    var timerDisplay =
+      '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;">' +
+      fmtTime(state.elapsed) + '</span>';
 
-    // Stats row (hidden when minimized)
-    var statsHtml = state.isMinimized ? '' :
-      '<div style="' +
-        'display:flex;align-items:center;justify-content:center;gap:6px;' +
-        'padding:4px 8px 6px 8px;' +
-        'font:11px/1 ' + T.font + ';color:' + T.textSec + ';' +
-      '">' +
-        '<span style="color:' + T.resolved + ';font-weight:700;">' + state.stats.resolved + '</span>' +
-        '<span>Res</span>' +
-        '<span style="color:' + T.divider + ';margin:0 1px;">|</span>' +
-        '<span style="color:' + T.reclass + ';font-weight:700;">' + state.stats.reclass + '</span>' +
-        '<span>Rec</span>' +
-        '<span style="color:' + T.divider + ';margin:0 1px;">|</span>' +
-        '<span style="color:' + T.calls + ';font-weight:700;">' + state.stats.calls + '</span>' +
-        '<span>Call</span>' +
-      '</div>';
+    // Minimized bar — M logo + case + timer + expand + close
+    if (state.isMinimized) {
+      shadow.innerHTML =
+        '<div id="ct-header" style="' +
+          'height:44px;background:' + T.bg + ';' +
+          'border:1px solid ' + T.border + ';border-radius:10px;' +
+          'display:flex;align-items:center;gap:6px;padding:0 10px;' +
+          'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+          'font-family:' + T.font + ';cursor:move;user-select:none;' +
+        '">' +
+          '<div data-action="dashboard" style="' +
+            'width:28px;height:28px;border-radius:7px;background:#003087;' +
+            'display:flex;align-items:center;justify-content:center;' +
+            'cursor:pointer;flex-shrink:0;' +
+          '"><span style="color:#fff;font-weight:800;font-size:13px;">M</span></div>' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+            caseDisplay + timerDisplay +
+          '</div>' +
+          '<div style="flex:1;"></div>' +
+          '<button data-action="minimize" style="' +
+            'background:none;border:none;color:rgba(255,255,255,0.4);' +
+            'font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+          '">\u25b2</button>' +
+          '<button data-action="close" style="' +
+            'background:none;border:none;color:rgba(255,255,255,0.4);' +
+            'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+          '">\u00d7</button>' +
+        '</div>';
+      return;
+    }
 
-    // Toast banner (when present, replaces stats row)
-    var toastHtml = (state.toastMsg && !state.isMinimized)
+    // Toast (absolute, below bar)
+    var toastHtml = state.toastMsg
       ? '<div style="' +
-          'padding:5px 10px;' +
-          'background:rgba(34,197,94,0.15);' +
-          'border-top:1px solid rgba(34,197,94,0.3);' +
-          'color:rgba(255,255,255,0.85);' +
-          'font:11px/1.4 ' + T.font + ';text-align:center;' +
+          'position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);' +
+          'background:#065f46;color:#fff;padding:4px 12px;border-radius:6px;' +
+          'font-size:11px;font-weight:600;white-space:nowrap;' +
+          'box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;' +
         '">' + state.toastMsg + '</div>'
       : '';
 
+    // Full single-bar layout
     shadow.innerHTML =
-      '<div style="' +
-        'width:320px;' +
-        'background:' + T.bg + ';' +
-        'border:1px solid ' + T.border + ';' +
-        'border-radius:12px;' +
-        'box-shadow:0 8px 32px rgba(0,0,0,0.5);' +
-        'overflow:hidden;' +
-        'user-select:none;' +
-        'display:flex;flex-direction:column;' +
+      '<div id="ct-header" style="' +
+        'position:relative;' +
+        'height:44px;background:' + T.bg + ';' +
+        'border:1px solid ' + T.border + ';border-radius:10px;' +
+        'display:flex;align-items:center;gap:6px;padding:0 10px;' +
+        'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+        'font-family:' + T.font + ';cursor:move;user-select:none;' +
       '">' +
-        headerHtml +
-        actionsHtml +
-        (state.toastMsg ? toastHtml : statsHtml) +
+        // M logo
+        '<div data-action="dashboard" style="' +
+          'width:28px;height:28px;border-radius:7px;background:#003087;' +
+          'display:flex;align-items:center;justify-content:center;' +
+          'cursor:pointer;flex-shrink:0;' +
+        '"><span style="color:#fff;font-weight:800;font-size:13px;">M</span></div>' +
+        // Case + timer
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+          caseDisplay + timerDisplay +
+        '</div>' +
+        // Divider
+        '<div style="width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>' +
+        // Stat pill action buttons
+        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+          '<button data-action="resolve" style="' +
+            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+            'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+          '">' + state.stats.resolved + ' Resolved</button>' +
+          '<button data-action="reclass" style="' +
+            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+            'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+          '">' + state.stats.reclass + ' Reclass</button>' +
+          '<button data-action="call" style="' +
+            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+            'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+          '">' + state.stats.calls + ' Calls</button>' +
+          '<button style="' +
+            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+            'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+          '">' + total + ' Total</button>' +
+        '</div>' +
+        // Await/Resume pill
+        '<button data-action="awaiting" style="' +
+          'height:26px;width:26px;border-radius:6px;border:none;' +
+          'background:' + (state.isAwaiting ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.25)') + ';' +
+          'color:#f59e0b;font-size:12px;cursor:pointer;flex-shrink:0;' +
+        '">' + (state.isAwaiting ? '\u25b6' : '\u23f8') + '</button>' +
+        // Spacer
+        '<div style="flex:1;"></div>' +
+        // Minimize
+        '<button data-action="minimize" style="' +
+          'background:none;border:none;color:rgba(255,255,255,0.4);' +
+          'font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+        '">\u25bc</button>' +
+        // Close
+        '<button data-action="close" style="' +
+          'background:none;border:none;color:rgba(255,255,255,0.4);' +
+          'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+        '">\u00d7</button>' +
+        toastHtml +
       '</div>';
   }
 
@@ -396,7 +381,9 @@
     if (!btn) return;
     var action = btn.getAttribute('data-action');
 
-    if (action === 'minimize') {
+    if (action === 'dashboard') {
+      window.open('https://meridian-hlag.vercel.app', '_blank');
+    } else if (action === 'minimize') {
       state.isMinimized = !state.isMinimized;
       render();
     } else if (action === 'close') {
