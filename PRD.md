@@ -113,7 +113,7 @@ Everything else (`MplPipBar.jsx`, `CategoryDrillDown.jsx`, `ManualEntryForm.jsx`
 
 ### Phase 5: Final Verification
 
-- [ ] **Task 5: Full build verification and grep checks**
+- [x] **Task 5: Full build verification and grep checks**
   - Run `npx vite build 2>&1 | tail -8` — must show `✓ built in` with zero errors.
   - Run `grep -n "meridian-mpl-theme" src/mpl/MplApp.jsx` — must return at least 1 hit (the style injection).
   - Run `grep -n "MPL_HEIGHTS" src/lib/constants.js` — confirm `idle: 64` and `timerActive: 64`.

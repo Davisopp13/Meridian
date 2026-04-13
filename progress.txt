@@ -2267,3 +2267,64 @@ Learnings for future iterations:
   - body.style.background must also be updated separately since it's set via cssText in openPip (not via CSS vars)
   - All Light Mode PRD tasks (1-8) are now complete
 ---
+
+## Iteration MPL-1 - Task 1 (MPL Widget Fix PRD): Inject dark theme CSS tokens into MplApp
+- Added useEffect in src/mpl/MplApp.jsx that injects <style id="meridian-mpl-theme"> into document.head on mount
+- Guard: checks document.getElementById('meridian-mpl-theme') before injecting to prevent double-injection
+- Token block matches buildThemeTokens('dark') from usePipWindow.js exactly
+- Placed the effect between the widgetInitRef useEffect and the category fetch useEffect
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/mpl/MplApp.jsx (added dark token injection useEffect)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - MplApp is a popup (window.open), not a PiP child window — injecting into document.head works directly
+  - No flash risk: style tag is injected synchronously during React effect, before meaningful content paint
+  - All child components (MplPipBar, CategoryDrillDown, ManualEntryForm) fix themselves once tokens are injected
+---
+
+## Iteration MPL-2 - Task 2 (MPL Widget Fix PRD): Fix idle popup height to match window.open dimensions
+- Changed MPL_HEIGHTS.idle from 100 → 64 in src/lib/constants.js
+- Changed popup open string in src/components/Dashboard.jsx handleLaunchMpl: height=100 → height=64
+- widgetInitRef useEffect in MplApp.jsx already calls resizeTo('idle') on mount — left unchanged
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/lib/constants.js (MPL_HEIGHTS.idle: 100 → 64)
+  src/components/Dashboard.jsx (handleLaunchMpl height=100 → height=64)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - Browser popup chrome (title bar + borders) consumes ~32-40px of the requested height, so content area is smaller than the window.open height param
+  - 64px matches the CT idle height and is the correct content area target for MPL idle state
+---
+
+## Iteration PRD3-3 - Task 3: Fix MplPipBar idle bar height to 64px
+- Changed bar row `minHeight` from 60 → 64 in src/mpl/MplPipBar.jsx
+- Added `minHeight: 0` to the root container div so flex children don't overflow in expanded states
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/mpl/MplPipBar.jsx (minHeight 60→64, added minHeight:0 to root container)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - The bar row div is at line ~97 of MplPipBar.jsx; it's the first child div inside the root container
+  - Root container has `height: '100%'` — adding `minHeight: 0` prevents flex overflow in expanded states
+  - PRD specifies exact search string for the bar row div: `minHeight: 60, display: 'flex', alignItems: 'center', padding: '0 12px'`
+---
+
+## Iteration 127 - Task 4: Verify timerActive state height is correct
+- Changed MPL_HEIGHTS.timerActive from 140 to 64 in src/lib/constants.js
+- Confirmed by reading MplPipBar.jsx: timerActive state renders pill + Log + Discard all inline in the single 64px bar row — no second row exists
+- Build passes: ✓ built in 1.31s
+
+Files changed:
+  src/lib/constants.js
+
+Learnings for future iterations:
+  - MplPipBar timerActive state is a single-row layout (same height as idle)
+  - 140px would have left dead space — 64px is correct for both idle and timerActive
+---
