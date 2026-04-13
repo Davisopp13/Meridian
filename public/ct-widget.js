@@ -40,12 +40,12 @@
 
   // ── State ────────────────────────────────────────────────────────────────
   var state = {
-    userId:       MERIDIAN_PAYLOAD.userId       || '',
-    relay:        MERIDIAN_PAYLOAD.relayFrame    || null,
-    caseNumber:   MERIDIAN_PAYLOAD.caseNumber    || '',
-    caseType:     MERIDIAN_PAYLOAD.caseType      || '',
-    caseSubtype:  MERIDIAN_PAYLOAD.caseSubtype   || '',
-    accountId:    MERIDIAN_PAYLOAD.accountId     || '',
+    userId:       MERIDIAN_PAYLOAD.userId    || '',
+    relay:        MERIDIAN_PAYLOAD.relayFrame || null,
+    caseNumber:   '',
+    caseType:     '',
+    caseSubtype:  '',
+    accountId:    '',
     elapsed:      0,
     timerRunning: false,
     timerId:      null,
@@ -192,6 +192,10 @@
       ended_at:    now.toISOString(),
     }).then(function () {
       state.elapsed = 0;
+      state.caseNumber  = '';
+      state.caseType    = '';
+      state.caseSubtype = '';
+      state.accountId   = '';
       state.stats.resolved++;
       showWidgetToast('\u2713 Resolved \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -219,6 +223,10 @@
       ended_at:    now.toISOString(),
     }).then(function () {
       state.elapsed = 0;
+      state.caseNumber  = '';
+      state.caseType    = '';
+      state.caseSubtype = '';
+      state.accountId   = '';
       state.stats.reclass++;
       showWidgetToast('\u21a9 Reclassified \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -244,45 +252,91 @@
     });
   }
 
+  function handleStartCase() {
+    var m = document.title.match(/(\d{8,})/);
+    if (m) {
+      state.caseNumber = m[1];
+      state.elapsed    = 0;
+      state.isAwaiting = false;
+      startTimer();
+      render();
+    } else {
+      showWidgetToast('No case detected on this page');
+    }
+  }
+
+  function handleDismissCase() {
+    stopTimer();
+    state.caseNumber  = '';
+    state.caseType    = '';
+    state.caseSubtype = '';
+    state.accountId   = '';
+    state.elapsed     = 0;
+    state.isAwaiting  = false;
+    render();
+  }
+
   // ── Render ───────────────────────────────────────────────────────────────
   function render() {
-    var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
+    var total    = state.stats.resolved + state.stats.reclass + state.stats.calls;
+    var isActive = !!state.caseNumber;
 
-    var caseDisplay = state.caseNumber
-      ? '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>'
-      : '<span style="color:rgba(255,255,255,0.3);font-size:11px;">No case</span>';
+    var mLogo =
+      '<div data-action="dashboard" style="' +
+        'width:28px;height:28px;border-radius:7px;background:#003087;' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'cursor:pointer;flex-shrink:0;' +
+      '"><span style="color:#fff;font-weight:800;font-size:13px;">M</span></div>';
 
-    var timerDisplay =
-      '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;">' +
-      fmtTime(state.elapsed) + '</span>';
+    var statPills =
+      '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+        '<button data-action="resolve" style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+        '">' + state.stats.resolved + ' Resolved</button>' +
+        '<button data-action="reclass" style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+        '">' + state.stats.reclass + ' Reclass</button>' +
+        '<button data-action="call" style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+        '">' + state.stats.calls + ' Calls</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + total + ' Total</button>' +
+      '</div>';
 
-    // Minimized bar — M logo + case + timer + expand + close
+    var divider = '<div style="width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>';
+    var spacer  = '<div style="flex:1;"></div>';
+    var minBtn  = '<button data-action="minimize" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;">';
+    var closeBtn =
+      '<button data-action="close" style="' +
+        'background:none;border:none;color:rgba(255,255,255,0.4);' +
+        'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+      '">\u00d7</button>';
+
+    var barStyle =
+      'height:44px;background:' + T.bg + ';' +
+      'border:1px solid ' + T.border + ';border-radius:10px;' +
+      'display:flex;align-items:center;gap:6px;padding:0 10px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+      'font-family:' + T.font + ';cursor:move;user-select:none;';
+
+    // ── Minimized ────────────────────────────────────────────────────────────
     if (state.isMinimized) {
+      var minContent = isActive
+        ? '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
+          '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;margin-left:6px;">' + fmtTime(state.elapsed) + '</span>'
+        : '';
       shadow.innerHTML =
-        '<div id="ct-header" style="' +
-          'height:44px;background:' + T.bg + ';' +
-          'border:1px solid ' + T.border + ';border-radius:10px;' +
-          'display:flex;align-items:center;gap:6px;padding:0 10px;' +
-          'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
-          'font-family:' + T.font + ';cursor:move;user-select:none;' +
-        '">' +
-          '<div data-action="dashboard" style="' +
-            'width:28px;height:28px;border-radius:7px;background:#003087;' +
-            'display:flex;align-items:center;justify-content:center;' +
-            'cursor:pointer;flex-shrink:0;' +
-          '"><span style="color:#fff;font-weight:800;font-size:13px;">M</span></div>' +
-          '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
-            caseDisplay + timerDisplay +
-          '</div>' +
-          '<div style="flex:1;"></div>' +
-          '<button data-action="minimize" style="' +
-            'background:none;border:none;color:rgba(255,255,255,0.4);' +
-            'font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
-          '">\u25b2</button>' +
-          '<button data-action="close" style="' +
-            'background:none;border:none;color:rgba(255,255,255,0.4);' +
-            'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
-          '">\u00d7</button>' +
+        '<div id="ct-header" style="' + barStyle + '">' +
+          mLogo +
+          (minContent ? '<div style="display:flex;align-items:center;flex-shrink:0;">' + minContent + '</div>' : '') +
+          spacer +
+          minBtn + '\u25b2</button>' +
+          closeBtn +
         '</div>';
       return;
     }
@@ -297,65 +351,50 @@
         '">' + state.toastMsg + '</div>'
       : '';
 
-    // Full single-bar layout
+    // ── Idle (no case) ───────────────────────────────────────────────────────
+    if (!isActive) {
+      shadow.innerHTML =
+        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
+          mLogo +
+          '<button data-action="startcase" style="' +
+            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
+            'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+          '">Start Case</button>' +
+          divider +
+          statPills +
+          spacer +
+          minBtn + '\u25bc</button>' +
+          closeBtn +
+          toastHtml +
+        '</div>';
+      return;
+    }
+
+    // ── Active (case loaded) ─────────────────────────────────────────────────
+    var awaitBtn =
+      '<button data-action="awaiting" style="' +
+        'height:26px;width:26px;border-radius:6px;border:none;' +
+        'background:' + (state.isAwaiting ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.25)') + ';' +
+        'color:#f59e0b;font-size:12px;cursor:pointer;flex-shrink:0;' +
+      '">' + (state.isAwaiting ? '\u25b6' : '\u23f8') + '</button>';
+
     shadow.innerHTML =
-      '<div id="ct-header" style="' +
-        'position:relative;' +
-        'height:44px;background:' + T.bg + ';' +
-        'border:1px solid ' + T.border + ';border-radius:10px;' +
-        'display:flex;align-items:center;gap:6px;padding:0 10px;' +
-        'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
-        'font-family:' + T.font + ';cursor:move;user-select:none;' +
-      '">' +
-        // M logo
-        '<div data-action="dashboard" style="' +
-          'width:28px;height:28px;border-radius:7px;background:#003087;' +
-          'display:flex;align-items:center;justify-content:center;' +
-          'cursor:pointer;flex-shrink:0;' +
-        '"><span style="color:#fff;font-weight:800;font-size:13px;">M</span></div>' +
-        // Case + timer
-        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
-          caseDisplay + timerDisplay +
-        '</div>' +
-        // Divider
-        '<div style="width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>' +
-        // Stat pill action buttons
+      '<div id="ct-header" style="position:relative;' + barStyle + '">' +
+        mLogo +
         '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
-          '<button data-action="resolve" style="' +
-            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-            'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
-          '">' + state.stats.resolved + ' Resolved</button>' +
-          '<button data-action="reclass" style="' +
-            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-            'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
-          '">' + state.stats.reclass + ' Reclass</button>' +
-          '<button data-action="call" style="' +
-            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-            'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
-          '">' + state.stats.calls + ' Calls</button>' +
-          '<button style="' +
-            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-            'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
-          '">' + total + ' Total</button>' +
+          '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
+          '<button data-action="dismisscase" style="' +
+            'background:none;border:none;color:rgba(255,255,255,0.4);' +
+            'font-size:11px;cursor:pointer;padding:0 2px;' +
+          '">\u00d7</button>' +
         '</div>' +
-        // Await/Resume pill
-        '<button data-action="awaiting" style="' +
-          'height:26px;width:26px;border-radius:6px;border:none;' +
-          'background:' + (state.isAwaiting ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.25)') + ';' +
-          'color:#f59e0b;font-size:12px;cursor:pointer;flex-shrink:0;' +
-        '">' + (state.isAwaiting ? '\u25b6' : '\u23f8') + '</button>' +
-        // Spacer
-        '<div style="flex:1;"></div>' +
-        // Minimize
-        '<button data-action="minimize" style="' +
-          'background:none;border:none;color:rgba(255,255,255,0.4);' +
-          'font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
-        '">\u25bc</button>' +
-        // Close
-        '<button data-action="close" style="' +
-          'background:none;border:none;color:rgba(255,255,255,0.4);' +
-          'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
-        '">\u00d7</button>' +
+        '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;flex-shrink:0;">' + fmtTime(state.elapsed) + '</span>' +
+        divider +
+        statPills +
+        awaitBtn +
+        spacer +
+        minBtn + '\u25bc</button>' +
+        closeBtn +
         toastHtml +
       '</div>';
   }
@@ -363,21 +402,8 @@
   // Initial render
   render();
 
-  // Auto-start timer if a case number was provided
-  if (state.caseNumber) startTimer();
-
   // ── Expose refresh hook for double-injection guard ────────────────────────
-  host._meridianRefresh = function (payload) {
-    if (payload.caseNumber && payload.caseNumber !== state.caseNumber) {
-      state.caseNumber  = payload.caseNumber  || state.caseNumber;
-      state.caseType    = payload.caseType    || '';
-      state.caseSubtype = payload.caseSubtype || '';
-      state.accountId   = payload.accountId   || '';
-      state.elapsed     = 0;
-      state.isAwaiting  = false;
-      stopTimer();
-      if (state.caseNumber) startTimer();
-    }
+  host._meridianRefresh = function () {
     render();
   };
 
@@ -395,6 +421,10 @@
     } else if (action === 'close') {
       stopTimer();
       host.remove();
+    } else if (action === 'startcase') {
+      handleStartCase();
+    } else if (action === 'dismisscase') {
+      handleDismissCase();
     } else if (action === 'resolve') {
       handleResolved();
     } else if (action === 'reclass') {

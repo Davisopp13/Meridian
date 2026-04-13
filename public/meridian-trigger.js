@@ -5,15 +5,12 @@
 // MERIDIAN_PAYLOAD is injected by the bookmarklet and contains:
 //   { userId, relayFrame }
 //   - userId: the Meridian user's UUID, baked into the bookmarklet at onboarding
-//   - relayFrame: reference to the relay iframe's contentWindow (null on non-SF pages)
+//   - relayFrame: reference to the relay iframe's contentWindow
 //
 // Flow:
 // 1. Detects whether the current page is Salesforce
 // 2. On non-SF: shows a toast and returns
-// 3. On SF: detects if we're on a case page (8+ digit number in title)
-// 4. On SF + no case: shows a toast and returns
-// 5. On SF + case: scrapes case metadata, asks relay to load ct-widget.js,
-//    executes the widget with extended MERIDIAN_PAYLOAD
+// 3. On SF: asks relay to load ct-widget.js (widget scrapes case on demand)
 
 (function() {
   var userId = MERIDIAN_PAYLOAD.userId;
@@ -40,25 +37,6 @@
     showToast('Meridian: Missing relay. Try re-installing the bookmarklet from Meridian.', 'error');
     return;
   }
-
-  // ── Detect Salesforce case ───────────────────────────────────────────────
-  var title = document.title || '';
-  var caseMatch = title.match(/(\d{8,})/);
-
-  if (!caseMatch) {
-    showToast('Meridian: No case detected on this page', 'info');
-    return;
-  }
-
-  var caseNumber = caseMatch[1];
-  var accountId = extractAccountId();
-  var typeInfo = extractCaseTypeSubtype();
-
-  // Extend MERIDIAN_PAYLOAD with case data so ct-widget.js can read it
-  MERIDIAN_PAYLOAD.caseNumber = caseNumber;
-  MERIDIAN_PAYLOAD.caseType = typeInfo.type || '';
-  MERIDIAN_PAYLOAD.caseSubtype = typeInfo.subtype || '';
-  MERIDIAN_PAYLOAD.accountId = accountId || '';
 
   // ── Ask relay to fetch ct-widget.js ─────────────────────────────────────
   var msgId = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
@@ -92,53 +70,6 @@
   setTimeout(function() {
     window.removeEventListener('message', onRelayResponse);
   }, 10000);
-
-  // ── Page scraping helpers ────────────────────────────────────────────────
-
-  function extractAccountId() {
-    try {
-      // Look for the Account ID in common Salesforce Lightning locations
-      // 1. URL hash fragment often has accountId
-      var hash = window.location.hash || '';
-      var accMatch = hash.match(/001[A-Za-z0-9]{12,15}/);
-      if (accMatch) return accMatch[0];
-
-      // 2. Look in visible text on the page
-      var allText = document.body.innerText || '';
-      var accTextMatch = allText.match(/001[A-Za-z0-9]{12,15}/);
-      if (accTextMatch) return accTextMatch[0];
-
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  function extractCaseTypeSubtype() {
-    try {
-      // Look for Type and Subtype fields in Lightning record detail
-      var result = { type: null, subtype: null };
-
-      // Lightning uses span[data-output-element-id] or force-record-layout
-      var labels = document.querySelectorAll('span.test-id__field-label, span[class*="FieldLabel"]');
-      labels.forEach(function(label) {
-        var text = (label.textContent || '').trim().toLowerCase();
-        var valueEl = label.closest('.slds-form-element')?.querySelector('.slds-form-element__control');
-        var value = valueEl ? (valueEl.textContent || '').trim() : '';
-        if (!value) return;
-
-        if (text === 'type' || text === 'case type') {
-          result.type = value;
-        } else if (text === 'subtype' || text === 'case subtype' || text === 'sub type' || text === 'sub-type') {
-          result.subtype = value;
-        }
-      });
-
-      return result;
-    } catch (e) {
-      return { type: null, subtype: null };
-    }
-  }
 
   // ── Toast UI ─────────────────────────────────────────────────────────────
 
