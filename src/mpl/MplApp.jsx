@@ -121,6 +121,47 @@ export default function MplApp() {
     resizeTo('idle')
   }, [isMplWidget, authLoading, user, profile])
 
+  // ── Dark theme token injection ────────────────────────────────────────
+  useEffect(() => {
+    if (document.getElementById('meridian-mpl-theme')) return
+    const style = document.createElement('style')
+    style.id = 'meridian-mpl-theme'
+    style.textContent = `
+:root {
+  --bg-body:        #0f1117;
+  --bg-card:        rgba(255,255,255,0.05);
+  --card-bg-subtle: rgba(255,255,255,0.03);
+  --text-pri:       rgba(255,255,255,0.92);
+  --text-sec:       rgba(255,255,255,0.55);
+  --text-dim:       rgba(255,255,255,0.30);
+  --divider:        rgba(255,255,255,0.08);
+  --border:         rgba(255,255,255,0.10);
+  --shadow-subtle:  0 2px 8px rgba(0,0,0,0.4);
+  --case-focus:     rgba(232,84,10,0.10);
+  --case-border:    rgba(232,84,10,0.25);
+  --row-focus:      rgba(255,255,255,0.04);
+  --amber-row:      rgba(217,119,6,0.15);
+  --color-mbtn:     #003087;
+  --color-mmark:    #E8540A;
+  --color-resolved: #22c55e;
+  --color-reclass:  #ef4444;
+  --color-calls:    #3b82f6;
+  --color-process:  #64748b;
+  --color-process-navy: rgba(0,48,135,0.45);
+  --color-awaiting: #f59e0b;
+  --color-active-dot: #4ade80;
+  --dash-bg:        #0f1117;
+  --dash-card:      rgba(255,255,255,0.04);
+  --dash-border:    rgba(255,255,255,0.08);
+  --dash-text-pri:  rgba(255,255,255,0.92);
+  --dash-text-sec:  rgba(255,255,255,0.55);
+  --dash-text-dim:  rgba(255,255,255,0.30);
+}
+body { background: #0f1117; }
+`
+    document.head.appendChild(style)
+  }, [])
+
   // ── Category fetch ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !profile?.team) return
