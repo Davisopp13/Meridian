@@ -17,8 +17,9 @@ import RFCPrompt from './components/overlays/RFCPrompt.jsx'
 import ProcessPicker from './components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from './components/ManualEntryForm.jsx'
 import { getNewYorkDateKey, getNewYorkDayRange } from './lib/timezone.js'
-import { getSizeForState, getUserSettings } from './lib/constants.js'
+import { getSizeForState, getMplSizeForState, getUserSettings } from './lib/constants.js'
 import MplWidget from './components/MplWidget.jsx'
+import MplPipBar from './mpl/MplPipBar.jsx'
 
 const PIP_STATE_STORAGE_PREFIX = 'meridian:pip-state'
 
@@ -62,6 +63,12 @@ function restoreCaseFromRow(row) {
 
 export default function App() {
   const { pipWindow, isOpen, openPip, closePip, reapplyTheme, resizeAndPin, pipRootRef } = usePipWindow()
+  const {
+    isOpen: isMplOpen,
+    openPip: openMplPip,
+    resizeAndPin: resizeAndPinMpl,
+    pipRootRef: mplPipRootRef,
+  } = usePipWindow()
 
   // ── App state ─────────────────────────────────────────────────────────────
   const [user, setUser] = useState(null)
@@ -119,6 +126,12 @@ export default function App() {
     } else {
       resizeAndPin(size, userSettingsRef.current.pip_position)
     }
+  }
+
+  // ── pinMpl: resize MPL PiP window ────────────────────────────────────────
+  function pinMpl(stateKey) {
+    const { width, height } = getMplSizeForState(stateKey, ['processes', 'total'])
+    resizeAndPinMpl({ width, height }, userSettingsRef.current.pip_position)
   }
 
   // ── Toast helper ──────────────────────────────────────────────────────────
@@ -209,6 +222,18 @@ export default function App() {
     pw.document.body.appendChild(container)
     pipRootRef.current = ReactDOM.createRoot(container)
     pipRootRef.current.render(<PipErrorBoundary>{buildPipBar()}</PipErrorBoundary>)
+  }
+
+  // ── MPL PiP mount helper ──────────────────────────────────────────────────
+  function mountMplPipWindow(pw) {
+    const existing = pw.document.getElementById('meridian-mpl-pip-root')
+    if (existing) existing.remove()
+    const container = pw.document.createElement('div')
+    container.id = 'meridian-mpl-pip-root'
+    container.style.cssText = 'width:100%;height:100%'
+    pw.document.body.appendChild(container)
+    mplPipRootRef.current = ReactDOM.createRoot(container)
+    mplPipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
   }
 
   // ── bar_sessions tracking ─────────────────────────────────────────────────
@@ -343,6 +368,12 @@ export default function App() {
   // ── Minimized strip derived values ─────────────────────────────────────────
   const focusedCase = cases.find(c => c.id === focusedCaseId) || cases[0] || null
   const activeProcess = processes[0] || null
+
+  // Derive MPL state for MplPipBar from existing App state
+  const mplState = manualEntryOpen ? 'manualEntry'
+    : (pickerPending && overlayOpen) ? 'categoryPicker'
+    : processes.length > 0 ? 'timerActive'
+    : 'idle'
 
   // Determines which session the minimized strip shows
   const activeStripSession = (() => {
@@ -719,6 +750,119 @@ export default function App() {
     )
   }
 
+  // ── Keep MPL PiP window in sync with state ───────────────────────────────
+  useEffect(() => {
+    if (!mplPipRootRef.current) return
+    mplPipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
+  })
+
+  // ── Build MplPipBar element for the MPL PiP window ───────────────────────
+  function buildMplBar() {
+    return (
+      <MplPipBar
+        activeProcess={activeProcess}
+        processCount={processCount}
+        mplState={mplState}
+        onOpenDashboard={handleOpenDashboard}
+        onStart={handleMplStart}
+        onQuickLog={handleMplQuickLog}
+        onLog={handleMplLog}
+        onDiscard={handleMplDiscard}
+        onPause={() => { if (activeProcess) handleProcessPause(activeProcess.id) }}
+        onResume={() => { if (activeProcess) handleProcessResume(activeProcess.id) }}
+        onMinimize={() => setIsMinimized(true)}
+        onRestore={() => setIsMinimized(false)}
+        isMinimized={isMinimized}
+        connectionStatus={connectionStatus}
+        pipToast={pipToast}
+      >
+        {mplState === 'categoryPicker' && activeProcess && (
+          <ProcessPicker
+            categories={categories}
+            elapsed={activeProcess.elapsed}
+            onConfirm={handleMplPickerConfirm}
+            onCancel={() => { setPickerPending(null); setOverlayOpen(false); pinMpl('timerActive') }}
+          />
+        )}
+        {mplState === 'manualEntry' && (
+          <ManualEntryForm
+            categories={categories}
+            onClose={() => { setManualEntryOpen(false); pinMpl('idle') }}
+            onLog={handleMplManualLog}
+          />
+        )}
+      </MplPipBar>
+    )
+  }
+
+  // ── MPL PiP handlers ──────────────────────────────────────────────────────
+
+  function handleMplStart() {
+    const id = crypto.randomUUID()
+    setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
+    setLastTrigger('processes')
+    startProcessTimer(id)
+    pinMpl('timerActive')
+  }
+
+  function handleMplQuickLog() {
+    setManualEntryOpen(true)
+    pinMpl('manualEntry')
+  }
+
+  function handleMplLog() {
+    if (!activeProcess) return
+    setPickerPending({ processId: activeProcess.id, elapsed: activeProcess.elapsed })
+    setOverlayOpen(true)
+    pinMpl('categoryPicker')
+  }
+
+  function handleMplDiscard() {
+    if (activeProcess) {
+      stopProcessTimer(activeProcess.id)
+      setProcesses(prev => prev.filter(p => p.id !== activeProcess.id))
+    }
+    setPickerPending(null)
+    setOverlayOpen(false)
+    setManualEntryOpen(false)
+    pinMpl('idle')
+  }
+
+  async function handleMplPickerConfirm(categoryId, subcategoryId, durationSeconds) {
+    if (!pickerPending || !user) return
+    const { processId } = pickerPending
+    stopProcessTimer(processId)
+    pinMpl('idle')
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes: Math.round(durationSeconds / 60) || 1,
+      source: 'pip',
+    }))
+    if (!ok) return
+    setProcesses(prev => prev.filter(p => p.id !== processId))
+    setPickerPending(null)
+    setOverlayOpen(false)
+    refetch()
+  }
+
+  async function handleMplManualLog(categoryId, subcategoryId, minutes) {
+    if (!user) return
+    pinMpl('idle')
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes,
+      source: 'manual',
+    }))
+    if (ok) {
+      setManualEntryOpen(false)
+      refetch()
+    }
+  }
+
   // ── Launch PiP window ─────────────────────────────────────────────────────
   async function handleLaunch() {
     if (!user || !profile?.onboarding_complete) return
@@ -728,6 +872,15 @@ export default function App() {
 
     mountPipWindow(pw)
     if (user) createBarSession(user.id)
+  }
+
+  // ── Launch MPL PiP window ─────────────────────────────────────────────────
+  async function handleLaunchMpl() {
+    if (!user || !profile?.onboarding_complete) return
+    const { width, height } = getMplSizeForState('idle', ['processes', 'total'])
+    const pw = await openMplPip({ width, height, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
+    if (!pw) return
+    mountMplPipWindow(pw)
   }
 
   async function handlePendingTriggerLaunch() {
@@ -1428,7 +1581,7 @@ export default function App() {
 
   return (
     <ThemeProvider initialTheme={initialTheme}>
-      <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} onRefreshProfile={refreshProfile} />
+      <Dashboard user={user} profile={profile} onLaunchPip={handleLaunch} onLaunchMpl={handleLaunchMpl} onRefreshProfile={refreshProfile} />
       <PendingTriggerBanner
         trigger={pendingTrigger}
         onLaunch={handlePendingTriggerLaunch}

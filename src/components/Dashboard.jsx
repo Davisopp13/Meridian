@@ -43,7 +43,7 @@ const METRICS = [
   { key: 'totalActivity', label: 'Total Activity', color: '#E8540A', icon: <Zap size={18} strokeWidth={2.5} /> },
 ];
 
-export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile }) {
+export default function Dashboard({ user, profile, onLaunchPip, onLaunchMpl, onRefreshProfile }) {
   const { theme } = useTheme();
   const [period, setPeriod] = useState('this_week');
   const [activeMetric, setActiveMetric] = useState('resolved');
@@ -54,11 +54,6 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
   function handleLaunchCt() {
     const url = window.location.origin + '/?mode=ct-widget';
     window.open(url, 'meridian-ct', 'popup,width=600,height=64,top=0,left=' + (screen.availWidth - 616));
-  }
-
-  function handleLaunchMpl() {
-    const url = window.location.origin + '/?mode=mpl-widget'
-    window.open(url, 'meridian-mpl')
   }
 
   const stats = useDashboardStats({ userId: user.id, period });
@@ -103,7 +98,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
 
   return (
     <div style={{ background: 'var(--dash-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={handleLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} />
+      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={onLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} />
 
 
       {view === 'settings' ? (
