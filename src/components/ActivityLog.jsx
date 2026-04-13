@@ -1,36 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useActivityData } from '../hooks/useActivityData';
-
-const C = {
-  bg: '#0f1117',
-  bgCard: '#1a1d27',
-  bgHover: '#1e2130',
-  border: 'rgba(255,255,255,0.07)',
-  orange: '#E8540A',
-  green: '#16a34a',
-  greenBg: 'rgba(22,163,74,0.12)',
-  greenBorder: 'rgba(22,163,74,0.28)',
-  red: '#dc2626',
-  redBg: 'rgba(220,38,38,0.12)',
-  redBorder: 'rgba(220,38,38,0.28)',
-  blue: '#0284c7',
-  blueBg: 'rgba(2,132,199,0.12)',
-  blueBorder: 'rgba(2,132,199,0.28)',
-  lightBlue: '#60a5fa',
-  lightBlueBg: 'rgba(96,165,250,0.12)',
-  lightBlueBorder: 'rgba(96,165,250,0.28)',
-  textPrimary: '#f1f5f9',
-  textSecondary: '#cbd5e1',
-  textMuted: '#6b7280',
-};
+import { useTheme } from '../context/ThemeContext.jsx';
 
 const TYPE_STYLE = {
-  Resolved: { color: C.green, bg: C.greenBg, border: C.greenBorder },
-  Reclassified: { color: C.red, bg: C.redBg, border: C.redBorder },
-  Call: { color: C.blue, bg: C.blueBg, border: C.blueBorder },
-  Process: { color: C.lightBlue, bg: C.lightBlueBg, border: C.lightBlueBorder },
-  Awaiting: { color: C.orange, bg: 'rgba(232,84,10,0.12)', border: 'rgba(232,84,10,0.28)' },
-  'Not a Case': { color: C.textMuted, bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.28)' },
+  Resolved:     { color: '#16a34a', bg: 'rgba(22,163,74,0.12)',   border: 'rgba(22,163,74,0.28)' },
+  Reclassified: { color: '#dc2626', bg: 'rgba(220,38,38,0.12)',   border: 'rgba(220,38,38,0.28)' },
+  Call:         { color: '#0284c7', bg: 'rgba(2,132,199,0.12)',   border: 'rgba(2,132,199,0.28)' },
+  Process:      { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.28)' },
+  Awaiting:     { color: '#E8540A', bg: 'rgba(232,84,10,0.12)',   border: 'rgba(232,84,10,0.28)' },
+  'Not a Case': { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.28)' },
 };
 
 const FILTER_TABS = [
@@ -137,7 +115,7 @@ function formatTime(date) {
 }
 
 // Defined outside ActivityLog to avoid hooks-in-loop
-function FilterTab({ filterKey, label, count, active, onClick }) {
+function FilterTab({ filterKey, label, count, active, onClick, C }) {
   const ts = TYPE_STYLE[filterKey] || { color: C.textPrimary, bg: 'transparent', border: C.border };
   return (
     <button
@@ -634,7 +612,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
 }
 
 // Defined outside ActivityLog to avoid hooks-in-loop
-function EntryRow({ entry, onEdit }) {
+function EntryRow({ entry, onEdit, C }) {
   const [hovered, setHovered] = useState(false);
   const ts = TYPE_STYLE[entry.type] || { color: C.textMuted, bg: 'transparent', border: C.border };
 
@@ -754,6 +732,31 @@ function EntryRow({ entry, onEdit }) {
 }
 
 export default function ActivityLog({ userId }) {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const C = {
+    bg:              isLight ? '#f1f5f9'              : '#0f1117',
+    bgCard:          isLight ? '#ffffff'              : '#1a1d27',
+    bgHover:         isLight ? '#f8fafc'              : '#1e2130',
+    border:          isLight ? 'rgba(0,0,0,0.08)'    : 'rgba(255,255,255,0.07)',
+    orange:          '#E8540A',
+    green:           '#16a34a',
+    greenBg:         'rgba(22,163,74,0.12)',
+    greenBorder:     'rgba(22,163,74,0.28)',
+    red:             '#dc2626',
+    redBg:           'rgba(220,38,38,0.12)',
+    redBorder:       'rgba(220,38,38,0.28)',
+    blue:            '#0284c7',
+    blueBg:          'rgba(2,132,199,0.12)',
+    blueBorder:      'rgba(2,132,199,0.28)',
+    lightBlue:       '#60a5fa',
+    lightBlueBg:     'rgba(96,165,250,0.12)',
+    lightBlueBorder: 'rgba(96,165,250,0.28)',
+    textPrimary:     isLight ? '#0f172a'              : '#f1f5f9',
+    textSecondary:   isLight ? '#475569'              : '#cbd5e1',
+    textMuted:       isLight ? '#64748b'              : '#6b7280',
+  };
+
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [range, setRange] = useState('today');
   const [editingEntry, setEditingEntry] = useState(null);
@@ -847,7 +850,7 @@ export default function ActivityLog({ userId }) {
               padding: '0 12px',
               height: 32,
               borderRadius: 16,
-              border: `1px solid ${activeFilters.size === 0 ? 'rgba(255,255,255,0.25)' : C.border}`,
+              border: `1px solid ${activeFilters.size === 0 ? (isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)') : C.border}`,
               background: activeFilters.size === 0 ? 'rgba(255,255,255,0.08)' : 'transparent',
               color: activeFilters.size === 0 ? C.textPrimary : C.textMuted,
               fontSize: 12,
@@ -867,6 +870,7 @@ export default function ActivityLog({ userId }) {
               count={typeCounts[f.key] || 0}
               active={activeFilters.has(f.key)}
               onClick={toggleFilter}
+              C={C}
             />
           ))}
 
@@ -941,7 +945,7 @@ export default function ActivityLog({ userId }) {
               key={entry.id}
               style={{ opacity: isVisible(entry) ? 1 : 0.15, transition: 'opacity 150ms' }}
             >
-              <EntryRow entry={entry} onEdit={setEditingEntry} />
+              <EntryRow entry={entry} onEdit={setEditingEntry} C={C} />
             </div>
           ))
         )}

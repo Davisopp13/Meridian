@@ -1,12 +1,12 @@
 import React from 'react';
 
 const C = {
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-  divider: 'var(--divider)',
-  border: 'var(--border)',
-  cardBg: 'var(--card-bg-subtle)',
+  textPri: 'var(--dash-text-pri)',
+  textSec: 'var(--dash-text-sec)',
+  textDim: 'var(--dash-text-dim)',
+  divider: 'var(--dash-border)',
+  border:  'var(--dash-border)',
+  cardBg:  'var(--dash-card)',
 };
 
 const COLS = [
@@ -23,8 +23,6 @@ const COLS = [
 export default function DashboardTable({ rows }) {
   const tableStyle = {
     background: C.cardBg,
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
     border: `1px solid ${C.border}`,
     borderRadius: 16,
     overflow: 'hidden',
@@ -86,7 +84,7 @@ export default function DashboardTable({ rows }) {
           display: 'grid',
           gridTemplateColumns: `repeat(${COLS.length}, 1fr)`,
           height: 44,
-          background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+          background: i % 2 === 0 ? 'transparent' : 'var(--dash-row-alt)',
           borderBottom: i < rows.length - 1 ? `1px solid ${C.divider}` : 'none',
           transition: 'background 0.2s',
         };

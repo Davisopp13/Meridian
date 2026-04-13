@@ -12,6 +12,7 @@ const THEME_CSS = `
   --dash-text-pri:  rgba(255,255,255,0.92);
   --dash-text-sec:  rgba(255,255,255,0.55);
   --dash-text-dim:  rgba(255,255,255,0.30);
+  --dash-row-alt:   rgba(255,255,255,0.02);
 }
 [data-theme="light"] {
   --dash-bg:        #f1f5f9;
@@ -20,6 +21,7 @@ const THEME_CSS = `
   --dash-text-pri:  #0f172a;
   --dash-text-sec:  #475569;
   --dash-text-dim:  #94a3b8;
+  --dash-row-alt:   rgba(0,0,0,0.02);
 }
 `;
 
