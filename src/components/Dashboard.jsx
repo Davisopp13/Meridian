@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import { useTheme } from '../context/ThemeContext.jsx';
 import Navbar from './Navbar.jsx';
 import { useDashboardStats } from '../hooks/useDashboardStats.js';
 import DashboardStatCard from './DashboardStatCard.jsx';
@@ -43,6 +44,7 @@ const METRICS = [
 ];
 
 export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile }) {
+  const { theme } = useTheme();
   const [period, setPeriod] = useState('this_week');
   const [activeMetric, setActiveMetric] = useState('resolved');
   const [chartType, setChartType] = useState('bar');
@@ -100,7 +102,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
   }
 
   return (
-    <div style={{ background: C.bgDeep, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
+    <div style={{ background: 'var(--dash-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
       <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={handleLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} />
 
 
@@ -173,8 +175,8 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
 
 function SkeletonTable() {
   const containerStyle = {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.12)',
+    background: 'var(--dash-card)',
+    border: '1px solid var(--dash-border)',
     borderRadius: 12,
     overflow: 'hidden',
   };

@@ -159,7 +159,7 @@ body { background: #f1f5f9; }
 
 ### Phase 4: Dashboard Surface Theming
 
-- [ ] **Task 6: Apply theme CSS vars to Dashboard page background**
+- [x] **Task 6: Apply theme CSS vars to Dashboard page background**
   - What to build: In `src/components/Dashboard.jsx`, import `useTheme`. Get `theme` from `useTheme()`. Find the outermost wrapper div that sets the page background (look for `background: '#0f1117'` or similar). Change its `background` inline style to `'var(--dash-bg)'`. Find the main content card or panel containers (the ones that use `background: 'rgba(255,255,255,0.05)'` or similar) and change them to `'var(--dash-card)'`. Find top-level text elements using hardcoded white/light colors and change to `'var(--dash-text-pri)'` or `'var(--dash-text-sec)'`. Do NOT attempt to refactor every component's inline style — only the page-level wrapper, main card containers, and top-level text. Leave nested component styles untouched.
   - Files to modify: `src/components/Dashboard.jsx`
   - Acceptance criteria: In light mode, dashboard background is `#f1f5f9` and main cards are white; in dark mode unchanged from current. Build passes.
