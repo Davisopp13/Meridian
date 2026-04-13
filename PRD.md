@@ -86,7 +86,7 @@ Everything else (`MplPipBar.jsx`, `CategoryDrillDown.jsx`, `ManualEntryForm.jsx`
 
 ### Phase 2: Sizing Fix
 
-- [ ] **Task 2: Fix idle popup height to match window.open dimensions**
+- [x] **Task 2: Fix idle popup height to match window.open dimensions**
   - What: The popup opens at `height=100` (from Dashboard's `handleLaunchMpl`) but `MPL_HEIGHTS.idle` is `100`. The issue is the browser's popup chrome (title bar, borders) eats ~32-40px, leaving the content area shorter than `100px`. The idle bar needs to be `64px` content height — same as CT idle — and the popup should open at `64px`.
   - In `src/lib/constants.js`: change `MPL_HEIGHTS.idle` from `100` to `64`.
   - In `src/components/Dashboard.jsx`: change `handleLaunchMpl`'s popup height from `100` to `64`.  

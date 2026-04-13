@@ -58,7 +58,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onRefreshProfile
 
   function handleLaunchMpl() {
     const url = window.location.origin + '/?mode=mpl-widget';
-    window.open(url, 'meridian-mpl', 'popup,width=400,height=100,top=0,left=' + (screen.availWidth - 416));
+    window.open(url, 'meridian-mpl', 'popup,width=400,height=64,top=0,left=' + (screen.availWidth - 416));
   }
 
   const stats = useDashboardStats({ userId: user.id, period });
