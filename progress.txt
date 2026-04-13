@@ -2328,3 +2328,18 @@ Learnings for future iterations:
   - MplPipBar timerActive state is a single-row layout (same height as idle)
   - 140px would have left dead space — 64px is correct for both idle and timerActive
 ---
+
+## Iteration 128 - Task 5: Full build verification and grep checks
+- Ran `npx vite build 2>&1 | tail -8` — ✓ built in 1.24s, zero errors
+- Confirmed `meridian-mpl-theme` present in MplApp.jsx (lines 126, 128)
+- Confirmed MPL_HEIGHTS.idle = 64 and MPL_HEIGHTS.timerActive = 64 in constants.js
+- Confirmed Dashboard.jsx MPL popup uses height=64 (no height=100 for MPL)
+- No code changes made — verification only, all checks passed on first run
+
+Files changed:
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - All four MPL Widget Fix PRD tasks were already complete — final state is clean
+  - Build is stable at 1.2–1.3s; no regressions from any of the 5 tasks
+---
