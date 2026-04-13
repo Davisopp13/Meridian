@@ -165,7 +165,7 @@ body { background: #f1f5f9; }
   - Acceptance criteria: In light mode, dashboard background is `#f1f5f9` and main cards are white; in dark mode unchanged from current. Build passes.
   - Test command: `npx vite build 2>&1 | tail -8`
 
-- [ ] **Task 7: Apply theme CSS vars to SettingsPage background**
+- [x] **Task 7: Apply theme CSS vars to SettingsPage background**
   - What to build: Same pattern as Task 6 but for `src/components/SettingsPage.jsx`. Change the page wrapper background to `var(--dash-bg)`, section card backgrounds to `var(--dash-card)`, and section header/label text to `var(--dash-text-pri)` / `var(--dash-text-sec)`. The orange Save button and Hapag Blue accents stay hardcoded — do not change accent colors.
   - Files to modify: `src/components/SettingsPage.jsx`
   - Acceptance criteria: Settings page background and card surfaces respond to theme toggle. Build passes.

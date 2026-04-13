@@ -4,13 +4,13 @@ import { getUserSettings } from '../lib/constants.js'
 import { useTheme } from '../context/ThemeContext.jsx'
 
 const C = {
-  bg: '#0f1117',
-  card: 'var(--card-bg-subtle)',
-  border: 'var(--border)',
-  divider: 'var(--divider)',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
+  bg: 'var(--dash-bg)',
+  card: 'var(--dash-card)',
+  border: 'var(--dash-border)',
+  divider: 'var(--dash-border)',
+  textPri: 'var(--dash-text-pri)',
+  textSec: 'var(--dash-text-sec)',
+  textDim: 'var(--dash-text-dim)',
   accent: '#E8540A',
 }
 
@@ -466,7 +466,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
                     borderRadius: 10,
                     border: active ? `2px solid ${C.accent}` : '2px solid rgba(255,255,255,0.1)',
                     cursor: 'pointer',
-                    background: 'rgba(255,255,255,0.03)',
+                    background: 'var(--dash-card)',
                     minWidth: 80,
                   }}
                 >
