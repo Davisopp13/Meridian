@@ -226,16 +226,6 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                 </button>
 
                 <button
-                    style={launchCtBtnStyle}
-                    onClick={onLaunchCt}
-                    onMouseEnter={() => setIsCtHovered(true)}
-                    onMouseLeave={() => setIsCtHovered(false)}
-                >
-                    <span style={{ fontSize: 16 }}>⚡</span>
-                    <span>Launch Cases</span>
-                </button>
-
-                <button
                     style={launchMplBtnStyle}
                     onClick={onLaunchMpl}
                     onMouseEnter={() => setIsMplHovered(true)}
