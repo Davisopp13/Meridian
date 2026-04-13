@@ -142,6 +142,7 @@ export function usePipWindow() {
 
       // Inject CSS custom properties (PiP window has no access to parent's index.css)
       const style = pw.document.createElement('style');
+      style.id = 'meridian-pip-theme';
       style.textContent = buildThemeTokens(theme) + `
         * { box-sizing: border-box; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
@@ -185,6 +186,24 @@ export function usePipWindow() {
     }
   }, []);
 
+  const reapplyTheme = useCallback((theme) => {
+    const pw = pipWindowRef.current;
+    if (!pw) return;
+    const style = pw.document.getElementById('meridian-pip-theme');
+    if (style) {
+      style.textContent = buildThemeTokens(theme) + `
+        * { box-sizing: border-box; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes meridian-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.45; transform: scale(0.75); }
+        }
+        .swap-dot-pulse { animation: meridian-pulse 1.4s ease-in-out infinite; }
+      `;
+    }
+    pw.document.body.style.background = theme === 'light' ? '#f1f5f9' : '#0f1117';
+  }, []);
+
   const resizeAndPin = useCallback((size, position = 'bottom-right') => {
     const pw = pipWindowRef.current;
     if (!pw || !size) {
@@ -222,6 +241,7 @@ export function usePipWindow() {
     isOpen,
     openPip,
     closePip,
+    reapplyTheme,
     resizeAndPin,
     pipRootRef,
   };

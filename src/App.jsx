@@ -61,7 +61,7 @@ function restoreCaseFromRow(row) {
 }
 
 export default function App() {
-  const { pipWindow, isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
+  const { pipWindow, isOpen, openPip, closePip, reapplyTheme, resizeAndPin, pipRootRef } = usePipWindow()
 
   // ── App state ─────────────────────────────────────────────────────────────
   const [user, setUser] = useState(null)
@@ -103,6 +103,13 @@ export default function App() {
   const currentTheme = profile?.settings?.theme ?? 'dark'
   const currentThemeRef = useRef(currentTheme)
   currentThemeRef.current = currentTheme
+
+  // ── Reapply theme tokens when preference changes while PiP is open ────────
+  useEffect(() => {
+    if (!isOpen) return
+    console.log('[Meridian] Reapplying theme:', currentTheme)
+    reapplyTheme(currentTheme)
+  }, [currentTheme]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── pin: resize PiP or popup window depending on mode ────────────────────
   const pin = (mode) => {

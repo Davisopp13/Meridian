@@ -173,7 +173,7 @@ body { background: #f1f5f9; }
 
 ### Phase 5: Persistence on Load
 
-- [ ] **Task 8: Reload PiP theme on preference change**
+- [x] **Task 8: Reload PiP theme on preference change**
   - What to build: In the component that renders the PiP open button (likely `src/PipBar.jsx`), add a `useEffect` that watches `theme` from `useTheme()`. When `theme` changes AND the PiP window is currently open, close and reopen it so the new token block is injected. Use the existing close/open functions from `usePipWindow`. This gives agents instant feedback when they switch themes in Settings while the widget is open. Add a brief console.log `[Meridian] Reapplying theme: ${theme}` for debuggability.
   - Files to modify: `src/PipBar.jsx` (or wherever PiP open/close is controlled)
   - Acceptance criteria: If PiP is open and theme changes, PiP closes and reopens with new tokens. Build passes.

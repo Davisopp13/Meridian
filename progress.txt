@@ -2148,3 +2148,122 @@ Learnings for future iterations:
   - initialTheme computed after auth guards so profile is guaranteed non-null at that point
   - profile?.settings?.theme uses ?. because settings JSONB column may be null
 ---
+
+## Iteration LM-3 - Task 3 (Light Mode PRD): Theme-aware token injection in usePipWindow
+- Added buildThemeTokens(theme) helper function before the usePipWindow hook
+- Returns full :root CSS variable block + body background + scrollbar styles for dark or light theme
+- Dark: --bg-body #0f1117, scrollbar rgba(255,255,255,0.22)
+- Light: --bg-body #f1f5f9, scrollbar rgba(0,0,0,0.18)
+- Modified openPip() to accept theme = 'dark' in its options object
+- Replaced hardcoded :root block in style.textContent with buildThemeTokens(theme) call
+- Updated pw.document.body.style.cssText to use theme-appropriate background color
+- Preserved extra tokens not in PRD spec: --bg-deep, --color-process-navy, --shadow-glow (backward compat)
+- npx vite build passes — 0 errors
+
+Files changed:
+  src/hooks/usePipWindow.js (buildThemeTokens added, openPip updated)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - buildThemeTokens is a pure function outside the hook — no closure dependencies needed
+  - Scrollbar styles moved into buildThemeTokens since they're theme-dependent (per PRD notes)
+  - body background in pw.document.body.style.cssText must also be updated — it's set before the <style> tag injection and overrides --bg-body
+---
+
+## Iteration LM-4 - Task 4 (Light Mode PRD): Pass theme to usePipWindow from App
+- Added `currentTheme = profile?.settings?.theme ?? 'dark'` derived value in App.jsx
+- Added `currentThemeRef` with same pattern as `userSettingsRef` (ref always holds latest value)
+- Passed `theme: currentThemeRef.current` to all three `openPip` calls (lines ~516, ~714, ~739)
+- Did NOT use `useTheme()` in App.jsx — App WRAPS ThemeProvider so it can't consume its own context
+- `npx vite build` passes — 0 errors, 2464 modules
+
+Files changed:
+  src/App.jsx (currentTheme + currentThemeRef added, theme passed to 3 openPip calls)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - App.jsx CANNOT call useTheme() because ThemeProvider is inside App's return statement
+  - The pattern: derive theme from profile state using a ref (currentThemeRef) — same as userSettingsRef for settings
+  - Three openPip call sites: ensurePipOpen (line ~516), handleLaunch (line ~714), handlePendingTriggerLaunch (line ~739)
+---
+
+## Iteration - Task 5: Un-disable and wire Theme section in SettingsPage
+- Imported useTheme into SettingsPage.jsx; destructured theme/setTheme
+- Replaced disabled RadioRows with two card buttons (Dark/Light) with visual previews
+- Dark preview: `background: #1a1a2e`; Light preview: `background: #f1f5f9; border: 1px solid rgba(0,0,0,0.1)`
+- Active card gets `border: 2px solid #E8540A`; clicking fires handleThemeChange(value)
+- handleThemeChange: calls setTheme, spreads existingSettings from profile?.settings, saves to Supabase .eq('id', user.id), shows inline "Saved" for 2s
+- Updated handleSave to use theme from context (not hardcoded 'dark')
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/components/SettingsPage.jsx
+  PRD.md
+
+Learnings for future iterations:
+  - Supabase update uses .eq('id', user.id) not .eq('user_id', ...) for platform_users — follow existing handleSave pattern
+  - Spread existingSettings from profile?.settings || {} to preserve other fields when saving theme
+  - themeToast is separate from the main toast state — avoids collision with the save-all toast
+---
+
+## Iteration LM-6 - Task 6 (Light Mode PRD): Apply theme CSS vars to Dashboard page background
+- Imported useTheme from ../context/ThemeContext.jsx in Dashboard.jsx
+- Destructured { theme } from useTheme() (available for future conditional logic)
+- Changed outermost wrapper background from C.bgDeep (var(--bg-deep)) to 'var(--dash-bg)'
+- Changed SkeletonTable card container: background from 'rgba(255,255,255,0.04)' to 'var(--dash-card)'
+- Changed SkeletonTable border from '1px solid rgba(255,255,255,0.12)' to '1px solid var(--dash-border)'
+- Nested styles (tab buttons, skeleton rows, skeleton bars) left untouched per PRD scope
+- npx vite build passes — 0 errors
+
+Files changed:
+  src/components/Dashboard.jsx
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - --dash-bg, --dash-card, --dash-border are injected by ThemeContext via [data-theme="light/dark"] on <html> — always available on host page
+  - Dashboard.jsx can call useTheme() since ThemeProvider wraps the Dashboard render path in App.jsx
+  - C.bgDeep = var(--bg-deep) from index.css (dark only); --dash-bg from ThemeContext (theme-aware) — always prefer --dash-* for page-level backgrounds
+---
+
+## Iteration LM-7 - Task 7 (Light Mode PRD): Apply theme CSS vars to SettingsPage background
+- Changed C.bg from '#0f1117' to 'var(--dash-bg)'
+- Changed C.card from 'var(--card-bg-subtle)' to 'var(--dash-card)'
+- Changed C.border from 'var(--border)' to 'var(--dash-border)'
+- Changed C.divider from 'var(--divider)' to 'var(--dash-border)'
+- Changed C.textPri from 'var(--text-pri)' to 'var(--dash-text-pri)'
+- Changed C.textSec from 'var(--text-sec)' to 'var(--dash-text-sec)'
+- Changed C.textDim from 'var(--text-dim)' to 'var(--dash-text-dim)'
+- Changed theme card container background from 'rgba(255,255,255,0.03)' to 'var(--dash-card)'
+- All changes concentrated in the C constants object at the top — clean, minimal diff
+- npx vite build passes — 0 errors
+
+Files changed:
+  src/components/SettingsPage.jsx
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - SettingsPage is a host-page component — use --dash-* vars (not PiP vars like --bg-body, --text-pri)
+  - The C object at the top of SettingsPage concentrates all color tokens — changing it propagates everywhere
+  - --dash-* vars are injected by ThemeContext on the <html> element via [data-theme] selectors
+---
+
+## Iteration LM-8 - Task 8 (Light Mode PRD): Reload PiP theme on preference change
+- Added `id="meridian-pip-theme"` to the style element in usePipWindow.js (openPip function) so it can be found later
+- Added `reapplyTheme(theme)` callback in usePipWindow.js: finds the style element by id, updates textContent with buildThemeTokens(theme) + animations, updates body.style.background
+- Exported `reapplyTheme` from usePipWindow
+- In App.jsx: added `closePip` and `reapplyTheme` to usePipWindow destructure
+- Added useEffect watching `currentTheme` in App.jsx: returns early if !isOpen, otherwise logs `[Meridian] Reapplying theme: ${currentTheme}` and calls reapplyTheme(currentTheme)
+- Note: close/reopen approach not used (requires user activation via requestWindow()); in-place style update achieves the same visual result without needing activation
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/hooks/usePipWindow.js (style element id, reapplyTheme callback, export)
+  src/App.jsx (destructure, useEffect)
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - requestWindow() requires user activation — cannot be called from a useEffect (after render, no activation)
+  - In-place style update: find style element by id, update textContent — works without user activation
+  - body.style.background must also be updated separately since it's set via cssText in openPip (not via CSS vars)
+  - All Light Mode PRD tasks (1-8) are now complete
+---
