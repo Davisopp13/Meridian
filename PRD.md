@@ -105,7 +105,7 @@ Everything else (`MplPipBar.jsx`, `CategoryDrillDown.jsx`, `ManualEntryForm.jsx`
 
 ### Phase 4: TimerActive Height Sanity Check
 
-- [ ] **Task 4: Verify timerActive state height is correct**
+- [x] **Task 4: Verify timerActive state height is correct**
   - What: `MPL_HEIGHTS.timerActive` is `140`. This is the height the popup resizes to when a process timer is running. Verify `MplPipBar` renders correctly at this height — the bar row (`64px`) + a second row showing timer details should fit in `140px` without scroll.
   - Read `src/mpl/MplPipBar.jsx` carefully. The `timerActive` state renders the active process pill, Log button, and Discard button all in the same `64px` bar row — there is no second row. This means `140px` is too tall for this state (leaves dead space) OR there's supposed to be a second row.
   - Decision: Change `MPL_HEIGHTS.timerActive` from `140` to `64` in `src/lib/constants.js` — the timer display is inline in the bar row, same height as idle. The pill + Log + Discard all fit in 64px.

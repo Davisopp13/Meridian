@@ -120,7 +120,7 @@ export function getCtSizeForState(stateKey, statButtons) {
 export const MPL_HEIGHTS = {
   minimized: 32,
   idle: 64,
-  timerActive: 140,
+  timerActive: 64,
   categoryPicker: 480,
   manualEntry: 480,
 }
