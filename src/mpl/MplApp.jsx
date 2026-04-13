@@ -219,6 +219,8 @@ export default function MplApp() {
       const pw = await openPip({ ...size, position: 'bottom-right' })
       if (!pw) return
       mountPipWindow(pw)
+      // Close host tab — only works if opened by script; silently ignored otherwise
+      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     } else {
       pin('timerActive')
     }
@@ -234,6 +236,8 @@ export default function MplApp() {
       const pw = await openPip({ ...size, position: 'bottom-right' })
       if (!pw) return
       mountPipWindow(pw)
+      // Close host tab — only works if opened by script; silently ignored otherwise
+      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     } else {
       pin('manualEntry')
     }
@@ -368,7 +372,7 @@ export default function MplApp() {
           Meridian — Processes
         </div>
         <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginBottom: 24 }}>
-          {isOpen ? 'Widget is running' : pendingLaunch ? 'Trigger received — click to start' : 'Click to launch widget'}
+          {isOpen ? 'Widget is running — this tab will close' : pendingLaunch ? 'Trigger received — click to start' : 'Click to launch widget'}
         </div>
         {!isOpen && (
           <button
