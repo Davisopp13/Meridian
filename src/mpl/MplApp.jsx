@@ -210,12 +210,11 @@ export default function MplApp() {
     }
   }
 
-  // Called when "Log" button is tapped on a bar pill — opens timed chip strip
+  // Called when "Log" button is tapped on a bar pill — opens category drill-down
   function handleProcessLog(id) {
     if (quickLogOpen) setQuickLogOpen(false)    // mutual exclusivity
     setChipStripProcessId(id)
-    const { width } = getMplSizeForState('chipStrip', STAT_BUTTONS)
-    resizeAndPin({ width, height: 108 }, 'bottom-right')
+    pin('categoryPicker')
   }
 
   // Called when a category/sub chip is selected in the timed chip strip

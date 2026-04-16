@@ -2,6 +2,7 @@ import { C } from '../lib/constants.js'
 import ProcessesLane from '../components/ProcessesLane.jsx'
 import ProcessPill from '../components/ProcessPill.jsx'
 import CategoryChipStrip from '../components/CategoryChipStrip.jsx'
+import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
 
 const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
 
@@ -259,12 +260,12 @@ export default function MplPipBar({
         </div>
       )}
 
-      {/* ── Category chip strip — TIMED (process pill "Log" tap) ──── */}
+      {/* ── Category drill-down — TIMED (process pill "Log" tap) ──── */}
       {chipStripProcessId && !quickLogOpen && (
-        <CategoryChipStrip
+        <ProcessPicker
           categories={categories}
-          processElapsed={chipStripProcess?.elapsed || 0}
-          onConfirm={(catId, subId, _mins) => onChipStripConfirm && onChipStripConfirm(chipStripProcessId, catId, subId)}
+          elapsed={chipStripProcess?.elapsed || 0}
+          onConfirm={(catId, subId) => onChipStripConfirm && onChipStripConfirm(chipStripProcessId, catId, subId)}
           onCancel={() => onChipStripCancel && onChipStripCancel()}
         />
       )}

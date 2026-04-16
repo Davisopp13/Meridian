@@ -854,10 +854,10 @@ export default function App() {
     if (next.length === 0) { setMplSwimlaneOpen(false); pinMpl('idle') }
   }
 
-  // "Log" button on a ProcessPill — opens timed chip strip
+  // "Log" button on a ProcessPill — opens category drill-down
   function handleMplProcessLog(id) {
     setMplChipStripProcessId(id)
-    pinMpl('chipStrip')
+    pinMpl('categoryPicker')
   }
 
   async function handleMplChipStripConfirm(processId, categoryId, subcategoryId) {
