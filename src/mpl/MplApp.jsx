@@ -5,7 +5,6 @@ import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
 import MplPipBar from './MplPipBar.jsx'
-import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
@@ -15,7 +14,7 @@ import { getMplSizeForState, getMplBarWidth } from '../lib/constants.js'
 const isMplWidget = new URLSearchParams(window.location.search).get('mode') === 'mpl-widget'
 
 const STAT_BUTTONS = ['processes', 'total']
-const PROCESS_ROW_H = 44  // px per active process row
+const SWIMLANE_H = 220   // px — tray height below the bar row
 
 export default function MplApp() {
   const { isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
@@ -26,8 +25,8 @@ export default function MplApp() {
   const [authLoading, setAuthLoading] = useState(true)
 
   // ── MPL state ──────────────────────────────────────────────────────────
-  const [processes, setProcesses] = useState([])          // [{ id, elapsed, paused }]
-  const [pickerTarget, setPickerTarget] = useState(null)  // { id, elapsed } | null
+  const [processes, setProcesses] = useState([])    // [{ id, elapsed, paused }]
+  const [showSwimlane, setShowSwimlane] = useState(false)
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [categories, setCategories] = useState([])
   const [isMinimized, setIsMinimized] = useState(false)
@@ -41,7 +40,6 @@ export default function MplApp() {
   const processTimers = useRef({})  // { [id]: intervalId }
   const toastTimerRef = useRef(null)
   const widgetInitRef = useRef(false)
-  // Keep a ref so callbacks inside intervals always see latest state
   const processesRef = useRef(processes)
   useEffect(() => { processesRef.current = processes }, [processes])
 
@@ -72,11 +70,9 @@ export default function MplApp() {
     resizeAndPin({ width, height }, 'bottom-right')
   }
 
-  function pinToProcessCount(count) {
-    if (count === 0) { pin('idle'); return }
+  function pinActive() {
     const width = getMplBarWidth('timerActive', STAT_BUTTONS)
-    const height = 64 + count * PROCESS_ROW_H
-    resizeAndPin({ width, height }, 'bottom-right')
+    resizeAndPin({ width, height: 64 + SWIMLANE_H }, 'bottom-right')
   }
 
   // ── Timer helpers ─────────────────────────────────────────────────────
@@ -182,11 +178,14 @@ export default function MplApp() {
   // ── Handlers ──────────────────────────────────────────────────────────
 
   async function handleStart() {
+    // Open PiP if not already open
     if (!isOpen) {
       try {
-        const width = getMplBarWidth('timerActive', STAT_BUTTONS)
-        const height = 64 + (processes.length + 1) * PROCESS_ROW_H
-        const pw = await openPip({ width, height, position: 'bottom-right' })
+        const pw = await openPip({
+          width: getMplBarWidth('timerActive', STAT_BUTTONS),
+          height: 64 + SWIMLANE_H,
+          position: 'bottom-right',
+        })
         if (!pw) { showToast('Open the widget first from the dashboard'); return }
         mountPipWindow(pw)
         setTimeout(() => { try { window.close() } catch (e) {} }, 300)
@@ -194,12 +193,15 @@ export default function MplApp() {
         showToast('Open the widget first from the dashboard')
         return
       }
+    } else {
+      pinActive()
     }
+
     const id = crypto.randomUUID()
-    const nextProcesses = [...processesRef.current, { id, elapsed: 0, paused: false }]
-    setProcesses(nextProcesses)
+    setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
+    setShowSwimlane(true)
+    setShowManualEntry(false)
     startTimer(id)
-    pinToProcessCount(nextProcesses.length)
   }
 
   async function handleQuickLog() {
@@ -215,67 +217,39 @@ export default function MplApp() {
     setShowManualEntry(true)
   }
 
-  function handlePause(id) {
-    stopTimer(id)
-    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: true } : p))
-  }
-
-  function handleResume(id) {
-    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: false } : p))
-    startTimer(id)
-  }
-
-  function handleLog(id) {
-    const p = processesRef.current.find(x => x.id === id)
-    if (!p) return
-    stopTimer(id)
-    setProcesses(prev => prev.map(x => x.id === id ? { ...x, paused: true } : x))
-    setPickerTarget({ id, elapsed: p.elapsed })
-    pin('categoryPicker')
-  }
-
-  function handleDiscard(id) {
+  // Called from ProcessLaneRow when user selects a category — logs the process
+  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
+    if (!user) return
     stopTimer(id)
     const next = processesRef.current.filter(p => p.id !== id)
     setProcesses(next)
-    if (pickerTarget?.id === id) setPickerTarget(null)
-    pinToProcessCount(next.length)
-  }
-
-  async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
-    if (!user || !pickerTarget) return
-    const { id } = pickerTarget
-    const minutes = Math.round(durationSeconds / 60) || 1
+    if (next.length === 0) {
+      setShowSwimlane(false)
+      pin('idle')
+    }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
       subcategory_id: subcategoryId,
-      minutes,
+      minutes: Math.round(durationSeconds / 60) || 1,
       source: 'pip',
     }))
-    if (ok) {
-      stopTimer(id)
-      const next = processesRef.current.filter(p => p.id !== id)
-      setProcesses(next)
-      setPickerTarget(null)
-      pinToProcessCount(next.length)
-      refetch()
-    }
+    if (ok) refetch()
   }
 
-  function handlePickerCancel() {
-    if (!pickerTarget) return
-    const { id } = pickerTarget
-    setPickerTarget(null)
-    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: false } : p))
-    startTimer(id)
-    pinToProcessCount(processesRef.current.length)
+  // Called from ProcessLaneRow × button — discard without logging
+  function handleCancelProcess(id) {
+    stopTimer(id)
+    const next = processesRef.current.filter(p => p.id !== id)
+    setProcesses(next)
+    if (next.length === 0) {
+      setShowSwimlane(false)
+      pin('idle')
+    }
   }
 
   async function handleManualLog(categoryId, subcategoryId, minutes) {
     if (!user) return
-    const next = processesRef.current
-    pin(next.length > 0 ? 'idle' : 'idle')  // will correct via pinToProcessCount below
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -285,7 +259,8 @@ export default function MplApp() {
     }))
     if (ok) {
       setShowManualEntry(false)
-      pinToProcessCount(processesRef.current.length)
+      if (showSwimlane) pinActive()
+      else pin('idle')
       refetch()
     }
   }
@@ -297,9 +272,9 @@ export default function MplApp() {
 
   function handleRestore() {
     setIsMinimized(false)
-    if (pickerTarget) { pin('categoryPicker'); return }
     if (showManualEntry) { pin('manualEntry'); return }
-    pinToProcessCount(processesRef.current.length)
+    if (showSwimlane) { pinActive(); return }
+    pin('idle')
   }
 
   function handleOpenDashboard() {
@@ -308,39 +283,30 @@ export default function MplApp() {
 
   // ── buildMplBar — JSX rendered into PiP window ────────────────────────
   function buildMplBar() {
-    const overlayActive = !!pickerTarget || showManualEntry
     return (
       <MplPipBar
         processes={processes}
-        overlayActive={overlayActive}
+        categories={categories}
+        showSwimlane={showSwimlane}
         processCount={processCount}
         onOpenDashboard={handleOpenDashboard}
         onStart={handleStart}
         onQuickLog={handleQuickLog}
-        onPause={handlePause}
-        onResume={handleResume}
-        onLog={handleLog}
-        onDiscard={handleDiscard}
+        onConfirmProcess={handleConfirmProcess}
+        onCancelProcess={handleCancelProcess}
         onMinimize={handleMinimize}
         onRestore={handleRestore}
         isMinimized={isMinimized}
         connectionStatus={connectionStatus}
         pipToast={pipToast}
       >
-        {pickerTarget && (
-          <ProcessPicker
-            categories={categories}
-            elapsed={pickerTarget.elapsed}
-            onConfirm={handlePickerConfirm}
-            onCancel={handlePickerCancel}
-          />
-        )}
-        {!pickerTarget && showManualEntry && (
+        {showManualEntry && (
           <ManualEntryForm
             categories={categories}
             onClose={() => {
               setShowManualEntry(false)
-              pinToProcessCount(processesRef.current.length)
+              if (showSwimlane) pinActive()
+              else pin('idle')
             }}
             onLog={handleManualLog}
           />

@@ -1,40 +1,39 @@
-import { Play, Pause, Clock, Plus } from 'lucide-react'
-import { C, formatElapsed } from '../lib/constants.js';
+import { Plus } from 'lucide-react'
+import { C } from '../lib/constants.js'
+import ProcessesLane from '../components/ProcessesLane.jsx'
 
-const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' };
+const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
 
 /**
  * MplPipBar — MPL widget bar (processes only).
  *
  * Props:
  *   processes        — [{ id, elapsed, paused }]
- *   overlayActive    — boolean (picker or manual entry open — hides process rows)
+ *   categories       — mpl_categories rows (for ProcessesLane)
+ *   showSwimlane     — boolean — show the ProcessesLane tray below the bar
  *   processCount     — number (today's completed processes)
  *   onOpenDashboard  — click M° logo
- *   onStart          — add a new timer
+ *   onStart          — add a new timer (▶ Open when idle, + Add when active)
  *   onQuickLog       — open manual entry
- *   onPause(id)      — pause a specific timer
- *   onResume(id)     — resume a specific timer
- *   onLog(id)        — open category picker for a specific timer
- *   onDiscard(id)    — discard a specific timer
+ *   onConfirmProcess(id, categoryId, subcategoryId, durationSeconds) — log a process
+ *   onCancelProcess(id) — discard a process
  *   onMinimize       — minimize to strip
  *   onRestore        — restore from strip
  *   isMinimized      — boolean
  *   connectionStatus — 'connected' | 'degraded' | 'offline'
  *   pipToast         — string or null
- *   children         — overlay slot (ProcessPicker, ManualEntryForm)
+ *   children         — overlay slot (ManualEntryForm)
  */
 export default function MplPipBar({
   processes = [],
-  overlayActive = false,
+  categories = [],
+  showSwimlane = false,
   processCount = 0,
   onOpenDashboard,
   onStart,
   onQuickLog,
-  onPause,
-  onResume,
-  onLog,
-  onDiscard,
+  onConfirmProcess,
+  onCancelProcess,
   onMinimize,
   onRestore,
   isMinimized = false,
@@ -42,9 +41,9 @@ export default function MplPipBar({
   pipToast = null,
   children,
 }) {
-  const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80';
-  const hasProcesses = processes.length > 0;
-  const runningCount = processes.filter(p => !p.paused).length;
+  const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
+  const hasProcesses = processes.length > 0
+  const runningCount = processes.filter(p => !p.paused).length
 
   // ── Minimized restore strip ───────────────────────────────────────
   if (isMinimized) {
@@ -68,12 +67,12 @@ export default function MplPipBar({
         )}
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
       </div>
-    );
+    )
   }
 
   const divider = (
     <div style={{ width: 1, height: 20, background: C.divider, flexShrink: 0 }} />
-  );
+  )
 
   return (
     <div style={{
@@ -100,8 +99,8 @@ export default function MplPipBar({
 
         {/* Center content */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-          {!hasProcesses ? (
-            /* Idle state — no active timers */
+          {!showSwimlane ? (
+            /* Idle — no swimlane open */
             <>
               <button
                 onClick={() => onStart && onStart()}
@@ -127,40 +126,41 @@ export default function MplPipBar({
               </button>
             </>
           ) : (
-            /* Active timers — show summary badge + Add button */
+            /* Swimlane open — show active count badge + Quick Log */
             <>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                height: 26, padding: '0 8px', borderRadius: 13,
-                background: runningCount > 0 ? 'rgba(96,165,250,0.12)' : 'rgba(245,158,11,0.12)',
-                border: `1px solid ${runningCount > 0 ? 'rgba(96,165,250,0.25)' : 'rgba(245,158,11,0.25)'}`,
-                flexShrink: 0,
+                height: 26, padding: '0 8px', borderRadius: 13, flexShrink: 0,
+                background: hasProcesses && runningCount > 0
+                  ? 'rgba(96,165,250,0.12)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${hasProcesses && runningCount > 0
+                  ? 'rgba(96,165,250,0.25)' : 'rgba(255,255,255,0.1)'}`,
               }}>
                 <span style={{
                   width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                  background: runningCount > 0 ? '#60a5fa' : 'rgba(245,158,11,0.6)',
+                  background: hasProcesses && runningCount > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)',
                 }} />
                 <span style={{
                   fontSize: 11, fontWeight: 600,
-                  color: runningCount > 0 ? '#60a5fa' : '#fbbf24',
+                  color: hasProcesses && runningCount > 0 ? '#60a5fa' : 'var(--text-sec)',
                   fontFamily: '"Inter", system-ui, sans-serif',
                 }}>
-                  {processes.length} timer{processes.length > 1 ? 's' : ''}
+                  {hasProcesses
+                    ? `${processes.length} active`
+                    : 'Processes'}
                 </span>
               </div>
 
               <button
-                onClick={() => onStart && onStart()}
+                onClick={() => onQuickLog && onQuickLog()}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 4,
                   height: 26, padding: '0 10px', borderRadius: 13,
                   background: 'transparent', border: '1px solid var(--border)',
                   color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
-                <Plus size={10} />
-                Add
+                Quick Log
               </button>
             </>
           )}
@@ -190,10 +190,8 @@ export default function MplPipBar({
 
         {divider}
 
-        {/* Connection dot */}
         <span style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
 
-        {/* Minimize button */}
         <button
           onClick={() => onMinimize && onMinimize()}
           style={{
@@ -220,82 +218,26 @@ export default function MplPipBar({
         </div>
       )}
 
-      {/* ── Process rows (hidden when overlay is active) ──────────── */}
-      {hasProcesses && !overlayActive && processes.map(p => (
-        <div
-          key={p.id}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '0 12px',
-            height: 44, flexShrink: 0,
-            borderTop: '1px solid var(--border)',
-            fontFamily: '"Inter", system-ui, sans-serif',
-          }}
-        >
-          {/* Running indicator dot */}
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-            background: p.paused ? 'rgba(245,158,11,0.5)' : '#60a5fa',
-          }} />
-
-          {/* Elapsed */}
-          <span style={{
-            fontSize: 13, fontWeight: 700,
-            fontVariantNumeric: 'tabular-nums',
-            color: p.paused ? '#fbbf24' : 'var(--text-pri)',
-            flex: 1, letterSpacing: '-0.2px',
-            fontFamily: '"Inter", system-ui, sans-serif',
-          }}>
-            {formatElapsed(p.elapsed)}
-          </span>
-
-          {/* Pause / Resume */}
-          <button
-            onClick={() => p.paused ? (onResume && onResume(p.id)) : (onPause && onPause(p.id))}
-            title={p.paused ? 'Resume' : 'Pause'}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 26, height: 26, borderRadius: 6, border: 'none',
-              background: p.paused ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.07)',
-              color: p.paused ? '#fbbf24' : 'var(--text-sec)',
-              cursor: 'pointer', flexShrink: 0, padding: 0,
-            }}
-          >
-            {p.paused ? <Play size={11} /> : <Pause size={11} />}
-          </button>
-
-          {/* Log */}
-          <button
-            onClick={() => onLog && onLog(p.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4,
-              padding: '5px 10px', borderRadius: 6, border: 'none',
-              background: 'rgba(96,165,250,0.18)', color: '#60a5fa',
-              fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0,
-            }}
-          >
-            <Clock size={10} />
-            Log
-          </button>
-
-          {/* Discard */}
-          <button
-            onClick={() => onDiscard && onDiscard(p.id)}
-            title="Discard"
-            style={{
-              width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: 'var(--text-dim)', fontSize: 13, flexShrink: 0, borderRadius: 4, padding: 0,
-            }}
-          >
-            ✕
-          </button>
+      {/* ── Swimlane tray ─────────────────────────────────────────── */}
+      {showSwimlane && !children && (
+        <div style={{
+          flex: 1, minHeight: 0,
+          borderTop: `1px solid ${C.divider}`,
+          padding: '8px 0 0',
+          overflow: 'hidden',
+        }}>
+          <ProcessesLane
+            processes={processes}
+            categories={categories}
+            onConfirm={onConfirmProcess}
+            onCancel={onCancelProcess}
+            onNewProcess={onStart}
+          />
         </div>
-      ))}
+      )}
 
-      {/* ── Overlay slot (ProcessPicker, ManualEntryForm) ─────────── */}
+      {/* ── Overlay slot (ManualEntryForm) ─────────────────────────── */}
       {children}
     </div>
-  );
+  )
 }
