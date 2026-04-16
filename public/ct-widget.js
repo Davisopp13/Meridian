@@ -172,6 +172,54 @@
     return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   }
 
+  // ── Hydrate stats from Supabase on load ────────────────────────────────
+  function fetchTodayStats() {
+    if (!state.userId || !state.relay) return;
+
+    // Build NY day boundaries as ISO strings for PostgREST filtering
+    // Use the same Intl approach as the rest of ct-widget to get NY calendar date
+    var todayStr = getTodayNY(); // YYYY-MM-DD
+
+    // Compute tomorrow's date string in NY timezone
+    // Create a date well into "today" in NY (noon UTC is always same-day in NY)
+    var parts = todayStr.split('-');
+    var noonUTC = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2], 17, 0, 0));
+    var tomorrowUTC = new Date(noonUTC.getTime() + 86400000);
+    var tomorrowStr = tomorrowUTC.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+
+    // Use noon-anchored ISO timestamps — PostgREST compares against the DB timestamp column
+    // The DB stores timestamps in UTC with DEFAULT now(), so we need UTC boundaries
+    // Approximate: NY midnight ≈ 04:00 or 05:00 UTC depending on DST
+    // Safe approach: use the date strings with T05:00:00Z (EST midnight) as floor
+    // and widen slightly — a few hours of overlap is fine since we filter by user_id
+    var startISO = todayStr + 'T04:00:00Z';     // earliest possible NY midnight (EDT)
+    var endISO   = tomorrowStr + 'T05:00:00Z';   // latest possible NY midnight+1 (EST)
+
+    // Query case_events for this user today
+    var query = 'select=type,excluded' +
+      '&user_id=eq.' + state.userId +
+      '&timestamp=gte.' + encodeURIComponent(startISO) +
+      '&timestamp=lt.' + encodeURIComponent(endISO);
+
+    relayGet('case_events', query).then(function (rows) {
+      if (!Array.isArray(rows)) return;
+      var r = 0, rc = 0, ca = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.excluded) continue;
+        if (row.type === 'resolved')     r++;
+        if (row.type === 'reclassified') rc++;
+        if (row.type === 'call')         ca++;
+      }
+      state.stats.resolved = r;
+      state.stats.reclass  = rc;
+      state.stats.calls    = ca;
+      render();
+    }).catch(function (err) {
+      console.warn('[Meridian CT] Failed to fetch today stats:', err.message);
+    });
+  }
+
   // ── Action handlers ──────────────────────────────────────────────────────
   function handleResolved() {
     stopTimer();
@@ -191,7 +239,6 @@
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
     }).then(function () {
-      // Fire-and-forget: write to case_events so dashboard can see the resolution
       relayPost('case_events', {
         session_id: null,
         user_id:    state.userId,
@@ -232,7 +279,6 @@
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
     }).then(function () {
-      // Fire-and-forget: write to case_events so dashboard can see the reclassification
       relayPost('case_events', {
         session_id: null,
         user_id:    state.userId,
@@ -264,7 +310,6 @@
       entry_date: getTodayNY(),
       notes:      null,
     }).then(function () {
-      // Fire-and-forget: write to case_events so dashboard can see the call
       relayPost('case_events', {
         session_id: null,
         user_id:    state.userId,
@@ -272,7 +317,7 @@
         excluded:   false,
         rfc:        false,
       }).catch(function (err) {
-        console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
+        console.warn('[Meridian CT] case_events call write failed:', err.message);
       });
       state.stats.calls++;
       showWidgetToast('\uD83D\uDCDE Call logged');
@@ -429,11 +474,35 @@
       '</div>';
   }
 
-  // Initial render
+  // Initial render (stats show 0 until hydration completes)
   render();
 
+  // Hydrate stats from Supabase — updates counters and re-renders when data arrives
+  fetchTodayStats();
+
+  // ── Auto-start case if payload includes a case number ─────────────────
+  if (MERIDIAN_PAYLOAD.caseNumber) {
+    state.caseNumber  = MERIDIAN_PAYLOAD.caseNumber;
+    state.caseType    = MERIDIAN_PAYLOAD.caseType    || '';
+    state.caseSubtype = MERIDIAN_PAYLOAD.caseSubtype || '';
+    state.accountId   = MERIDIAN_PAYLOAD.accountId   || '';
+    startTimer();
+    render();
+  }
+
   // ── Expose refresh hook for double-injection guard ────────────────────────
-  host._meridianRefresh = function () {
+  host._meridianRefresh = function (payload) {
+    if (payload && payload.caseNumber) {
+      state.caseNumber  = payload.caseNumber;
+      state.caseType    = payload.caseType    || '';
+      state.caseSubtype = payload.caseSubtype || '';
+      state.accountId   = payload.accountId   || '';
+      if (!state.timerRunning) {
+        state.elapsed = 0;
+        startTimer();
+      }
+    }
+    fetchTodayStats();
     render();
   };
 
