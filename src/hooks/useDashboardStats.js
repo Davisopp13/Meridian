@@ -1,39 +1,48 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { getNewYorkDayRange } from '../lib/timezone.js';
 
 function getDateRange(period) {
   const now = new Date();
-  const toNYDate = d => new Date(d.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-  const ny = toNYDate(now);
+  const { start: todayStart, dateKey } = getNewYorkDayRange(now);
+  const [year, month, day] = dateKey.split('-').map(Number);
 
-  const startOfDay = d => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
-  const endOfDay   = d => { const x = new Date(d); x.setHours(23,59,59,999); return x; };
+  // Return NY midnight for any (y, m, d) — handles month/year overflow naturally
+  // via JS Date UTC arithmetic (e.g. month=0 wraps to previous December).
+  function nyMidnightOf(y, m, d) {
+    // A UTC noon probe always lands on the same NY calendar day as (y, m, d)
+    // because NY is at most UTC-4, so noon UTC is never past midnight in NY.
+    const probe = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    return getNewYorkDayRange(probe).start;
+  }
 
-  // Monday of current week
-  const dayOfWeek = ny.getDay(); // 0=Sun
-  const diffToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const thisMonday = new Date(ny); thisMonday.setDate(ny.getDate() - diffToMon);
+  // Day-of-week for NY today: todayStart is NY midnight expressed in UTC,
+  // so getUTCDay() correctly returns the NY weekday (NY is never UTC+anything).
+  const dow = todayStart.getUTCDay(); // 0 = Sunday
+  const daysToMonday = dow === 0 ? 6 : dow - 1;
 
   if (period === 'this_week') {
-    return { from: startOfDay(thisMonday), to: now };
+    return { from: nyMidnightOf(year, month, day - daysToMonday), to: now };
   }
   if (period === 'last_week') {
-    const lastMon = new Date(thisMonday); lastMon.setDate(thisMonday.getDate() - 7);
-    const lastSun = new Date(lastMon); lastSun.setDate(lastMon.getDate() + 6);
-    return { from: startOfDay(lastMon), to: endOfDay(lastSun) };
+    return {
+      from: nyMidnightOf(year, month, day - daysToMonday - 7),
+      to:   nyMidnightOf(year, month, day - daysToMonday),
+    };
   }
   if (period === 'this_month') {
-    const start = new Date(ny.getFullYear(), ny.getMonth(), 1);
-    return { from: startOfDay(start), to: now };
+    return { from: nyMidnightOf(year, month, 1), to: now };
   }
   if (period === 'last_month') {
-    const start = new Date(ny.getFullYear(), ny.getMonth() - 1, 1);
-    const end   = new Date(ny.getFullYear(), ny.getMonth(), 0);
-    return { from: startOfDay(start), to: endOfDay(end) };
+    const lm = month === 1 ? 12 : month - 1;
+    const ly = month === 1 ? year - 1 : year;
+    return {
+      from: nyMidnightOf(ly, lm, 1),
+      to:   nyMidnightOf(year, month, 1),
+    };
   }
   if (period === 'ytd') {
-    const start = new Date(ny.getFullYear(), 0, 1);
-    return { from: startOfDay(start), to: now };
+    return { from: nyMidnightOf(year, 1, 1), to: now };
   }
 }
 

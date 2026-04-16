@@ -191,6 +191,16 @@
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
     }).then(function () {
+      // Fire-and-forget: write to case_events so dashboard can see the resolution
+      relayPost('case_events', {
+        session_id: null,
+        user_id:    state.userId,
+        type:       'resolved',
+        excluded:   false,
+        rfc:        false,
+      }).catch(function (err) {
+        console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
+      });
       state.elapsed = 0;
       state.caseNumber  = '';
       state.caseType    = '';
@@ -222,6 +232,16 @@
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
     }).then(function () {
+      // Fire-and-forget: write to case_events so dashboard can see the reclassification
+      relayPost('case_events', {
+        session_id: null,
+        user_id:    state.userId,
+        type:       'reclassified',
+        excluded:   false,
+        rfc:        false,
+      }).catch(function (err) {
+        console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
+      });
       state.elapsed = 0;
       state.caseNumber  = '';
       state.caseType    = '';
@@ -244,6 +264,16 @@
       entry_date: getTodayNY(),
       notes:      null,
     }).then(function () {
+      // Fire-and-forget: write to case_events so dashboard can see the call
+      relayPost('case_events', {
+        session_id: null,
+        user_id:    state.userId,
+        type:       'call',
+        excluded:   false,
+        rfc:        false,
+      }).catch(function (err) {
+        console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
+      });
       state.stats.calls++;
       showWidgetToast('\uD83D\uDCDE Call logged');
       render();
