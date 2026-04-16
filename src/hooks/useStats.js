@@ -59,6 +59,15 @@ export function useStats() {
 
   useEffect(() => {
     fetchStats();
+
+    // Auto-refresh whenever case_events or mpl_entries change in Supabase
+    const channel = supabase
+      .channel('useStats-sync')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'case_events' }, fetchStats)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mpl_entries' }, fetchStats)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [fetchStats]);
 
   return { ...stats, refetch: fetchStats };

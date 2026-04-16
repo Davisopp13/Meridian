@@ -11,8 +11,8 @@ const C = {
 
 const instructions = [
   'Show your bookmarks bar — press Ctrl+Shift+B (Windows) or Cmd+Shift+B (Mac)',
-  'Drag both buttons below up to your bookmarks bar',
-  'Use Cases on Salesforce pages, Processes for manual work tracking.',
+  'Drag the button below up to your bookmarks bar',
+  'Click it on any Salesforce case page to start tracking.',
 ];
 
 export default function BookmarkletModal({ onClose, user }) {
@@ -59,7 +59,7 @@ export default function BookmarkletModal({ onClose, user }) {
           Install the Meridian Buttons
         </h2>
         <p style={{ color: C.textSec, fontSize: 13, margin: '0 0 28px' }}>
-          Drag both buttons to your bookmarks bar
+          Drag the button to your bookmarks bar
         </p>
 
         {/* Instructions */}
@@ -78,8 +78,8 @@ export default function BookmarkletModal({ onClose, user }) {
           ))}
         </div>
 
-        {/* Bookmarklet anchors — side by side */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '20px auto' }}>
+        {/* Bookmarklet anchor */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '20px auto' }}>
           <a
             href={ctHref}
             draggable="true"
@@ -98,25 +98,6 @@ export default function BookmarkletModal({ onClose, user }) {
             onClick={e => e.preventDefault()}
           >
             ⚡ Cases
-          </a>
-          <a
-            href={mplHref}
-            draggable="true"
-            style={{
-              display: 'inline-block',
-              background: '#4a90d9',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 14,
-              padding: '10px 24px',
-              borderRadius: 20,
-              cursor: 'grab',
-              userSelect: 'none',
-              textDecoration: 'none',
-            }}
-            onClick={e => e.preventDefault()}
-          >
-            ⚡ Processes
           </a>
         </div>
 

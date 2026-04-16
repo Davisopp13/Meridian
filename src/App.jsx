@@ -967,9 +967,10 @@ export default function App() {
   }
 
   async function handleResumeCase(id) {
-    await supabase.from('ct_cases')
+    const ok = await safeWrite(supabase.from('ct_cases')
       .update({ status: 'active', awaiting_since: null })
-      .eq('id', id)
+      .eq('id', id))
+    if (!ok) return
     setCases(prev => prev.map(c => c.id === id ? { ...c, paused: false, awaiting: false } : c))
     startCaseTimer(id)
   }
@@ -986,9 +987,10 @@ export default function App() {
     } else {
       pin(getBarMode(remaining, processes, trayOpen, false))
     }
-    await supabase.from('ct_cases')
+    const ok = await safeWrite(supabase.from('ct_cases')
       .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: null })
-      .eq('id', id)
+      .eq('id', id))
+    if (!ok) return
     setCases(remaining)
     if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
     refetch()
@@ -1175,9 +1177,10 @@ export default function App() {
       } else {
         pin(getBarMode(remaining, processes, trayOpen, false, false))
       }
-      await safeWrite(supabase.from('ct_cases')
+      const ok = await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
         .eq('id', sessionId))
+      if (!ok) return
       setCases(remaining)
       if (focusedCaseId === sessionId) setFocusedCaseId(remaining[0]?.id || null)
       setRfcPending(null)
@@ -1312,18 +1315,19 @@ export default function App() {
           pin(getBarMode(remaining, processes, trayOpen, false))
         }
       }
-      await supabase.from('case_events').insert({
+      const ok = await safeWrite(supabase.from('case_events').insert({
         session_id: id,
         user_id: user.id,
         type: 'resolved',
         excluded: false,
         rfc: false,
-      })
+      }))
+      if (!ok) return
       if (!c.previouslyResolved) {
         stopCaseTimer(id)
-        await supabase.from('ct_cases')
+        await safeWrite(supabase.from('ct_cases')
           .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: false })
-          .eq('id', id)
+          .eq('id', id))
         const remaining = cases.filter(x => x.id !== id)
         setCases(remaining)
         if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
@@ -1350,16 +1354,17 @@ export default function App() {
       } else {
         pin(getBarMode(remaining, processes, trayOpen, false))
       }
-      await supabase.from('case_events').insert({
+      const ok = await safeWrite(supabase.from('case_events').insert({
         session_id: id,
         user_id: user.id,
         type: 'reclassified',
         excluded: false,
         rfc: false,
-      })
-      await supabase.from('ct_cases')
+      }))
+      if (!ok) return
+      await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
-        .eq('id', id)
+        .eq('id', id))
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()
@@ -1370,21 +1375,22 @@ export default function App() {
 
   async function handleCallCase(id) {
     if (!user) return
-    await supabase.from('case_events').insert({
+    const ok = await safeWrite(supabase.from('case_events').insert({
       session_id: id,
       user_id: user.id,
       type: 'call',
       excluded: false,
       rfc: false,
-    })
-    refetch()
+    }))
+    if (ok) refetch()
   }
 
   async function handleAwaitingCase(id) {
     if (!user) return
-    await supabase.from('ct_cases')
+    const ok = await safeWrite(supabase.from('ct_cases')
       .update({ status: 'awaiting', awaiting_since: new Date().toISOString() })
-      .eq('id', id)
+      .eq('id', id))
+    if (!ok) return
     stopCaseTimer(id)
     setCases(prev => prev.map(c =>
       c.id === id ? { ...c, awaiting: true, paused: true } : c
@@ -1407,16 +1413,17 @@ export default function App() {
       } else {
         pin(getBarMode(remaining, processes, trayOpen, false))
       }
-      await supabase.from('case_events').insert({
+      const ok = await safeWrite(supabase.from('case_events').insert({
         session_id: id,
         user_id: user.id,
         type: 'not_a_case',
         excluded: true,
         rfc: false,
-      })
-      await supabase.from('ct_cases')
+      }))
+      if (!ok) return
+      await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'abandoned' })
-        .eq('id', id)
+        .eq('id', id))
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()
@@ -1441,16 +1448,17 @@ export default function App() {
       } else {
         pin(getBarMode(remaining, processes, trayOpen, false))
       }
-      await supabase.from('case_events').insert({
+      const ok = await safeWrite(supabase.from('case_events').insert({
         session_id: id,
         user_id: user.id,
         type: 'rfc',
         excluded: false,
         rfc: true,
-      })
-      await supabase.from('ct_cases')
+      }))
+      if (!ok) return
+      await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
-        .eq('id', id)
+        .eq('id', id))
       setCases(remaining)
       if (focusedCaseId === id) setFocusedCaseId(remaining[0]?.id || null)
       refetch()

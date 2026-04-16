@@ -31,8 +31,8 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
   const mplBmHref = userId ? buildMplBmHref(userId) : '#';
   const instructions = [
     'Show your bookmarks bar — press Ctrl+Shift+B (Windows) or Cmd+Shift+B (Mac)',
-    'Drag the orange button below up to your bookmarks bar',
-    'Drag both buttons to your bookmarks bar. Use Cases on Salesforce pages, Processes for manual work tracking.',
+    'Drag the button below up to your bookmarks bar',
+    'Click it on any Salesforce case page to start tracking.',
   ];
 
   return (
@@ -67,8 +67,8 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
           ))}
         </div>
 
-        {/* Bookmarklet anchors */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, margin: '24px auto', flexWrap: 'wrap' }}>
+        {/* Bookmarklet anchor */}
+        <div style={{ display: 'flex', justifyContent: 'center', margin: '24px auto' }}>
           <a
             href={bmHref}
             draggable="true"
@@ -87,25 +87,6 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
             onClick={e => e.preventDefault()}
           >
             ⚡ Cases
-          </a>
-          <a
-            href={mplBmHref}
-            draggable="true"
-            style={{
-              display: 'inline-block',
-              background: '#4a90d9',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 14,
-              padding: '10px 24px',
-              borderRadius: 20,
-              cursor: 'grab',
-              userSelect: 'none',
-              textDecoration: 'none',
-            }}
-            onClick={e => e.preventDefault()}
-          >
-            ⚡ Processes
           </a>
         </div>
 
