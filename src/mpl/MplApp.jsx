@@ -27,6 +27,7 @@ export default function MplApp() {
   // ── MPL state ──────────────────────────────────────────────────────────
   const [processes, setProcesses] = useState([])    // [{ id, elapsed, paused }]
   const [showSwimlane, setShowSwimlane] = useState(false)
+  const [swimlaneOpen, setSwimlaneOpen] = useState(false)
   const [showManualEntry, setShowManualEntry] = useState(false)
   const [categories, setCategories] = useState([])
   const [isMinimized, setIsMinimized] = useState(false)
@@ -178,14 +179,11 @@ export default function MplApp() {
   // ── Handlers ──────────────────────────────────────────────────────────
 
   async function handleStart() {
-    // Open PiP if not already open
+    // Open PiP if not already open — use idle height since swimlane defaults to collapsed
     if (!isOpen) {
       try {
-        const pw = await openPip({
-          width: getMplBarWidth('timerActive', STAT_BUTTONS),
-          height: 64 + SWIMLANE_H,
-          position: 'bottom-right',
-        })
+        const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
+        const pw = await openPip({ width, height, position: 'bottom-right' })
         if (!pw) { showToast('Open the widget first from the dashboard'); return }
         mountPipWindow(pw)
         setTimeout(() => { try { window.close() } catch (e) {} }, 300)
@@ -194,7 +192,7 @@ export default function MplApp() {
         return
       }
     } else {
-      pinActive()
+      pin('idle')
     }
 
     const id = crypto.randomUUID()
@@ -217,6 +215,13 @@ export default function MplApp() {
     setShowManualEntry(true)
   }
 
+  function handleToggleSwimlane() {
+    const next = !swimlaneOpen
+    setSwimlaneOpen(next)
+    if (next) pinActive()
+    else pin('idle')
+  }
+
   // Called from ProcessLaneRow when user selects a category — logs the process
   async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
     if (!user) return
@@ -225,6 +230,7 @@ export default function MplApp() {
     setProcesses(next)
     if (next.length === 0) {
       setShowSwimlane(false)
+      setSwimlaneOpen(false)
       pin('idle')
     }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
@@ -244,6 +250,7 @@ export default function MplApp() {
     setProcesses(next)
     if (next.length === 0) {
       setShowSwimlane(false)
+      setSwimlaneOpen(false)
       pin('idle')
     }
   }
@@ -273,7 +280,7 @@ export default function MplApp() {
   function handleRestore() {
     setIsMinimized(false)
     if (showManualEntry) { pin('manualEntry'); return }
-    if (showSwimlane) { pinActive(); return }
+    if (showSwimlane && swimlaneOpen) { pinActive(); return }
     pin('idle')
   }
 
@@ -288,6 +295,8 @@ export default function MplApp() {
         processes={processes}
         categories={categories}
         showSwimlane={showSwimlane}
+        swimlaneOpen={swimlaneOpen}
+        onToggleSwimlane={handleToggleSwimlane}
         processCount={processCount}
         onOpenDashboard={handleOpenDashboard}
         onStart={handleStart}

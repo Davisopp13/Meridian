@@ -28,6 +28,8 @@ export default function MplPipBar({
   processes = [],
   categories = [],
   showSwimlane = false,
+  swimlaneOpen = false,
+  onToggleSwimlane,
   processCount = 0,
   onOpenDashboard,
   onStart,
@@ -126,7 +128,7 @@ export default function MplPipBar({
               </button>
             </>
           ) : (
-            /* Swimlane open — show active count badge + Quick Log */
+            /* Processes active — count badge + Quick Log + chevron */
             <>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 5,
@@ -161,6 +163,19 @@ export default function MplPipBar({
                 }}
               >
                 Quick Log
+              </button>
+
+              <button
+                onClick={() => onToggleSwimlane && onToggleSwimlane()}
+                title={swimlaneOpen ? 'Collapse' : 'Expand timers'}
+                style={{
+                  width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-sec)', fontSize: 10, flexShrink: 0, borderRadius: 4,
+                  fontFamily: '"Inter", system-ui, sans-serif',
+                }}
+              >
+                {swimlaneOpen ? '▲' : '▼'}
               </button>
             </>
           )}
@@ -219,7 +234,7 @@ export default function MplPipBar({
       )}
 
       {/* ── Swimlane tray ─────────────────────────────────────────── */}
-      {showSwimlane && !children && (
+      {showSwimlane && swimlaneOpen && !children && (
         <div style={{
           flex: 1, minHeight: 0,
           borderTop: `1px solid ${C.divider}`,

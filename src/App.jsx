@@ -76,6 +76,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [cases, setCases] = useState([])
   const [processes, setProcesses] = useState([])
+  const [mplSwimlaneOpen, setMplSwimlaneOpen] = useState(false)
   const [focusedCaseId, setFocusedCaseId] = useState(null)
   const [trayOpen, setTrayOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
@@ -762,6 +763,13 @@ export default function App() {
   })
 
   // ── Build MplPipBar element for the MPL PiP window ───────────────────────
+  function handleMplToggleSwimlane() {
+    const next = !mplSwimlaneOpen
+    setMplSwimlaneOpen(next)
+    if (next) pinMplActive()
+    else pinMpl('idle')
+  }
+
   function buildMplBar() {
     const mplShowSwimlane = processes.length > 0
     return (
@@ -769,6 +777,8 @@ export default function App() {
         processes={processes}
         categories={categories}
         showSwimlane={mplShowSwimlane}
+        swimlaneOpen={mplSwimlaneOpen}
+        onToggleSwimlane={handleMplToggleSwimlane}
         processCount={processCount}
         onOpenDashboard={handleOpenDashboard}
         onStart={handleMplStart}
@@ -803,7 +813,8 @@ export default function App() {
     setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
     setLastTrigger('processes')
     startProcessTimer(id)
-    pinMplActive()
+    // Keep window at idle height — swimlane defaults to collapsed
+    pinMpl('idle')
   }
 
   function handleMplQuickLog() {
@@ -817,7 +828,7 @@ export default function App() {
     stopProcessTimer(id)
     const next = processes.filter(p => p.id !== id)
     setProcesses(next)
-    if (next.length === 0) pinMpl('idle')
+    if (next.length === 0) { setMplSwimlaneOpen(false); pinMpl('idle') }
     const ok = await safeWrite(supabase.from('mpl_entries').insert({
       user_id: user.id,
       category_id: categoryId,
@@ -833,7 +844,7 @@ export default function App() {
     stopProcessTimer(id)
     const next = processes.filter(p => p.id !== id)
     setProcesses(next)
-    if (next.length === 0) pinMpl('idle')
+    if (next.length === 0) { setMplSwimlaneOpen(false); pinMpl('idle') }
   }
 
   async function handleMplManualLog(categoryId, subcategoryId, minutes) {
