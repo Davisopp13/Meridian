@@ -9,10 +9,13 @@ import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
 import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
-import { getMplSizeForState } from '../lib/constants.js'
+import { getMplSizeForState, getMplBarWidth } from '../lib/constants.js'
 
 // ── Widget mode detection ──────────────────────────────────────────────────
 const isMplWidget = new URLSearchParams(window.location.search).get('mode') === 'mpl-widget'
+
+const STAT_BUTTONS = ['processes', 'total']
+const PROCESS_ROW_H = 44  // px per active process row
 
 export default function MplApp() {
   const { isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
@@ -23,8 +26,9 @@ export default function MplApp() {
   const [authLoading, setAuthLoading] = useState(true)
 
   // ── MPL state ──────────────────────────────────────────────────────────
-  const [activeProcess, setActiveProcess] = useState(null) // { id, elapsed, paused } | null
-  const [mplState, setMplState] = useState('idle')         // 'idle' | 'timerActive' | 'categoryPicker' | 'manualEntry'
+  const [processes, setProcesses] = useState([])          // [{ id, elapsed, paused }]
+  const [pickerTarget, setPickerTarget] = useState(null)  // { id, elapsed } | null
+  const [showManualEntry, setShowManualEntry] = useState(false)
   const [categories, setCategories] = useState([])
   const [isMinimized, setIsMinimized] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected')
@@ -33,10 +37,13 @@ export default function MplApp() {
   // ── Stats ──────────────────────────────────────────────────────────────
   const { processes: processCount, refetch } = useStats()
 
-  // ── Timer ref ──────────────────────────────────────────────────────────
-  const timerRef = useRef(null)
+  // ── Refs ──────────────────────────────────────────────────────────────
+  const processTimers = useRef({})  // { [id]: intervalId }
   const toastTimerRef = useRef(null)
   const widgetInitRef = useRef(false)
+  // Keep a ref so callbacks inside intervals always see latest state
+  const processesRef = useRef(processes)
+  useEffect(() => { processesRef.current = processes }, [processes])
 
   // ── Toast helper ──────────────────────────────────────────────────────
   function showToast(message) {
@@ -59,31 +66,36 @@ export default function MplApp() {
     return true
   }
 
-  // ── pin helper (replaces resizeTo) ────────────────────────────────────
+  // ── Sizing helpers ────────────────────────────────────────────────────
   function pin(stateKey) {
-    const { width, height } = getMplSizeForState(stateKey, ['processes', 'total'])
+    const { width, height } = getMplSizeForState(stateKey, STAT_BUTTONS)
+    resizeAndPin({ width, height }, 'bottom-right')
+  }
+
+  function pinToProcessCount(count) {
+    if (count === 0) { pin('idle'); return }
+    const width = getMplBarWidth('timerActive', STAT_BUTTONS)
+    const height = 64 + count * PROCESS_ROW_H
     resizeAndPin({ width, height }, 'bottom-right')
   }
 
   // ── Timer helpers ─────────────────────────────────────────────────────
-  function startTimer() {
-    if (timerRef.current) return
-    timerRef.current = setInterval(() => {
-      setActiveProcess(prev => prev ? { ...prev, elapsed: prev.elapsed + 1 } : prev)
+  function startTimer(id) {
+    if (processTimers.current[id]) return
+    processTimers.current[id] = setInterval(() => {
+      setProcesses(prev => prev.map(p => p.id === id ? { ...p, elapsed: p.elapsed + 1 } : p))
     }, 1000)
   }
 
-  function stopTimer() {
-    if (timerRef.current) {
-      clearInterval(timerRef.current)
-      timerRef.current = null
-    }
+  function stopTimer(id) {
+    clearInterval(processTimers.current[id])
+    delete processTimers.current[id]
   }
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────
   useEffect(() => {
     return () => {
-      stopTimer()
+      Object.values(processTimers.current).forEach(clearInterval)
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
     }
   }, [])
@@ -153,12 +165,10 @@ export default function MplApp() {
     document.body.classList.add('widget-mode')
 
     ;(async () => {
-      const { width, height } = getMplSizeForState('idle', ['processes', 'total'])
+      const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
       const pw = await openPip({ width, height, position: 'bottom-right' })
       if (!pw) return
       mountPipWindow(pw)
-      // Close the host tab — it was only opened to spawn the PiP widget.
-      // Only works if opened by script (window.open); silently ignored otherwise.
       setTimeout(() => { try { window.close() } catch (e) {} }, 400)
     })()
   }, [isMplWidget, authLoading, user, profile])
@@ -169,38 +179,169 @@ export default function MplApp() {
     handleProcessStart: () => handleStart(),
   })
 
+  // ── Handlers ──────────────────────────────────────────────────────────
+
+  async function handleStart() {
+    if (!isOpen) {
+      try {
+        const width = getMplBarWidth('timerActive', STAT_BUTTONS)
+        const height = 64 + (processes.length + 1) * PROCESS_ROW_H
+        const pw = await openPip({ width, height, position: 'bottom-right' })
+        if (!pw) { showToast('Open the widget first from the dashboard'); return }
+        mountPipWindow(pw)
+        setTimeout(() => { try { window.close() } catch (e) {} }, 300)
+      } catch (e) {
+        showToast('Open the widget first from the dashboard')
+        return
+      }
+    }
+    const id = crypto.randomUUID()
+    const nextProcesses = [...processesRef.current, { id, elapsed: 0, paused: false }]
+    setProcesses(nextProcesses)
+    startTimer(id)
+    pinToProcessCount(nextProcesses.length)
+  }
+
+  async function handleQuickLog() {
+    if (!isOpen) {
+      const size = getMplSizeForState('manualEntry', STAT_BUTTONS)
+      const pw = await openPip({ ...size, position: 'bottom-right' })
+      if (!pw) return
+      mountPipWindow(pw)
+      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
+    } else {
+      pin('manualEntry')
+    }
+    setShowManualEntry(true)
+  }
+
+  function handlePause(id) {
+    stopTimer(id)
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: true } : p))
+  }
+
+  function handleResume(id) {
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: false } : p))
+    startTimer(id)
+  }
+
+  function handleLog(id) {
+    const p = processesRef.current.find(x => x.id === id)
+    if (!p) return
+    stopTimer(id)
+    setProcesses(prev => prev.map(x => x.id === id ? { ...x, paused: true } : x))
+    setPickerTarget({ id, elapsed: p.elapsed })
+    pin('categoryPicker')
+  }
+
+  function handleDiscard(id) {
+    stopTimer(id)
+    const next = processesRef.current.filter(p => p.id !== id)
+    setProcesses(next)
+    if (pickerTarget?.id === id) setPickerTarget(null)
+    pinToProcessCount(next.length)
+  }
+
+  async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
+    if (!user || !pickerTarget) return
+    const { id } = pickerTarget
+    const minutes = Math.round(durationSeconds / 60) || 1
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes,
+      source: 'pip',
+    }))
+    if (ok) {
+      stopTimer(id)
+      const next = processesRef.current.filter(p => p.id !== id)
+      setProcesses(next)
+      setPickerTarget(null)
+      pinToProcessCount(next.length)
+      refetch()
+    }
+  }
+
+  function handlePickerCancel() {
+    if (!pickerTarget) return
+    const { id } = pickerTarget
+    setPickerTarget(null)
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: false } : p))
+    startTimer(id)
+    pinToProcessCount(processesRef.current.length)
+  }
+
+  async function handleManualLog(categoryId, subcategoryId, minutes) {
+    if (!user) return
+    const next = processesRef.current
+    pin(next.length > 0 ? 'idle' : 'idle')  // will correct via pinToProcessCount below
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes,
+      source: 'manual',
+    }))
+    if (ok) {
+      setShowManualEntry(false)
+      pinToProcessCount(processesRef.current.length)
+      refetch()
+    }
+  }
+
+  function handleMinimize() {
+    setIsMinimized(true)
+    pin('minimized')
+  }
+
+  function handleRestore() {
+    setIsMinimized(false)
+    if (pickerTarget) { pin('categoryPicker'); return }
+    if (showManualEntry) { pin('manualEntry'); return }
+    pinToProcessCount(processesRef.current.length)
+  }
+
+  function handleOpenDashboard() {
+    window.open(window.location.origin, 'meridian-dashboard')
+  }
+
   // ── buildMplBar — JSX rendered into PiP window ────────────────────────
   function buildMplBar() {
+    const overlayActive = !!pickerTarget || showManualEntry
     return (
       <MplPipBar
-        activeProcess={activeProcess}
+        processes={processes}
+        overlayActive={overlayActive}
         processCount={processCount}
-        mplState={mplState}
         onOpenDashboard={handleOpenDashboard}
         onStart={handleStart}
         onQuickLog={handleQuickLog}
-        onLog={handleLog}
-        onDiscard={handleDiscard}
         onPause={handlePause}
         onResume={handleResume}
+        onLog={handleLog}
+        onDiscard={handleDiscard}
         onMinimize={handleMinimize}
         onRestore={handleRestore}
         isMinimized={isMinimized}
         connectionStatus={connectionStatus}
         pipToast={pipToast}
       >
-        {mplState === 'categoryPicker' && activeProcess && (
+        {pickerTarget && (
           <ProcessPicker
             categories={categories}
-            elapsed={activeProcess.elapsed}
+            elapsed={pickerTarget.elapsed}
             onConfirm={handlePickerConfirm}
-            onCancel={handleDiscard}
+            onCancel={handlePickerCancel}
           />
         )}
-        {mplState === 'manualEntry' && (
+        {!pickerTarget && showManualEntry && (
           <ManualEntryForm
             categories={categories}
-            onClose={() => { setMplState('idle'); pin('idle') }}
+            onClose={() => {
+              setShowManualEntry(false)
+              pinToProcessCount(processesRef.current.length)
+            }}
             onLog={handleManualLog}
           />
         )}
@@ -226,164 +367,40 @@ export default function MplApp() {
     pipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
   })
 
-  // ── Handlers ──────────────────────────────────────────────────────────
-
-  async function handleStart() {
-    if (!isOpen) {
-      try {
-        const size = getMplSizeForState('timerActive', ['processes', 'total'])
-        const pw = await openPip({ ...size, position: 'bottom-right' })
-        if (!pw) { showToast('Open the widget first from the dashboard'); return }
-        mountPipWindow(pw)
-        // Close host tab — only works if opened by script; silently ignored otherwise
-        setTimeout(() => { try { window.close() } catch (e) {} }, 300)
-      } catch (e) {
-        showToast('Open the widget first from the dashboard')
-        return
-      }
-    } else {
-      pin('timerActive')
-    }
-    const id = crypto.randomUUID()
-    setActiveProcess({ id, elapsed: 0, paused: false })
-    setMplState('timerActive')
-    startTimer()
-  }
-
-  async function handleQuickLog() {
-    if (!isOpen) {
-      const size = getMplSizeForState('manualEntry', ['processes', 'total'])
-      const pw = await openPip({ ...size, position: 'bottom-right' })
-      if (!pw) return
-      mountPipWindow(pw)
-      // Close host tab — only works if opened by script; silently ignored otherwise
-      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
-    } else {
-      pin('manualEntry')
-    }
-    setMplState('manualEntry')
-  }
-
-  function handleLog() {
-    stopTimer()
-    setMplState('categoryPicker')
-    pin('categoryPicker')
-  }
-
-  function handleDiscard() {
-    stopTimer()
-    setActiveProcess(null)
-    setMplState('idle')
-    pin('idle')
-  }
-
-  function handlePause() {
-    stopTimer()
-    setActiveProcess(prev => prev ? { ...prev, paused: true } : prev)
-  }
-
-  function handleResume() {
-    setActiveProcess(prev => prev ? { ...prev, paused: false } : prev)
-    startTimer()
-  }
-
-  function handleMinimize() {
-    setIsMinimized(true)
-    pin('minimized')
-  }
-
-  function handleRestore() {
-    setIsMinimized(false)
-    pin(mplState)
-  }
-
-  async function handlePickerConfirm(categoryId, subcategoryId, durationSeconds) {
-    if (!user) return
-    pin('idle')
-    const minutes = Math.round(durationSeconds / 60) || 1
-    const ok = await safeWrite(supabase.from('mpl_entries').insert({
-      user_id: user.id,
-      category_id: categoryId,
-      subcategory_id: subcategoryId,
-      minutes,
-      source: 'pip',
-    }))
-    if (ok) {
-      setActiveProcess(null)
-      setMplState('idle')
-      refetch()
-    }
-  }
-
-  async function handleManualLog(categoryId, subcategoryId, minutes) {
-    if (!user) return
-    pin('idle')
-    const ok = await safeWrite(supabase.from('mpl_entries').insert({
-      user_id: user.id,
-      category_id: categoryId,
-      subcategory_id: subcategoryId,
-      minutes,
-      source: 'manual',
-    }))
-    if (ok) {
-      setMplState('idle')
-      refetch()
-    }
-  }
-
-  function handleOpenDashboard() {
-    window.open(window.location.origin, 'meridian-dashboard')
-  }
-
   // ── Auth loading / not logged in ───────────────────────────────────────
   if (authLoading) {
     return (
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: '#0f0f1e',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: '#0f0f1e',
         color: 'rgba(255,255,255,0.5)',
-        fontFamily: '"Inter", system-ui, sans-serif',
-        fontSize: 12,
+        fontFamily: '"Inter", system-ui, sans-serif', fontSize: 12,
       }}>
         Loading…
       </div>
     )
   }
 
-  if (!user) {
-    return <AuthScreen />
-  }
+  if (!user) return <AuthScreen />
 
   if (!profile?.onboarding_complete) {
     return (
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: '#0f0f1e',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', background: '#0f0f1e',
         color: 'rgba(255,255,255,0.5)',
-        fontFamily: '"Inter", system-ui, sans-serif',
-        fontSize: 12,
-        textAlign: 'center',
-        padding: 24,
+        fontFamily: '"Inter", system-ui, sans-serif', fontSize: 12,
+        textAlign: 'center', padding: 24,
       }}>
         Please complete onboarding in the main Meridian dashboard first.
       </div>
     )
   }
 
-  // ── Holding page — briefly visible while PiP opens and tab self-closes ──
   return (
     <div style={{
-      minHeight: '100vh',
-      background: '#0f1117',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      minHeight: '100vh', background: '#0f1117',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: '"Inter", system-ui, sans-serif',
     }}>
       <div style={{ textAlign: 'center' }}>
