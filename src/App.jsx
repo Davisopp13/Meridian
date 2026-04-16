@@ -90,6 +90,7 @@ export default function App() {
   const [pipToast, setPipToast] = useState(null)
   const [pendingTrigger, setPendingTrigger] = useState(null) // queued trigger when PiP not open
   const [manualEntryOpen, setManualEntryOpen] = useState(false)
+  const [mplChipStripProcessId, setMplChipStripProcessId] = useState(null)
   const [connectionStatus, setConnectionStatus] = useState('connected') // 'connected' | 'degraded' | 'offline'
   const [minimizedStripView, setMinimizedStripView] = useState('auto') // 'auto' | 'case' | 'process'
   const [pendingProcessLog, setPendingProcessLog] = useState(null) // processId | null
@@ -785,6 +786,10 @@ export default function App() {
         onQuickLog={handleMplQuickLog}
         onConfirmProcess={handleMplConfirmProcess}
         onCancelProcess={handleMplCancelProcess}
+        chipStripProcessId={mplChipStripProcessId}
+        onLogProcess={handleMplProcessLog}
+        onChipStripConfirm={handleMplChipStripConfirm}
+        onChipStripCancel={handleMplChipStripCancel}
         onMinimize={() => setIsMinimized(true)}
         onRestore={() => setIsMinimized(false)}
         isMinimized={isMinimized}
@@ -811,6 +816,7 @@ export default function App() {
   function handleMplStart() {
     const id = crypto.randomUUID()
     setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
+    setMplChipStripProcessId(null)
     setLastTrigger('processes')
     startProcessTimer(id)
     // Keep window at idle height — swimlane defaults to collapsed
@@ -844,7 +850,27 @@ export default function App() {
     stopProcessTimer(id)
     const next = processes.filter(p => p.id !== id)
     setProcesses(next)
+    if (mplChipStripProcessId === id) setMplChipStripProcessId(null)
     if (next.length === 0) { setMplSwimlaneOpen(false); pinMpl('idle') }
+  }
+
+  // "Log" button on a ProcessPill — opens timed chip strip
+  function handleMplProcessLog(id) {
+    setMplChipStripProcessId(id)
+    pinMpl('chipStrip')
+  }
+
+  async function handleMplChipStripConfirm(processId, categoryId, subcategoryId) {
+    const proc = processes.find(p => p.id === processId)
+    const elapsed = proc?.elapsed || 0
+    setMplChipStripProcessId(null)
+    await handleMplConfirmProcess(processId, categoryId, subcategoryId, elapsed)
+  }
+
+  function handleMplChipStripCancel() {
+    setMplChipStripProcessId(null)
+    if (processes.length > 0) pinMpl('timerActive')
+    else pinMpl('idle')
   }
 
   async function handleMplManualLog(categoryId, subcategoryId, minutes) {
