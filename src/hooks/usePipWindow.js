@@ -154,6 +154,25 @@ export function usePipWindow() {
       `;
       pw.document.head.appendChild(style);
 
+      // Inject a resize/move helper that runs inside the PiP window's execution
+      // context.  pw.resizeTo() called from the opener fails silently when the
+      // opener doesn't hold transient user activation (e.g. after a button click
+      // inside the PiP window).  Dispatching a CustomEvent to pw is synchronous
+      // and the listener below fires with the PiP window's own activation, so
+      // resizeTo/moveTo succeed even when the opener's activation is stale.
+      const resizeScript = pw.document.createElement('script');
+      resizeScript.textContent = `
+        window.addEventListener('__mResize', function(e) {
+          try {
+            var d = e.detail;
+            window.resizeTo(d.w, d.h);
+            window.moveTo(d.x, d.y);
+          } catch(err) {}
+        });
+      `;
+      pw.document.head.appendChild(resizeScript);
+      resizeScript.remove();
+
       pw.addEventListener('pagehide', () => {
         setPipWindow(null);
         pipWindowRef.current = null;
@@ -210,29 +229,33 @@ export function usePipWindow() {
       console.warn('resizeAndPin called but pipWindow or size is null');
       return;
     }
+    const sw = window.screen.availWidth;
+    const sh = window.screen.availHeight;
+    const { width, height } = size;
+    let x, y;
+    if (position === 'bottom-left') {
+      x = PIP_MARGIN;
+      y = sh - height - PIP_MARGIN;
+    } else if (position === 'top-right') {
+      x = sw - width - PIP_MARGIN;
+      y = PIP_MARGIN;
+    } else if (position === 'top-left') {
+      x = PIP_MARGIN;
+      y = PIP_MARGIN;
+    } else {
+      // bottom-right (default)
+      x = sw - width - PIP_MARGIN;
+      y = sh - height - PIP_MARGIN;
+    }
+    // Dispatch via the PiP window's own event listener so the resize/moveTo
+    // executes with the PiP window's transient user activation (which is set
+    // when the user clicks inside the PiP widget).  A direct pw.resizeTo()
+    // call from the opener context fails silently because Chrome checks the
+    // caller's browsing context for activation, not the target window's.
     try {
-      pw.resizeTo(size.width, size.height);
-      const sw = window.screen.availWidth;
-      const sh = window.screen.availHeight;
-      const { width, height } = size;
-      let x, y;
-      if (position === 'bottom-left') {
-        x = PIP_MARGIN;
-        y = sh - height - PIP_MARGIN;
-      } else if (position === 'top-right') {
-        x = sw - width - PIP_MARGIN;
-        y = PIP_MARGIN;
-      } else if (position === 'top-left') {
-        x = PIP_MARGIN;
-        y = PIP_MARGIN;
-      } else {
-        // bottom-right (default)
-        x = sw - width - PIP_MARGIN;
-        y = sh - height - PIP_MARGIN;
-      }
-      pw.moveTo(x, y);
+      pw.dispatchEvent(new pw.CustomEvent('__mResize', { detail: { w: width, h: height, x, y } }));
     } catch (e) {
-      console.warn('[Meridian] PiP resize/move skipped (no user activation):', size, e);
+      console.warn('[Meridian] PiP resize dispatch failed:', size, e);
     }
   }, []);
 
