@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { C } from '../lib/constants.js';
 import CasePill from './CasePill.jsx';
 import ProcessPill from './ProcessPill.jsx';
@@ -6,10 +7,10 @@ import ProcessPill from './ProcessPill.jsx';
  * PillZone — shows up to 2 Case pills + 2 Process pills inline, plus tray chevron.
  *
  * Props:
- *   cases          — full cases array (only first 2 rendered)
- *   processes      — full processes array (only first 2 rendered)
- *   focusedCaseId  — id of the focused case
- *   trayOpen       — bool, current tray state
+ *   cases            — full cases array (only first 2 rendered)
+ *   processes        — full processes array (only first 2 rendered)
+ *   focusedCaseId    — id of the focused case
+ *   trayOpen         — bool, current tray state
  *   onFocusCase(id)
  *   onPauseCase(id)
  *   onResumeCase(id)
@@ -17,6 +18,8 @@ import ProcessPill from './ProcessPill.jsx';
  *   onLogProcess(id)
  *   onCloseProcess(id)
  *   onToggleTray()
+ *   onAwaitingCase(id) — called when popover Awaiting button is tapped
+ *   onNotACase(id)     — called when popover Not a Case button is tapped
  */
 export default function PillZone({
   cases = [],
@@ -30,9 +33,32 @@ export default function PillZone({
   onLogProcess,
   onCloseProcess,
   onToggleTray,
+  onAwaitingCase,
+  onNotACase,
 }) {
+  const [popoverCaseId, setPopoverCaseId] = useState(null);
+
   const visibleCases = cases.slice(0, 2);
   const visibleProcesses = processes.slice(0, 2);
+
+  // Close popover when focusedCaseId changes
+  useEffect(() => {
+    setPopoverCaseId(null);
+  }, [focusedCaseId]);
+
+  function handlePopoverOpen(id) {
+    setPopoverCaseId(prev => (prev === id ? null : id));
+  }
+
+  function handleAwaitingFromPopover(id) {
+    setPopoverCaseId(null);
+    onAwaitingCase && onAwaitingCase(id);
+  }
+
+  function handleNotACaseFromPopover(id) {
+    setPopoverCaseId(null);
+    onNotACase && onNotACase(id);
+  }
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -47,6 +73,10 @@ export default function PillZone({
           onPause={() => onPauseCase && onPauseCase(c.id)}
           onResume={() => onResumeCase && onResumeCase(c.id)}
           onClose={() => onCloseCase && onCloseCase(c.id)}
+          popoverOpen={c.id === popoverCaseId}
+          onPopoverOpen={() => handlePopoverOpen(c.id)}
+          onAwaiting={() => handleAwaitingFromPopover(c.id)}
+          onNotACase={() => handleNotACaseFromPopover(c.id)}
         />
       ))}
 

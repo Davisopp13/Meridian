@@ -473,6 +473,8 @@ export default function CtApp() {
         hasPendingActivity={hasPendingActivity}
         onSnapToCorner={() => pin(isMinimized ? 'minimized' : getCtBarMode(cases, trayOpen, rfcBannerOpen))}
         onStartCase={(caseNumber) => handleCaseStart({ caseNumber })}
+        onAwaitingCase={handleAwaitingCase}
+        onNotACase={handleNotACase}
       >
         {rfcPending ? (
           <RFCPrompt

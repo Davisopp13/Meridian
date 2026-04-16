@@ -1,6 +1,7 @@
-import { Plus } from 'lucide-react'
 import { C } from '../lib/constants.js'
 import ProcessesLane from '../components/ProcessesLane.jsx'
+import ProcessPill from '../components/ProcessPill.jsx'
+import CategoryChipStrip from '../components/CategoryChipStrip.jsx'
 
 const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
 
@@ -8,27 +9,33 @@ const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: 
  * MplPipBar — MPL widget bar (processes only).
  *
  * Props:
- *   processes        — [{ id, elapsed, paused }]
- *   categories       — mpl_categories rows (for ProcessesLane)
- *   showSwimlane     — boolean — show the ProcessesLane tray below the bar
- *   processCount     — number (today's completed processes)
- *   onOpenDashboard  — click M° logo
- *   onStart          — add a new timer (▶ Open when idle, + Add when active)
- *   onQuickLog       — open manual entry
+ *   processes            — [{ id, elapsed, paused }]
+ *   categories           — mpl_categories rows (for ProcessesLane / CategoryChipStrip)
+ *   showSwimlane         — boolean — process-active mode (shows pills on bar)
+ *   swimlaneOpen         — boolean — tray drawer is expanded
+ *   chipStripProcessId   — string|null — process ID whose chip strip is showing
+ *   processCount         — number (today's completed processes)
+ *   onOpenDashboard      — click M° logo
+ *   onStart              — add a new timer (▶ Open when idle, + Add when active)
+ *   onQuickLog           — open manual entry
  *   onConfirmProcess(id, categoryId, subcategoryId, durationSeconds) — log a process
- *   onCancelProcess(id) — discard a process
- *   onMinimize       — minimize to strip
- *   onRestore        — restore from strip
- *   isMinimized      — boolean
- *   connectionStatus — 'connected' | 'degraded' | 'offline'
- *   pipToast         — string or null
- *   children         — overlay slot (ManualEntryForm)
+ *   onCancelProcess(id)  — discard a process
+ *   onChipStripConfirm(processId, catId, subId) — log via chip strip
+ *   onChipStripCancel()  — close chip strip without logging
+ *   onToggleSwimlane     — chevron click
+ *   onMinimize           — minimize to strip
+ *   onRestore            — restore from strip
+ *   isMinimized          — boolean
+ *   connectionStatus     — 'connected' | 'degraded' | 'offline'
+ *   pipToast             — string or null
+ *   children             — overlay slot (ManualEntryForm)
  */
 export default function MplPipBar({
   processes = [],
   categories = [],
   showSwimlane = false,
   swimlaneOpen = false,
+  chipStripProcessId = null,
   onToggleSwimlane,
   processCount = 0,
   onOpenDashboard,
@@ -36,6 +43,12 @@ export default function MplPipBar({
   onQuickLog,
   onConfirmProcess,
   onCancelProcess,
+  onLogProcess,
+  onChipStripConfirm,
+  onChipStripCancel,
+  quickLogOpen = false,
+  onQuickLogConfirm,
+  onQuickLogCancel,
   onMinimize,
   onRestore,
   isMinimized = false,
@@ -46,6 +59,11 @@ export default function MplPipBar({
   const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
   const hasProcesses = processes.length > 0
   const runningCount = processes.filter(p => !p.paused).length
+
+  // Process whose chip strip is active (for elapsed display)
+  const chipStripProcess = chipStripProcessId
+    ? processes.find(p => p.id === chipStripProcessId)
+    : null
 
   // ── Minimized restore strip ───────────────────────────────────────
   if (isMinimized) {
@@ -76,6 +94,9 @@ export default function MplPipBar({
     <div style={{ width: 1, height: 20, background: C.divider, flexShrink: 0 }} />
   )
 
+  // Up to 2 process pills shown inline in the bar
+  const visibleProcesses = processes.slice(0, 2)
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
@@ -102,7 +123,7 @@ export default function MplPipBar({
         {/* Center content */}
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           {!showSwimlane ? (
-            /* Idle — no swimlane open */
+            /* Idle — no processes active */
             <>
               <button
                 onClick={() => onStart && onStart()}
@@ -128,30 +149,35 @@ export default function MplPipBar({
               </button>
             </>
           ) : (
-            /* Processes active — count badge + Quick Log + chevron */
+            /* Processes active — inline pills + Quick Log + chevron */
             <>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                height: 26, padding: '0 8px', borderRadius: 13, flexShrink: 0,
-                background: hasProcesses && runningCount > 0
-                  ? 'rgba(96,165,250,0.12)' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${hasProcesses && runningCount > 0
-                  ? 'rgba(96,165,250,0.25)' : 'rgba(255,255,255,0.1)'}`,
-              }}>
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-                  background: hasProcesses && runningCount > 0 ? '#60a5fa' : 'rgba(255,255,255,0.2)',
-                }} />
-                <span style={{
-                  fontSize: 11, fontWeight: 600,
-                  color: hasProcesses && runningCount > 0 ? '#60a5fa' : 'var(--text-sec)',
-                  fontFamily: '"Inter", system-ui, sans-serif',
+              {/* Inline process pills (up to 2) */}
+              {visibleProcesses.map(p => (
+                <ProcessPill
+                  key={p.id}
+                  elapsed={p.elapsed}
+                  onLog={() => onLogProcess && onLogProcess(p.id)}
+                  onClose={() => onCancelProcess && onCancelProcess(p.id)}
+                />
+              ))}
+
+              {/* If more than 2, show overflow count badge */}
+              {processes.length > 2 && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  height: 26, padding: '0 8px', borderRadius: 13, flexShrink: 0,
+                  background: runningCount > 0 ? 'rgba(96,165,250,0.12)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${runningCount > 0 ? 'rgba(96,165,250,0.25)' : 'rgba(255,255,255,0.1)'}`,
                 }}>
-                  {hasProcesses
-                    ? `${processes.length} active`
-                    : 'Processes'}
-                </span>
-              </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600,
+                    color: runningCount > 0 ? '#60a5fa' : 'var(--text-sec)',
+                    fontFamily: '"Inter", system-ui, sans-serif',
+                  }}>
+                    +{processes.length - 2}
+                  </span>
+                </div>
+              )}
 
               <button
                 onClick={() => onQuickLog && onQuickLog()}
@@ -233,8 +259,28 @@ export default function MplPipBar({
         </div>
       )}
 
-      {/* ── Swimlane tray ─────────────────────────────────────────── */}
-      {showSwimlane && swimlaneOpen && !children && (
+      {/* ── Category chip strip — TIMED (process pill "Log" tap) ──── */}
+      {chipStripProcessId && !quickLogOpen && (
+        <CategoryChipStrip
+          categories={categories}
+          processElapsed={chipStripProcess?.elapsed || 0}
+          onConfirm={(catId, subId, _mins) => onChipStripConfirm && onChipStripConfirm(chipStripProcessId, catId, subId)}
+          onCancel={() => onChipStripCancel && onChipStripCancel()}
+        />
+      )}
+
+      {/* ── Category chip strip — UNTIMED (Quick Log) ─────────────── */}
+      {quickLogOpen && !chipStripProcessId && (
+        <CategoryChipStrip
+          categories={categories}
+          processElapsed={null}
+          onConfirm={(catId, subId, minutes) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes)}
+          onCancel={() => onQuickLogCancel && onQuickLogCancel()}
+        />
+      )}
+
+      {/* ── Swimlane tray (only when no chip strip is active) ─────── */}
+      {showSwimlane && swimlaneOpen && !chipStripProcessId && !quickLogOpen && (
         <div style={{
           flex: 1, minHeight: 0,
           borderTop: `1px solid ${C.divider}`,

@@ -1,6 +1,11 @@
 import { C, formatElapsed } from '../lib/constants.js';
+import CasePillPopover from './CasePillPopover.jsx';
 
-export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFocus, onPause, onResume, onClose }) {
+export default function CasePill({
+  caseNumber, elapsed, focused, awaiting,
+  onFocus, onPause, onResume, onClose,
+  onPopoverOpen, popoverOpen, onAwaiting, onNotACase,
+}) {
   if (awaiting) {
     return (
       <div style={{
@@ -29,15 +34,19 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
 
   if (focused) {
     return (
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        padding: '0 10px', height: 32, borderRadius: 8,
-        background: 'rgba(232,84,10,0.12)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-        border: '1px solid rgba(232,84,10,0.3)',
-        fontSize: 12, fontWeight: 600, color: C.textPri,
-        fontFamily: '"Inter", system-ui, sans-serif',
-        flexShrink: 0,
-      }}>
+      <div
+        onClick={() => onPopoverOpen && onPopoverOpen()}
+        style={{
+          position: 'relative',
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '0 10px', height: 32, borderRadius: 8,
+          background: 'rgba(232,84,10,0.12)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          border: '1px solid rgba(232,84,10,0.3)',
+          fontSize: 12, fontWeight: 600, color: C.textPri,
+          fontFamily: '"Inter", system-ui, sans-serif',
+          flexShrink: 0, cursor: 'pointer',
+        }}
+      >
         <span style={{ color: C.activeDot, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>●</span>
         <span>{caseNumber}</span>
         <span style={{ color: C.textSec, fontVariantNumeric: 'tabular-nums' }}>
@@ -59,6 +68,15 @@ export default function CasePill({ caseNumber, elapsed, focused, awaiting, onFoc
           }}
           title="End session"
         >×</button>
+
+        {/* Popover: anchored above this pill */}
+        {popoverOpen && (
+          <CasePillPopover
+            onAwaiting={onAwaiting}
+            onNotACase={onNotACase}
+            onClose={onPopoverOpen}
+          />
+        )}
       </div>
     );
   }

@@ -94,6 +94,8 @@ export default function CtPipBar({
   hasPendingActivity = false,
   onSnapToCorner,
   onStartCase,
+  onAwaitingCase,
+  onNotACase,
   children,
 }) {
   const [showCaseInput, setShowCaseInput] = useState(false);
@@ -245,6 +247,8 @@ export default function CtPipBar({
           onLogProcess={undefined}
           onCloseProcess={undefined}
           onToggleTray={onToggleTray}
+          onAwaitingCase={onAwaitingCase}
+          onNotACase={onNotACase}
         />
 
         <div style={{ flex: 1 }} />

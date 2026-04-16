@@ -5,7 +5,6 @@ import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
 import MplPipBar from './MplPipBar.jsx'
-import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
 import { getMplSizeForState, getMplBarWidth } from '../lib/constants.js'
@@ -28,7 +27,8 @@ export default function MplApp() {
   const [processes, setProcesses] = useState([])    // [{ id, elapsed, paused }]
   const [showSwimlane, setShowSwimlane] = useState(false)
   const [swimlaneOpen, setSwimlaneOpen] = useState(false)
-  const [showManualEntry, setShowManualEntry] = useState(false)
+  const [quickLogOpen, setQuickLogOpen] = useState(false)
+  const [chipStripProcessId, setChipStripProcessId] = useState(null)
   const [categories, setCategories] = useState([])
   const [isMinimized, setIsMinimized] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected')
@@ -196,23 +196,90 @@ export default function MplApp() {
     }
 
     const id = crypto.randomUUID()
+    const newCount = processesRef.current.length + 1
     setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
     setShowSwimlane(true)
-    setShowManualEntry(false)
+    setQuickLogOpen(false)
+    setChipStripProcessId(null)
     startTimer(id)
+
+    // Auto-open tray only when 3+ processes — for 1-2, pills on bar + chip strip handle logging
+    if (newCount > 2) {
+      setSwimlaneOpen(true)
+      pinActive()
+    }
   }
 
+  // Called when "Log" button is tapped on a bar pill — opens timed chip strip
+  function handleProcessLog(id) {
+    if (quickLogOpen) setQuickLogOpen(false)    // mutual exclusivity
+    setChipStripProcessId(id)
+    const { width } = getMplSizeForState('chipStrip', STAT_BUTTONS)
+    resizeAndPin({ width, height: 108 }, 'bottom-right')
+  }
+
+  // Called when a category/sub chip is selected in the timed chip strip
+  async function handleChipStripConfirm(processId, categoryId, subcategoryId) {
+    const proc = processesRef.current.find(p => p.id === processId)
+    const elapsed = proc?.elapsed || 0
+    setChipStripProcessId(null)
+
+    const cat = categories.find(c => c.id === categoryId)
+    const catName = cat?.name || 'Process'
+
+    await handleConfirmProcess(processId, categoryId, subcategoryId, elapsed)
+    showToast(`Logged ${catName} · ${Math.round(elapsed / 60) || 1} min`)
+  }
+
+  // Called when timed chip strip is cancelled
+  function handleChipStripCancel() {
+    setChipStripProcessId(null)
+    if (showSwimlane && swimlaneOpen) pinActive()
+    else pin('idle')
+  }
+
+  // Quick Log — opens chip strip in untimed mode (same 108px height)
   async function handleQuickLog() {
+    if (chipStripProcessId) setChipStripProcessId(null)  // mutual exclusivity
     if (!isOpen) {
-      const size = getMplSizeForState('manualEntry', STAT_BUTTONS)
+      const size = getMplSizeForState('quickLog', STAT_BUTTONS)
       const pw = await openPip({ ...size, position: 'bottom-right' })
       if (!pw) return
       mountPipWindow(pw)
       setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     } else {
-      pin('manualEntry')
+      pin('quickLog')
     }
-    setShowManualEntry(true)
+    setQuickLogOpen(true)
+  }
+
+  // Called from CategoryChipStrip (untimed) when category + duration are selected
+  async function handleQuickLogConfirm(categoryId, subcategoryId, minutes) {
+    if (!user || !minutes) return
+    setQuickLogOpen(false)
+
+    const cat = categories.find(c => c.id === categoryId)
+    const catName = cat?.name || 'Process'
+
+    const ok = await safeWrite(supabase.from('mpl_entries').insert({
+      user_id: user.id,
+      category_id: categoryId,
+      subcategory_id: subcategoryId,
+      minutes,
+      source: 'manual',
+    }))
+    if (ok) {
+      showToast(`Logged ${catName} · ${minutes} min`)
+      if (showSwimlane && swimlaneOpen) pinActive()
+      else pin('idle')
+      refetch()
+    }
+  }
+
+  function handleQuickLogCancel() {
+    setQuickLogOpen(false)
+    if (showSwimlane && swimlaneOpen) pinActive()
+    else pin('idle')
   }
 
   function handleToggleSwimlane() {
@@ -255,23 +322,6 @@ export default function MplApp() {
     }
   }
 
-  async function handleManualLog(categoryId, subcategoryId, minutes) {
-    if (!user) return
-    const ok = await safeWrite(supabase.from('mpl_entries').insert({
-      user_id: user.id,
-      category_id: categoryId,
-      subcategory_id: subcategoryId,
-      minutes,
-      source: 'manual',
-    }))
-    if (ok) {
-      setShowManualEntry(false)
-      if (showSwimlane) pinActive()
-      else pin('idle')
-      refetch()
-    }
-  }
-
   function handleMinimize() {
     setIsMinimized(true)
     pin('minimized')
@@ -279,7 +329,8 @@ export default function MplApp() {
 
   function handleRestore() {
     setIsMinimized(false)
-    if (showManualEntry) { pin('manualEntry'); return }
+    if (quickLogOpen) { pin('quickLog'); return }
+    if (chipStripProcessId) { pin('chipStrip'); return }
     if (showSwimlane && swimlaneOpen) { pinActive(); return }
     pin('idle')
   }
@@ -296,6 +347,8 @@ export default function MplApp() {
         categories={categories}
         showSwimlane={showSwimlane}
         swimlaneOpen={swimlaneOpen}
+        chipStripProcessId={chipStripProcessId}
+        quickLogOpen={quickLogOpen}
         onToggleSwimlane={handleToggleSwimlane}
         processCount={processCount}
         onOpenDashboard={handleOpenDashboard}
@@ -303,24 +356,17 @@ export default function MplApp() {
         onQuickLog={handleQuickLog}
         onConfirmProcess={handleConfirmProcess}
         onCancelProcess={handleCancelProcess}
+        onLogProcess={handleProcessLog}
+        onChipStripConfirm={handleChipStripConfirm}
+        onChipStripCancel={handleChipStripCancel}
+        onQuickLogConfirm={handleQuickLogConfirm}
+        onQuickLogCancel={handleQuickLogCancel}
         onMinimize={handleMinimize}
         onRestore={handleRestore}
         isMinimized={isMinimized}
         connectionStatus={connectionStatus}
         pipToast={pipToast}
-      >
-        {showManualEntry && (
-          <ManualEntryForm
-            categories={categories}
-            onClose={() => {
-              setShowManualEntry(false)
-              if (showSwimlane) pinActive()
-              else pin('idle')
-            }}
-            onLog={handleManualLog}
-          />
-        )}
-      </MplPipBar>
+      />
     )
   }
 

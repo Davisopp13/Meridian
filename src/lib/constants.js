@@ -121,13 +121,19 @@ export const MPL_HEIGHTS = {
   minimized: 32,
   idle: 64,
   timerActive: 64,
+  chipStrip: 108,           // 64 (bar) + 44 (chip strip) — timed log
+  quickLog: 108,            // same as chipStrip — category step identical
+  quickLogDuration: 108,    // same height — duration chips fit in the same 44px strip
   categoryPicker: 480,
-  manualEntry: 480,
+  manualEntry: 480,         // keep for backward compat
 }
 
 export const MPL_STATE_BASE_WIDTHS = {
   idle: 160,
   timerActive: 200,
+  chipStrip: 200,           // same as timerActive
+  quickLog: 200,
+  quickLogDuration: 200,
   categoryPicker: 200,
   manualEntry: 200,
 }
