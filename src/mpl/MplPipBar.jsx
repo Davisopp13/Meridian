@@ -180,18 +180,6 @@ export default function MplPipBar({
               )}
 
               <button
-                onClick={() => onQuickLog && onQuickLog()}
-                style={{
-                  height: 26, padding: '0 10px', borderRadius: 13,
-                  background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0, whiteSpace: 'nowrap',
-                }}
-              >
-                Quick Log
-              </button>
-
-              <button
                 onClick={() => onToggleSwimlane && onToggleSwimlane()}
                 title={swimlaneOpen ? 'Collapse' : 'Expand timers'}
                 style={{
@@ -202,6 +190,18 @@ export default function MplPipBar({
                 }}
               >
                 {swimlaneOpen ? '▲' : '▼'}
+              </button>
+
+              <button
+                onClick={() => onQuickLog && onQuickLog()}
+                style={{
+                  height: 26, padding: '0 10px', borderRadius: 13,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0, whiteSpace: 'nowrap',
+                }}
+              >
+                Quick Log
               </button>
             </>
           )}
