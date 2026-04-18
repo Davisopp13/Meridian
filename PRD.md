@@ -125,7 +125,7 @@ supabase/
   - Renders a sortable table using `AgentRow` plus an extra &quot;Cases/hour&quot; column.
   - Acceptance: builds; TODO comment is present so Davis knows the number is provisional.
 
-- [ ] **Task 9: Build `MplByCategoryPanel.jsx`**
+- [x] **Task 9: Build `MplByCategoryPanel.jsx`**
   - Props: `{ byCategory }` — a map of `{ categoryName: totalMinutes }` for the team.
   - Renders horizontal bars, longest at the top. Use the same horizontal-bar pattern from Task 7.
   - If there are more than 10 categories, show top 8 + &quot;Other&quot; bucket.
