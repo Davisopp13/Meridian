@@ -318,7 +318,7 @@ supabase/
 
 ### Phase 2 — Data layer
 
-- [ ] **Task 2: Add suggestion CRUD wrappers to `src/lib/api.js`**
+- [x] **Task 2: Add suggestion CRUD wrappers to `src/lib/api.js`**
 
   Append (do not replace — keep all existing exports):
 

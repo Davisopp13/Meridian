@@ -76,3 +76,84 @@ export async function endBarSession({ sessionId, totalCases, totalProcesses }) {
     })
     .eq('id', sessionId)
 }
+
+export async function createSuggestion({
+  userId, type, title, body,
+  haulageType = null, parentCategoryId = null,
+}) {
+  return supabase.from('suggestions').insert({
+    user_id: userId,
+    type,
+    title,
+    body,
+    haulage_type: haulageType,
+    parent_category_id: parentCategoryId,
+  }).select('id').single();
+}
+
+export async function fetchMySuggestions(userId) {
+  return supabase.from('suggestions')
+    .select('id, type, title, body, status, created_at, updated_at, resolved_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+}
+
+export async function fetchAllSuggestions({ statusFilter = null, typeFilter = null } = {}) {
+  let q = supabase.from('suggestions')
+    .select(`
+      id, user_id, type, title, body,
+      haulage_type, parent_category_id,
+      status, admin_notes,
+      created_at, updated_at, resolved_at,
+      platform_users!inner (full_name, email)
+    `)
+    .order('created_at', { ascending: false });
+  if (statusFilter) q = q.eq('status', statusFilter);
+  if (typeFilter)   q = q.eq('type', typeFilter);
+  return q;
+}
+
+export async function updateSuggestion({ id, status = null, adminNotes = null }) {
+  const patch = {};
+  if (status !== null) {
+    patch.status = status;
+    if (status === 'shipped' || status === 'wont_fix') {
+      patch.resolved_at = new Date().toISOString();
+    }
+  }
+  if (adminNotes !== null) patch.admin_notes = adminNotes;
+  return supabase.from('suggestions').update(patch).eq('id', id);
+}
+
+export async function promoteSuggestion(suggestionId) {
+  return supabase.rpc('promote_suggestion', { p_suggestion_id: suggestionId });
+}
+
+export async function uploadAttachmentBlob({ userId, suggestionId, blob, filename }) {
+  const path = `${userId}/${suggestionId}/${filename}`;
+  return supabase.storage
+    .from('suggestion-attachments')
+    .upload(path, blob, { contentType: blob.type, upsert: false });
+}
+
+export async function createAttachmentRow({ suggestionId, storagePath, mimeType, sizeBytes }) {
+  return supabase.from('suggestion_attachments').insert({
+    suggestion_id: suggestionId,
+    storage_path: storagePath,
+    mime_type: mimeType,
+    size_bytes: sizeBytes,
+  }).select('id').single();
+}
+
+export async function fetchAttachmentForSuggestion(suggestionId) {
+  return supabase.from('suggestion_attachments')
+    .select('id, storage_path, mime_type, size_bytes, created_at')
+    .eq('suggestion_id', suggestionId)
+    .maybeSingle();
+}
+
+export async function createSignedAttachmentUrl(storagePath, expiresSeconds = 300) {
+  return supabase.storage
+    .from('suggestion-attachments')
+    .createSignedUrl(storagePath, expiresSeconds);
+}

@@ -2343,3 +2343,39 @@ Learnings for future iterations:
   - All four MPL Widget Fix PRD tasks were already complete — final state is clean
   - Build is stable at 1.2–1.3s; no regressions from any of the 5 tasks
 ---
+
+## Iteration SB-1 - Task 1 (Suggestion Box PRD): Write 006_suggestion_box.sql
+- Created supabase/migrations/006_suggestion_box.sql with exact SQL from PRD
+- Tables: suggestions (with check constraints, indexes, RLS) + suggestion_attachments (UNIQUE per suggestion)
+- Updated_at trigger via set_updated_at() function
+- 4 RLS policies on suggestions, 3 on suggestion_attachments, 2 on storage.objects = 9 total (≥8 required)
+- promote_suggestion() SECURITY DEFINER RPC with admin role check
+- Storage bucket creation (suggestion-attachments, private)
+- Build passes: ✓ built in 1.30s
+
+Files changed:
+  supabase/migrations/006_suggestion_box.sql (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - Migration is write-only (Davis applies manually) — no need to run it or test SQL correctness at build time
+  - Acceptance criterion is grep -c "CREATE POLICY" returning ≥8 (got 9)
+  - Build test still passes since migration is SQL only, not imported by any JS
+---
+
+## Iteration SB-2 - Task 2 (Suggestion Box PRD): Add suggestion CRUD wrappers to api.js
+- Appended 9 new exports to src/lib/api.js (kept all existing exports)
+- createSuggestion, fetchMySuggestions, fetchAllSuggestions, updateSuggestion, promoteSuggestion
+- uploadAttachmentBlob, createAttachmentRow, fetchAttachmentForSuggestion, createSignedAttachmentUrl
+- grep check: 9 matches confirmed
+- Build passes: ✓ built in 1.19s
+
+Files changed:
+  src/lib/api.js (9 functions appended)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - fetchAllSuggestions uses platform_users!inner join — requires suggestions.user_id FK to platform_users.id
+  - Storage bucket name 'suggestion-attachments' lives only in api.js per PRD spec
+  - updateSuggestion sets resolved_at on 'shipped' or 'wont_fix' status transitions
+---
