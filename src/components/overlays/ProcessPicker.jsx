@@ -27,7 +27,7 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.72)', letterSpacing: '0.07em' }}>
-            LOG PROCESS
+            LOG PROCESS · TAP TO FINISH
           </span>
           <span style={{ fontSize: 11, color: '#ffffff', fontVariantNumeric: 'tabular-nums' }}>
             Timer: {Math.max(1, Math.round(elapsed / 60))} min

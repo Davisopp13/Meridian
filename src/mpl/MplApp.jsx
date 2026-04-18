@@ -171,9 +171,36 @@ export default function MplApp() {
   }, [isMplWidget, authLoading, user, profile])
 
   // ── Pending triggers ───────────────────────────────────────────────────
+  // Guard bookmarklet-triggered starts so they can't interrupt an in-progress log.
+  // Two defenses:
+  //   1. If the user has the TIMED picker or the UNTIMED Quick Log open, drop the
+  //      trigger. A new timer arriving mid-drill-down unmounts the overlay and
+  //      strands the original timer (Wanda bug, 4/17).
+  //   2. Debounce repeated triggers within 2s. Covers double-clicks on the
+  //      bookmarklet and Realtime+poll firing for the same row.
+  const lastProcessStartRef = useRef(0)
+  const uiStateRef = useRef({ chipStripProcessId: null, quickLogOpen: false })
+  useEffect(() => {
+    uiStateRef.current = { chipStripProcessId, quickLogOpen }
+  }, [chipStripProcessId, quickLogOpen])
+
   usePendingTriggers(user?.id, {
     handleCaseStart: () => {},
-    handleProcessStart: () => handleStart(),
+    handleProcessStart: () => {
+      const now = Date.now()
+      if (now - lastProcessStartRef.current < 2000) {
+        console.log('[Meridian MPL] Dropped duplicate process start (debounce)')
+        return
+      }
+      const { chipStripProcessId: cs, quickLogOpen: ql } = uiStateRef.current
+      if (cs || ql) {
+        console.log('[Meridian MPL] Dropped process start — picker open, finish current log first')
+        showToast('Finish logging the current process first')
+        return
+      }
+      lastProcessStartRef.current = now
+      handleStart()
+    },
   })
 
   // ── Handlers ──────────────────────────────────────────────────────────
