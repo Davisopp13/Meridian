@@ -530,7 +530,7 @@ supabase/
 
   Acceptance: builds. Picking a valid image shows a preview. Picking a 10MB file shows &quot;File too large&quot; error. Picking a PDF shows &quot;Image only&quot; error.
 
-- [ ] **Task 8: Build `FeedbackTab.jsx`**
+- [x] **Task 8: Build `FeedbackTab.jsx`**
 
   Props: `{ user, profile }`. Layout:
   - Page title &quot;Feedback&quot; + short sentence &quot;Submit a bug, request a feature, or suggest a new MPL category. We read everything.&quot;
@@ -542,7 +542,7 @@ supabase/
 
   Acceptance: builds. Davis can submit a suggestion and see it appear in his list.
 
-- [ ] **Task 9: Build `SuggestionList.jsx`**
+- [x] **Task 9: Build `SuggestionList.jsx`**
 
   Dumb component. Props: `{ suggestions, onRowClick, showSubmitter, emptyMessage }`. Renders `&lt;SuggestionRow&gt;` for each, or the empty message. No data fetching inside.
 

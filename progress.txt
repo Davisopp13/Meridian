@@ -2513,3 +2513,29 @@ Learnings for future iterations:
   - SuggestionForm uses `needsHaulage` / `needsParent` / `needsAttachment` booleans derived from type — clean conditional rendering
   - Storage path for blob: `${user.id}/${suggestionId}/${filename}` — matches RLS policy first-segment check
 ---
+
+## Iteration SB-8 - Tasks 8+9 (Suggestion Box PRD): Build FeedbackTab.jsx + SuggestionList.jsx
+- Created src/components/feedback/SuggestionList.jsx (Task 9)
+  - Props: { suggestions, onRowClick, showSubmitter, emptyMessage }
+  - Renders SuggestionRow for each suggestion, or emptyMessage when empty
+  - Pure dumb component — no data fetching
+- Created src/components/FeedbackTab.jsx (Task 8)
+  - Props: { user, profile }
+  - Title "Feedback" + subtitle sentence
+  - SuggestionForm at top with onSubmitted={refetch}
+  - "My suggestions" section below using useMySuggestions(user?.id)
+  - Loading state shown while fetching; empty state "You haven't submitted anything yet."
+  - Rows are not clickable (onRowClick=null) per PRD spec
+- npm run build passes — ✓ built in 1.24s, 2464 modules, 0 errors
+
+Files changed:
+  src/components/feedback/SuggestionList.jsx (created)
+  src/components/FeedbackTab.jsx (created)
+  PRD.md (Tasks 8 and 9 marked [x])
+
+Learnings for future iterations:
+  - SuggestionList is a dependency of FeedbackTab and AdminTab — build both in same iteration as FeedbackTab
+  - useMySuggestions returns { suggestions, loading, error, refetch } — all needed by FeedbackTab
+  - Pass onRowClick=null to SuggestionList for non-clickable rows (SuggestionRow uses cursor:default when onClick is falsy)
+  - FeedbackTab uses CSS variable tokens (var(--text-pri), etc.) — it's a host-page component, not PiP
+---
