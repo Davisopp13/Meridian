@@ -2411,3 +2411,57 @@ Learnings for future iterations:
   - useMySuggestions.js is the canonical pattern to mirror for all data-fetching hooks in this project
   - refetch is the admin view's primary way to re-sync after status changes or promotions — always expose it
 ---
+
+## Iteration SB-2 - Task 4a (Suggestion Box PRD): Write src/lib/attachments.js
+- Created src/lib/attachments.js — pure utility, no Supabase, no React
+- Exports: ALLOWED_TYPES, MAX_BYTES, MAX_EDGE_PX, OUT_QUALITY constants
+- validateFile(file): checks mime type (image/* + ALLOWED_TYPES) and pre-compression size (<=5MB)
+- compressImage(file): loads image via object URL, resizes canvas so longest edge <= MAX_EDGE_PX, re-encodes as JPEG at quality 0.85, revokes object URL in finally block
+- sanitizeFilename(name): strips path separators, lowercases, removes non [a-z0-9._-] chars, appends 5-char random suffix, truncates to 60 chars
+- npm run build passes — ✓ built in 1.19s, 0 errors
+
+Files changed:
+  src/lib/attachments.js (created)
+  PRD.md (Task 4a marked [x])
+
+Learnings for future iterations:
+  - canvas.toBlob() is async and can return null — must reject on null, not resolve
+  - URL.revokeObjectURL must go in finally block so it runs even if img decode fails
+  - sanitizeFilename appends suffix BEFORE final extension (base + suffix + ext) to preserve the .jpg/.png extension for browser content-type sniffing
+  - validateFile checks file.type.startsWith('image/') first, then checks against ALLOWED_TYPES list — two-stage rejection for better error messages
+---
+
+## Iteration SB-3 - Task 4b (Suggestion Box PRD): Write src/hooks/useSignedAttachmentUrl.js
+- Created src/hooks/useSignedAttachmentUrl.js
+- Hook signature: useSignedAttachmentUrl(storagePath) → { url, loading, error }
+- Returns { url: null, loading: false, error: 'no path' } when storagePath is null
+- Calls createSignedAttachmentUrl(storagePath, 300) — 5-minute expiry
+- Standard cancellation pattern (let cancelled = false)
+- No auto-refresh — URL is generated fresh each time the hook mounts
+- npm run build passes — ✓ built in 1.26s, 0 errors
+
+Files changed:
+  src/hooks/useSignedAttachmentUrl.js (created)
+  PRD.md (Task 4b marked [x])
+
+Learnings for future iterations:
+  - createSignedAttachmentUrl returns { data: { signedUrl }, error } — access via data?.signedUrl
+  - No refetch needed; caller re-mounts to regenerate; keep the hook intentionally simple
+---
+
+## Iteration SB-4 - Task 5 (Suggestion Box PRD): Build SuggestionStatusBadge.jsx
+- Created src/components/feedback/SuggestionStatusBadge.jsx
+- Props: { status } — one of new / acknowledged / in_progress / shipped / wont_fix
+- Renders a pill span with hardcoded bg + color per status (no CSS variables — safe for both host and PiP contexts)
+- Labels in sentence case: New, Acknowledged, In progress, Shipped, Won't fix
+- npm run build passes — ✓ built in 1.18s, 0 errors
+
+Files changed:
+  src/components/feedback/SuggestionStatusBadge.jsx (created)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - feedback/ subdirectory under components/ created as part of this task
+  - All 5 statuses have distinct colors: new=blue, acknowledged=amber, in_progress=navy, shipped=green, wont_fix=gray
+  - Hardcoded hex colors are fine here — this component renders in the dashboard (host page), not PiP window
+---

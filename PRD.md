@@ -476,7 +476,7 @@ supabase/
 
 ### Phase 3 — Submitter surface
 
-- [ ] **Task 5: Build `SuggestionStatusBadge.jsx`**
+- [x] **Task 5: Build `SuggestionStatusBadge.jsx`**
 
   Props: `{ status }`. Renders a pill with one of five colors (match conventions: new = blue, acknowledged = amber, in_progress = navy, shipped = green, wont_fix = gray). Reuses CSS variables where possible; hardcoded hex is acceptable for badge colors if a semantic variable doesn&#x27;t exist. Sentence-case labels (&quot;In progress&quot; not &quot;in_progress&quot;).
 
