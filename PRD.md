@@ -147,7 +147,7 @@ supabase/
   - Error state: render the error message inside the card container.
   - Acceptance: builds, renders when accessed by Davis.
 
-- [ ] **Task 12: Wire Insights into `Dashboard.jsx`**
+- [x] **Task 12: Wire Insights into `Dashboard.jsx`**
   - Add `&#x27;insights&#x27;` as a valid `view` value. When `view === &#x27;insights&#x27;`, render `&lt;InsightsTab&gt;` in place of the current dashboard body.
   - Pass a callback up from `Navbar.jsx` to set the view.
   - Acceptance: clicking the Insights tab (next task) switches the body to InsightsTab.

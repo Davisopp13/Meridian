@@ -5,6 +5,7 @@ import { useDashboardStats } from '../hooks/useDashboardStats.js';
 import DashboardStatCard from './DashboardStatCard.jsx';
 import DashboardTable from './DashboardTable.jsx';
 const DashboardChart = lazy(() => import('./DashboardChart.jsx'));
+const InsightsTab = lazy(() => import('./InsightsTab.jsx'));
 import BookmarkletModal from './BookmarkletModal.jsx';
 import ActivityLog from './ActivityLog.jsx';
 import SettingsPage from './SettingsPage.jsx';
@@ -100,7 +101,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onLaunchMpl, onR
 
   return (
     <div style={{ background: 'var(--dash-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={onLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} onFeedback={() => setView('feedback')} onAdmin={() => setView('admin')} activeView={view} />
+      <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={onLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} onFeedback={() => setView('feedback')} onAdmin={() => setView('admin')} onInsights={() => setView('insights')} activeView={view} />
 
 
       {view === 'settings' ? (
@@ -109,6 +110,10 @@ export default function Dashboard({ user, profile, onLaunchPip, onLaunchMpl, onR
         <FeedbackTab user={user} profile={profile} />
       ) : view === 'admin' ? (
         <AdminTab user={user} profile={profile} />
+      ) : view === 'insights' ? (
+        <Suspense fallback={null}>
+          <InsightsTab user={user} profile={profile} />
+        </Suspense>
       ) : (
         /* Body */
         <div style={bodyStyle}>

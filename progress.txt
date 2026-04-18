@@ -2819,3 +2819,41 @@ Learnings for future iterations:
   - ResponsiveContainer needs explicit height (e.g. 80) to render correctly in a flex card
   - previousPerAgentStats can be null/undefined (no previous period data) — sumTotalActivity handles this with a null check
 ---
+
+## Iteration Insights-11 - Task 11 (Insights PRD): Build InsightsTab.jsx
+- Created src/components/InsightsTab.jsx
+- Props: { user, profile } — period state managed locally (useState + PERIODS array copied from Dashboard.jsx)
+- Role gate: non-supervisor/director renders InsightsEmptyState reason="not-supervisor"
+- Calls useTeamInsights twice: once for current period, once for prevPeriod (this_week→last_week, this_month→last_month; others null)
+- When prevPeriod is null: passes supervisorId=null so previous hook returns empty state; TrendComparisonPanel receives previousPerAgentStats=null → shows '—' for change
+- Loading: spinner (ins-spin keyframe + border-top color mmark); Error: message in card container
+- teams.length===0 → InsightsEmptyState reason="no-teams"; agents.length===0 → InsightsEmptyState (default)
+- 2x2 grid: flex wrap with panelStyle {flex:'1 1 calc(50%-10px)', minWidth:280} — naturally stacks on narrow viewports
+- `npx vite build 2>&1 | tail -8` → ✓ built in 1.37s, 0 errors
+
+Files changed:
+  src/components/InsightsTab.jsx (created)
+  PRD.md (Task 11 marked [x])
+
+Learnings for future iterations:
+  - When prevPeriod is null, pass supervisorId=null to second useTeamInsights call — hook bails early, returns initial state ({}) which gives sumTotalActivity=0 → formatPct shows '—'
+  - tabsRow as a JSX variable (not component) avoids hooks-in-loop issue and keeps code DRY across the multiple return branches
+  - useTheme() imported for light/dark tab styling — InsightsTab is rendered inside Dashboard which wraps ThemeProvider
+  - flex wrap + minWidth:280 handles the mobile-stack requirement without needing a style tag or resize listener
+---
+
+## Iteration N+1 - Task 12: Wire Insights into Dashboard.jsx
+- Added lazy import of InsightsTab in Dashboard.jsx
+- Added `onInsights={() => setView('insights')}` prop to Navbar call
+- Added `view === 'insights'` branch rendering `<InsightsTab>` inside Suspense fallback
+- InsightsTab lazy chunk: 15.33 kB (well under 80 kB threshold — no extra lazy wrapping needed)
+- Build passes: `✓ built in 1.33s`
+
+Files changed:
+  src/components/Dashboard.jsx (lazy import + view branch + onInsights callback)
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - InsightsTab is lazy-loaded as its own chunk matching DashboardChart pattern
+  - onInsights prop flows: Dashboard owns setView, passes callback to Navbar; Task 13 will wire the button
+---
