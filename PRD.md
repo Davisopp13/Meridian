@@ -432,7 +432,7 @@ supabase/
 
   Acceptance: builds.
 
-- [ ] **Task 4a: Write `src/lib/attachments.js`**
+- [x] **Task 4a: Write `src/lib/attachments.js`**
 
   Pure utility module. No Supabase, no React. Exports these named functions:
 
@@ -466,7 +466,7 @@ supabase/
 
   Acceptance: file builds; a quick inline test at the bottom of the file (commented out, for manual verification) demonstrates that a 4000x3000 6MB JPEG input produces a blob under 600KB with dimensions at most 1920 on the long edge.
 
-- [ ] **Task 4b: Write `src/hooks/useSignedAttachmentUrl.js`**
+- [x] **Task 4b: Write `src/hooks/useSignedAttachmentUrl.js`**
 
   Hook signature: `useSignedAttachmentUrl(storagePath)` → `{ url, loading, error }`. Calls `createSignedAttachmentUrl` with a 5-minute expiry. Does NOT auto-refresh — the hook is called fresh each time the attachment is rendered. If the user leaves a detail panel open for more than 5 minutes the signed URL will expire; that&#x27;s fine, they can re-open the panel to regenerate.
 
