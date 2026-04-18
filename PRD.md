@@ -482,13 +482,13 @@ supabase/
 
   Acceptance: builds, all 5 statuses render with distinct colors.
 
-- [ ] **Task 6: Build `SuggestionRow.jsx`**
+- [x] **Task 6: Build `SuggestionRow.jsx`**
 
   Props: `{ suggestion, onClick, showSubmitter }`. Renders one row: type icon + title + relative timestamp + `&lt;SuggestionStatusBadge&gt;`. If `showSubmitter` is true (admin view), also show the submitter&#x27;s full_name. Clickable — calls `onClick(suggestion)`.
 
   Acceptance: builds, reusable from both tab views.
 
-- [ ] **Task 7: Build `SuggestionForm.jsx`**
+- [x] **Task 7: Build `SuggestionForm.jsx`**
 
   Stateful form with these fields:
   - **Type** — radio or select with 5 options (Bug / Feature request / New category / New subcategory / Other). Drives which extra fields appear below.
@@ -508,7 +508,7 @@ supabase/
 
   Acceptance: builds, form submits cleanly, category/subcategory fields reveal correctly, parent-category dropdown repopulates when haulage type changes, attachment uploader only renders when type is `bug`, a 6MB input compresses to a blob under 1MB before upload.
 
-- [ ] **Task 7a: Build `AttachmentUploader.jsx`**
+- [x] **Task 7a: Build `AttachmentUploader.jsx`**
 
   Self-contained image picker. Props: `{ onChange(blob, filename) }`.
 

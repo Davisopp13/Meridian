@@ -2465,3 +2465,51 @@ Learnings for future iterations:
   - All 5 statuses have distinct colors: new=blue, acknowledged=amber, in_progress=navy, shipped=green, wont_fix=gray
   - Hardcoded hex colors are fine here — this component renders in the dashboard (host page), not PiP window
 ---
+
+## Iteration SuggestionBox-6 - Task 6: Build SuggestionRow.jsx
+- Created src/components/feedback/SuggestionRow.jsx
+- Props: { suggestion, onClick, showSubmitter }
+- TYPE_ICON map: bug=🐛, feature=✨, category=🗂️, subcategory=📂, other=💬
+- relativeTime() helper: shows "just now", Xm ago, Xh ago, Xd ago, or date
+- Hover state via useState — row background lightens on hover
+- showSubmitter: renders suggestion.platform_users?.full_name below title when true
+- Status badge (SuggestionStatusBadge) and relative timestamp on right side
+- npm run build passes — ✓ built in 1.25s, 0 errors
+
+Files changed:
+  src/components/feedback/SuggestionRow.jsx (created)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - Submitter name accessed via suggestion.platform_users?.full_name (joined field from fetchAllSuggestions)
+  - relativeTime helper defined in the component file — no shared utility needed for this MVP
+  - Uses CSS var tokens (var(--card-bg-subtle), var(--text-pri), etc.) — dashboard context, not PiP window
+---
+
+## Iteration SB-7 - Task 7 + 7a (Suggestion Box PRD): Build SuggestionForm.jsx + AttachmentUploader.jsx
+- Created src/components/feedback/AttachmentUploader.jsx (Task 7a)
+  - Props: { onChange(blob, filename) }
+  - 4 states: empty, processing, ready, error
+  - Uses validateFile, compressImage, sanitizeFilename from lib/attachments.js
+  - Object URL lifecycle: stored in prevUrlRef, revoked on file change and unmount via useEffect cleanup
+- Created src/components/feedback/SuggestionForm.jsx (Task 7)
+  - Props: { user, onSubmitted }
+  - 5-type radio group (styled as pill buttons, orange tint on selected)
+  - Conditional fields: haulageType (category/subcategory), parentCategory (subcategory only), AttachmentUploader (bug only)
+  - parent category dropdown re-fetches via fetchCategoriesForTeam when haulageType changes
+  - Submit: createSuggestion → uploadAttachmentBlob → createAttachmentRow (non-blocking: failure shows warning, not rollback)
+  - Client validation mirrors DB constraints (title 3-120, body 1-4000, haulage required for category types, parent required for subcategory)
+- npm run build passes — ✓ built in 1.33s, 2464 modules, 0 errors
+
+Files changed:
+  src/components/feedback/AttachmentUploader.jsx (created)
+  src/components/feedback/SuggestionForm.jsx (created)
+  PRD.md (Tasks 7 and 7a marked [x])
+
+Learnings for future iterations:
+  - Task 7a (AttachmentUploader) is a dependency of Task 7 — build both in same iteration
+  - fetchCategoriesForTeam is the DEPRECATED but working export in api.js; takes a team string ('CH'/'MH') directly
+  - AttachmentUploader error state resets to empty when user clicks "Try again" — keeps UX clean
+  - SuggestionForm uses `needsHaulage` / `needsParent` / `needsAttachment` booleans derived from type — clean conditional rendering
+  - Storage path for blob: `${user.id}/${suggestionId}/${filename}` — matches RLS policy first-segment check
+---
