@@ -65,7 +65,7 @@ supabase/
   - Update `useDashboardStats.js` to call `aggregateStats(events, procs)` instead of duplicating the logic.
   - Acceptance: `npx vite build` passes. Dashboard still shows the same numbers for the current user.
 
-- [ ] **Task 2: Add insights-scoped helpers to `src/lib/api.js`**
+- [x] **Task 2: Add insights-scoped helpers to `src/lib/api.js`**
   - Add `fetchTeamAgents(teamIds)` — returns `platform_users` rows where `team_id IN teamIds` AND `role = &#x27;agent&#x27;` AND `onboarding_complete = true`. Select `id, email, full_name, team_id`.
   - Add `fetchTeamCaseEvents({ userIds, from, to })` — returns `case_events` rows matching the user set and timestamp range. Same field selection as `useDashboardStats` plus `user_id`.
   - Add `fetchTeamMplEntries({ userIds, from, to })` — same pattern for `mpl_entries`.

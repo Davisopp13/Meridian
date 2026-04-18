@@ -157,3 +157,33 @@ export async function createSignedAttachmentUrl(storagePath, expiresSeconds = 30
     .from('suggestion-attachments')
     .createSignedUrl(storagePath, expiresSeconds);
 }
+
+export async function fetchTeamAgents(teamIds) {
+  if (!teamIds || teamIds.length === 0) return { data: [], error: null };
+  return supabase
+    .from('platform_users')
+    .select('id, email, full_name, team_id')
+    .in('team_id', teamIds)
+    .eq('role', 'agent')
+    .eq('onboarding_complete', true);
+}
+
+export async function fetchTeamCaseEvents({ userIds, from, to }) {
+  if (!userIds || userIds.length === 0) return { data: [], error: null };
+  return supabase
+    .from('case_events')
+    .select('type, excluded, timestamp, user_id')
+    .in('user_id', userIds)
+    .gte('timestamp', from)
+    .lte('timestamp', to);
+}
+
+export async function fetchTeamMplEntries({ userIds, from, to }) {
+  if (!userIds || userIds.length === 0) return { data: [], error: null };
+  return supabase
+    .from('mpl_entries')
+    .select('created_at, minutes, category_id, user_id')
+    .in('user_id', userIds)
+    .gte('created_at', from)
+    .lte('created_at', to);
+}
