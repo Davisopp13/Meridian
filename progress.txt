@@ -2632,3 +2632,21 @@ Learnings for future iterations:
   - All Suggestion Box PRD tasks (1-14) are complete; Phase 5 requires explicit opt-in
   - Build is stable at ~1.2s; AdminTab and FeedbackTab are included in main bundle (312KB total — under the 500KB threshold)
 ---
+
+## Iteration Insights-1 - Task 1 (Insights PRD): Extract pure aggregation into src/lib/stats.js
+- Created src/lib/stats.js exporting getDateRange, getNYDateStr, aggregateStats
+- Moved getDateRange and getNYDateStr from useDashboardStats.js into stats.js (exported for reuse)
+- aggregateStats(events, procs): pure function, no React/Supabase — same output shape as before plus optional byUser map when rows include user_id
+- Updated useDashboardStats.js to import and call aggregateStats; removed inline duplicate logic
+- npx vite build passes — ✓ built in 1.34s, 0 errors
+
+Files changed:
+  src/lib/stats.js (created)
+  src/hooks/useDashboardStats.js (refactored to use aggregateStats)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - stats.js is the shared aggregation layer — useTeamInsights.js (Task 3) imports getDateRange + aggregateStats from here
+  - byUser map is only populated when at least one event/proc has user_id; otherwise byUser = null
+  - dailyRows output key matches PRD: sorted ascending by "MM/DD" date string
+---
