@@ -426,7 +426,7 @@ supabase/
 
   Acceptance: builds, importable.
 
-- [ ] **Task 4: Write `src/hooks/useAllSuggestions.js`**
+- [x] **Task 4: Write `src/hooks/useAllSuggestions.js`**
 
   Hook signature: `useAllSuggestions({ statusFilter, typeFilter })` returns `{ suggestions, loading, error, refetch }`. Uses `fetchAllSuggestions`. Same cancellation pattern. `refetch` is critical — the admin view updates it after every status change or promotion so the UI stays fresh.
 

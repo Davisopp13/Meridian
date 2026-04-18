@@ -2395,3 +2395,19 @@ Learnings for future iterations:
   - useDashboardStats.js is the reference for the cancellation pattern
   - tick + setTick pattern for refetch avoids storing a mutable function in state
 ---
+
+## Iteration SB-1 - Task 4 (Suggestion Box PRD): Write useAllSuggestions.js
+- Created src/hooks/useAllSuggestions.js
+- Hook signature: useAllSuggestions({ statusFilter, typeFilter }) → { suggestions, loading, error, refetch }
+- Follows exact same cancellation + tick/refetch pattern as useMySuggestions.js
+- statusFilter and typeFilter are dependency-array items so changes re-fetch automatically
+- npm run build passes — 0 errors
+
+Files changed:
+  src/hooks/useAllSuggestions.js (created)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - useMySuggestions.js is the canonical pattern to mirror for all data-fetching hooks in this project
+  - refetch is the admin view's primary way to re-sync after status changes or promotions — always expose it
+---
