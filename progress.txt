@@ -2379,3 +2379,19 @@ Learnings for future iterations:
   - Storage bucket name 'suggestion-attachments' lives only in api.js per PRD spec
   - updateSuggestion sets resolved_at on 'shipped' or 'wont_fix' status transitions
 ---
+
+## Iteration SuggestionBox-3 - Task 3: Write useMySuggestions hook
+- Created src/hooks/useMySuggestions.js
+- Signature: useMySuggestions(userId) → { suggestions, loading, error, refetch }
+- Uses tick state + useCallback(refetch) to trigger re-fetches
+- Cancellation pattern: `let cancelled = false` + cleanup `() => { cancelled = true }`
+- Build passes: ✓ built in 1.21s
+
+Files changed:
+  src/hooks/useMySuggestions.js (new)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - useDashboardStats.js is the reference for the cancellation pattern
+  - tick + setTick pattern for refetch avoids storing a mutable function in state
+---

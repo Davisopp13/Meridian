@@ -420,7 +420,7 @@ supabase/
 
   Acceptance: `grep -n &quot;createSuggestion\|fetchMySuggestions\|fetchAllSuggestions\|updateSuggestion\|promoteSuggestion\|uploadAttachmentBlob\|createAttachmentRow\|fetchAttachmentForSuggestion\|createSignedAttachmentUrl&quot; src/lib/api.js` returns nine matches.
 
-- [ ] **Task 3: Write `src/hooks/useMySuggestions.js`**
+- [x] **Task 3: Write `src/hooks/useMySuggestions.js`**
 
   Hook signature: `useMySuggestions(userId)` returns `{ suggestions, loading, error, refetch }`. Uses `fetchMySuggestions`. Follows the cancellation pattern from `useDashboardStats`.
 
