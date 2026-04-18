@@ -609,7 +609,7 @@ supabase/
 
   Acceptance: an agent sees Feedback but not Admin. Davis sees both.
 
-- [ ] **Task 14: Build and verify**
+- [x] **Task 14: Build and verify**
   - `npx vite build 2&gt;&amp;1 | tail -8` passes.
   - `grep -rn &quot;FeedbackTab\|AdminTab&quot; src/` returns matches in both Navbar and Dashboard.
   - `grep -rn &quot;promoteSuggestion\|promote_suggestion&quot; src/` returns at least 2 matches (api.js + CategoryPromotionModal).

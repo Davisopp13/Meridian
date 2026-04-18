@@ -2613,3 +2613,22 @@ Learnings for future iterations:
   - activeView passed to Navbar so buttons can highlight their active state without Navbar owning view state
   - Admin button uses profile?.role === 'admin' check — same guard pattern as AdminTab internal check
 ---
+
+## Iteration SB-11 - Task 14 (Suggestion Box PRD): Build and verify
+- Ran all PRD-specified verification checks:
+  1. `npx vite build 2>&1 | tail -8` → ✓ built in 1.20s, zero errors, zero warnings
+  2. `grep -rn "FeedbackTab|AdminTab" src/` → matches in Dashboard.jsx (import + render) and both tab files ✓
+  3. `grep -rn "promoteSuggestion|promote_suggestion" src/` → 4 matches (api.js definition + rpc call + CategoryPromotionModal import + usage) ✓
+  4. `grep -rn "AttachmentUploader|AttachmentPreview" src/` → 6 matches (both files + SuggestionForm uses Uploader + SuggestionDetailPanel uses Preview) ✓
+  5. `grep -rn "compressImage|validateFile|sanitizeFilename" src/` → matches in attachments.js (definitions) and AttachmentUploader.jsx (usage) ✓
+  6. `grep -rn "suggestion-attachments" src/` → only in api.js (bucket name not leaking elsewhere) ✓
+- Bundle sizes: main index=312KB, DashboardChart lazy chunk=369KB — AdminTab lazy-loading NOT needed (no 500KB warning)
+- No phase_5_enabled: true found in progress.txt — Phase 5 skipped per PRD spec
+
+Files changed:
+  PRD.md (Task 14 marked [x])
+
+Learnings for future iterations:
+  - All Suggestion Box PRD tasks (1-14) are complete; Phase 5 requires explicit opt-in
+  - Build is stable at ~1.2s; AdminTab and FeedbackTab are included in main bundle (312KB total — under the 500KB threshold)
+---
