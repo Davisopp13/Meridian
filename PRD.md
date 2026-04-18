@@ -81,7 +81,7 @@ supabase/
   - Cancellation semantics: match `useDashboardStats` (cancelled flag on effect cleanup).
   - Acceptance: `npx vite build` passes. Hook can be imported; does not need to be wired into UI yet.
 
-- [ ] **Task 4: Write `supabase/migrations/004_insights_rls_policies.sql`**
+- [x] **Task 4: Write `supabase/migrations/004_insights_rls_policies.sql`**
   - Add a SELECT policy on `case_events` named `supervisors read supervised team events` that allows a user to SELECT a row IF they have a `supervisor_teams` entry where the row&#x27;s `user_id`&#x27;s `team_id` matches. Structurally:
     ```sql
     CREATE POLICY &quot;supervisors read supervised team events&quot; ON case_events

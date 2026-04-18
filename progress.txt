@@ -2684,6 +2684,24 @@ Files changed:
   src/hooks/useTeamInsights.js (created)
   PRD.md (Task 3 marked [x])
 
+## Iteration Insights-4 - Task 4 (Insights PRD): Write supabase/migrations/005_insights_rls_policies.sql
+- Created supabase/migrations/005_insights_rls_policies.sql (named 005 since 004_reopen_count.sql already exists)
+- 3 CREATE POLICY statements: supervisors read supervised team events (case_events), supervisors read supervised team mpl entries (mpl_entries), supervisors read supervised team agents (platform_users)
+- All three use EXISTS subquery through supervisor_teams JOIN platform_users via team_id
+- DO NOT APPLY — Davis must run this in the Supabase SQL Editor before team data appears in Insights UI
+- npx vite build passes: ✓ built in 1.18s, 0 errors
+- grep -c 'CREATE POLICY' returns 3 ✓
+
+Files changed:
+  supabase/migrations/005_insights_rls_policies.sql (created)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - 004_reopen_count.sql already occupied the 004 slot — used 005 instead; PRD's acceptance check still passes (file exists + ≥3 policies)
+  - platform_users policy joins on st.team_id = platform_users.team_id (not user_id) — supervisor sees all agents in their teams
+  - case_events + mpl_entries policies join through platform_users.id = row.user_id to check team membership
+---
+
 Learnings for future iterations:
   - fetchSupervisedTeams returns { data: [{ team_id, teams: { id, name, ... } }] } — map st.teams to extract team objects
   - byCategory uses category_id as key; MplByCategoryPanel (Task 9) will need a category lookup map to display names
