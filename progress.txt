@@ -2592,3 +2592,24 @@ Learnings for future iterations:
   - Expand-in-place pattern: map over suggestions, render panel immediately after matching row's SuggestionList
   - SELECT_STYLE object defined once outside component; referenced by both selects (avoids duplicate inline literals)
 ---
+
+## Iteration N+1 - Task 13: Wire Feedback + Admin tabs into Dashboard.jsx and Navbar.jsx
+- Added imports for FeedbackTab and AdminTab in Dashboard.jsx
+- Added view cases: view === 'feedback' → <FeedbackTab>, view === 'admin' → <AdminTab>
+- Passed onFeedback, onAdmin, activeView props to Navbar from Dashboard
+- Updated Navbar signature to accept onFeedback, onAdmin, activeView
+- Added Feedback button (visible to all authenticated users) before Bookmarklet button
+- Added Admin button (visible only when profile?.role === 'admin') after Feedback button
+- Both buttons highlight with orange tint when their view is active (matching mMark color scheme)
+- Build passes: ✓ built in 1.30s, 0 errors
+
+Files changed:
+  src/components/Dashboard.jsx (imports + view routing + Navbar props)
+  src/components/Navbar.jsx (signature + Feedback + Admin buttons)
+  PRD.md (Task 13 marked [x])
+
+Learnings for future iterations:
+  - Navbar receives callbacks (onFeedback, onAdmin) from Dashboard, same pattern as onSettings
+  - activeView passed to Navbar so buttons can highlight their active state without Navbar owning view state
+  - Admin button uses profile?.role === 'admin' check — same guard pattern as AdminTab internal check
+---

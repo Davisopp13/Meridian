@@ -600,7 +600,7 @@ supabase/
 
   Acceptance: builds. Davis can filter, click a row, change status, add notes, and promote a category suggestion.
 
-- [ ] **Task 13: Wire Feedback + Admin tabs into `Dashboard.jsx` and `Navbar.jsx`**
+- [x] **Task 13: Wire Feedback + Admin tabs into `Dashboard.jsx` and `Navbar.jsx`**
 
   - Add `&#x27;feedback&#x27;` and `&#x27;admin&#x27;` to the `view` states in `Dashboard.jsx`. When `view === &#x27;feedback&#x27;` render `&lt;FeedbackTab&gt;`, when `view === &#x27;admin&#x27;` render `&lt;AdminTab&gt;`.
   - In `Navbar.jsx`, add a &quot;Feedback&quot; button visible to all authenticated users.

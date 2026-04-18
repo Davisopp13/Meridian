@@ -19,7 +19,7 @@ function getInitials(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings }) {
+export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings, onFeedback, onAdmin, activeView }) {
     const [isCtHovered, setIsCtHovered] = useState(false);
     const [isMplHovered, setIsMplHovered] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -215,6 +215,58 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
             </div>
 
             <div style={actionsSectionStyle}>
+                <button
+                    onClick={onFeedback}
+                    style={{
+                        ...secondaryBtnStyle,
+                        background: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                        borderColor: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.5)' : C.border,
+                        color: activeView === 'feedback' ? '#E8540A' : C.textPri,
+                    }}
+                    onMouseOver={(e) => {
+                        if (activeView !== 'feedback') {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                        }
+                    }}
+                    onMouseOut={(e) => {
+                        if (activeView !== 'feedback') {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                            e.currentTarget.style.borderColor = C.border;
+                        }
+                    }}
+                >
+                    <span>💬</span>
+                    <span>Feedback</span>
+                </button>
+
+                {profile?.role === 'admin' && (
+                    <button
+                        onClick={onAdmin}
+                        style={{
+                            ...secondaryBtnStyle,
+                            background: activeView === 'admin' ? 'rgba(232, 84, 10, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                            borderColor: activeView === 'admin' ? 'rgba(232, 84, 10, 0.5)' : C.border,
+                            color: activeView === 'admin' ? '#E8540A' : C.textPri,
+                        }}
+                        onMouseOver={(e) => {
+                            if (activeView !== 'admin') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                            }
+                        }}
+                        onMouseOut={(e) => {
+                            if (activeView !== 'admin') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                e.currentTarget.style.borderColor = C.border;
+                            }
+                        }}
+                    >
+                        <span>🛡️</span>
+                        <span>Admin</span>
+                    </button>
+                )}
+
                 <button
                     onClick={() => setShowBookmarkletModal(true)}
                     style={secondaryBtnStyle}
