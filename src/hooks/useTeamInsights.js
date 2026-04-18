@@ -81,13 +81,16 @@ export function useTeamInsights({ supervisorId, period }) {
         const agentProcs = allProcs.filter(p => p.user_id === agent.id);
         const s = aggregateStats(agentEvents, agentProcs);
         perAgentStats[agent.id] = {
-          resolved: s.resolved,
-          reclass: s.reclass,
-          calls: s.calls,
-          notACase: s.notACase,
-          processes: s.processes,
-          casesAndCalls: s.casesAndCalls,
-          totalActivity: s.totalActivity,
+          agent,
+          stats: {
+            resolved: s.resolved,
+            reclass: s.reclass,
+            calls: s.calls,
+            notACase: s.notACase,
+            processes: s.processes,
+            casesAndCalls: s.casesAndCalls,
+            totalActivity: s.totalActivity,
+          },
         };
       }
 

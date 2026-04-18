@@ -113,7 +113,7 @@ supabase/
   - Reusable across panels that show per-agent breakdowns.
   - Acceptance: component builds, no unused props.
 
-- [ ] **Task 7: Build `TeamCaseVolumePanel.jsx`**
+- [x] **Task 7: Build `TeamCaseVolumePanel.jsx`**
   - Props: `{ perAgentStats, teamTotals }` from `useTeamInsights`.
   - Renders: a card with the team&#x27;s total cases at the top (resolved + reclass + calls + not_a_case), and below it a stacked horizontal bar per agent showing the split. Use inline SVG rects if recharts is not present. Width 100%, height auto.
   - Styling matches `DashboardStatCard.jsx` container.

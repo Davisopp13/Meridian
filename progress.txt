@@ -2744,3 +2744,19 @@ Learnings for future iterations:
   - Color constants kept local (not imported from Dashboard.jsx) — same pattern as other insight components
   - notACase is in the props type but not rendered as a column per the PRD column list (resolved, reclass, calls, processes, total)
 ---
+
+## Iteration [N] - Task 7: Build TeamCaseVolumePanel.jsx
+- Created src/components/insights/TeamCaseVolumePanel.jsx
+- Card with team total cases at top, stacked horizontal SVG bars per agent, legend at bottom
+- Updated useTeamInsights.js: perAgentStats[agentId] now has shape { agent, stats } instead of flat stats object
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/components/insights/TeamCaseVolumePanel.jsx (created)
+  src/hooks/useTeamInsights.js (edited — perAgentStats shape updated)
+
+Learnings for future iterations:
+  - perAgentStats shape is now { agentId: { agent, stats } } — AgentHandleTimePanel, MplByCategoryPanel, TrendComparisonPanel must use this shape
+  - Inline SVG stacked bars: use offset accumulation pattern, all widths as percentages of maxCases (not total), so bars are comparable across agents
+  - StackedBar component uses overflow:hidden on the <svg> for clean rounding on first/last segments
+---
