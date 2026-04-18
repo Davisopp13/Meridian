@@ -102,7 +102,7 @@ supabase/
 
 ### Phase 3 — Four panels
 
-- [ ] **Task 5: Build `InsightsEmptyState.jsx`**
+- [x] **Task 5: Build `InsightsEmptyState.jsx`**
   - Two states: (1) &quot;Insights is available to supervisors only&quot; when `profile.role !== &#x27;supervisor&#x27;`, (2) &quot;No team data in this period&quot; when the query returns empty arrays.
   - Match the visual style of `Dashboard.jsx`&#x27;s existing empty states (check the component for the pattern).
   - Acceptance: builds, component is self-contained.

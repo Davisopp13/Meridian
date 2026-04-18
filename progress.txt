@@ -2707,3 +2707,21 @@ Learnings for future iterations:
   - byCategory uses category_id as key; MplByCategoryPanel (Task 9) will need a category lookup map to display names
   - Empty userIds/teamIds cases should setState and return early (not just return) to clear loading state
 ---
+
+## Iteration Insights-5 - Task 5 (Insights PRD): Build InsightsEmptyState.jsx
+- Created src/components/insights/InsightsEmptyState.jsx
+- Single prop `reason`: 'not-supervisor' → "supervisors only" message, 'no-teams' → "no teams assigned" message, default → "no team data in this period"
+- Card container matching DashboardTable empty state: var(--dash-card) bg, var(--dash-border) border, borderRadius 12
+- Centered layout with 📊 icon and text — same proportions as SkeletonTable container
+- Self-contained: local C object, no imports beyond React
+- `npx vite build 2>&1 | tail -8` → ✓ built in 1.38s, 0 errors
+
+Files changed:
+  src/components/insights/InsightsEmptyState.jsx (created)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - src/components/insights/ directory created via Write tool (no mkdir needed)
+  - Three reason values: 'not-supervisor', 'no-teams', default — covers all PRD states plus the no-teams gotcha from Notes
+  - var(--dash-*) tokens are the correct host-page tokens (not var(--*) PiP tokens)
+---
