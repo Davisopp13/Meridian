@@ -119,7 +119,7 @@ supabase/
   - Styling matches `DashboardStatCard.jsx` container.
   - Acceptance: component builds. Sample rendering with mock data (can be a hardcoded snippet commented out at the bottom of the file) looks reasonable.
 
-- [ ] **Task 8: Build `AgentHandleTimePanel.jsx`**
+- [x] **Task 8: Build `AgentHandleTimePanel.jsx`**
   - Props: `{ perAgentStats }`.
   - Computes average handle time per agent from `bar_sessions` + `case_events` — BUT for this task, use a placeholder: `cases_per_hour = (resolved + reclass) / hours_active`, where `hours_active` = rough fixed assumption (8h per active day). Mark this with a TODO comment saying real handle time needs session-level duration data from `bar_sessions`.
   - Renders a sortable table using `AgentRow` plus an extra &quot;Cases/hour&quot; column.

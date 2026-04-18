@@ -2760,3 +2760,19 @@ Learnings for future iterations:
   - Inline SVG stacked bars: use offset accumulation pattern, all widths as percentages of maxCases (not total), so bars are comparable across agents
   - StackedBar component uses overflow:hidden on the <svg> for clean rounding on first/last segments
 ---
+
+## Iteration [Insights-8] - Task 8: AgentHandleTimePanel.jsx
+- Created src/components/insights/AgentHandleTimePanel.jsx
+- Sortable table: clicking any column header sorts by that column (asc/desc toggle)
+- Cases/hr computed as (resolved + reclass) / (activeDays * 8h); activeDays inferred from totalActivity
+- Renders its own row cells directly (not AgentRow) so the extra Cases/hr column fits naturally
+- TODO comment present per PRD: real handle time needs bar_sessions duration data
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/components/insights/AgentHandleTimePanel.jsx (created)
+
+Learnings for future iterations:
+  - AgentRow renders 5 fixed columns; when adding extra columns, render <tr>/<td> directly instead of wrapping AgentRow
+  - inferActiveDays heuristic: round(totalActivity / 5), min 1 if any activity — keep this simple placeholder until bar_sessions is wired
+---
