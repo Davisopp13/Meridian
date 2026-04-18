@@ -24,8 +24,28 @@ export async function fetchProfile(userId) {
   return supabase.from('platform_users').select('*').eq('id', userId).single()
 }
 
-// TODO(Track 2): replace team parameter with team_id once teams table exists
+// Preferred — resolves haulage_type from the teams table via team_id.
+export async function fetchCategoriesForTeamId(teamId) {
+  if (!teamId) return { data: [], error: null }
+  const { data: team, error: teamErr } = await supabase
+    .from('teams')
+    .select('haulage_type')
+    .eq('id', teamId)
+    .single()
+  if (teamErr || !team) return { data: [], error: teamErr }
+
+  return supabase
+    .from('mpl_categories')
+    .select('id, name, team, display_order, mpl_subcategories(id, name, display_order)')
+    .eq('team', team.haulage_type)
+    .eq('is_active', true)
+    .order('display_order')
+    .order('display_order', { referencedTable: 'mpl_subcategories' })
+}
+
+// DEPRECATED — kept until every call site passes team_id.
 export async function fetchCategoriesForTeam(team) {
+  if (!team) return { data: [], error: null }
   return supabase
     .from('mpl_categories')
     .select('id, name, team, display_order, mpl_subcategories(id, name, display_order)')
@@ -33,6 +53,13 @@ export async function fetchCategoriesForTeam(team) {
     .eq('is_active', true)
     .order('display_order')
     .order('display_order', { referencedTable: 'mpl_subcategories' })
+}
+
+export async function fetchSupervisedTeams(supervisorId) {
+  return supabase
+    .from('supervisor_teams')
+    .select('team_id, teams!inner(id, name, department_id, haulage_type)')
+    .eq('supervisor_id', supervisorId)
 }
 
 export async function createBarSession(userId) {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { C } from '../lib/constants'
 import Step1Profile from './onboarding/Step1Profile'
@@ -8,6 +8,15 @@ import Step3Bookmarklet from './onboarding/Step3Bookmarklet'
 export default function Onboarding({ user, onComplete }) {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({})
+  const [defaultMhTeamId, setDefaultMhTeamId] = useState(null)
+
+  useEffect(() => {
+    supabase.from('teams')
+      .select('id')
+      .eq('name', 'Export Rail: Southeast Gulf Pacific')
+      .single()
+      .then(({ data }) => setDefaultMhTeamId(data?.id ?? null))
+  }, [])
 
   function handleNext(data) {
     setFormData(prev => ({ ...prev, ...data }))
@@ -25,6 +34,7 @@ export default function Onboarding({ user, onComplete }) {
         .update({
           full_name:           formData.full_name,
           team:                formData.team,
+          team_id:             formData.team === 'MH' ? defaultMhTeamId : null,
           onboarding_complete: true,
           updated_at:          new Date().toISOString(),
         })

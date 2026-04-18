@@ -4,7 +4,7 @@ import { usePipWindow } from '../hooks/usePipWindow.js'
 import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
-import { logMplEntry, fetchProfile, fetchCategoriesForTeam } from '../lib/api.js'
+import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam } from '../lib/api.js'
 import MplPipBar from './MplPipBar.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
@@ -125,8 +125,11 @@ export default function MplApp() {
 
   // ── Category fetch ─────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user || !profile?.team) return
-    fetchCategoriesForTeam(profile.team).then(({ data, error }) => {
+    if (!user || (!profile?.team_id && !profile?.team)) return
+    const fetch = profile.team_id
+      ? fetchCategoriesForTeamId(profile.team_id)
+      : fetchCategoriesForTeam(profile.team)
+    fetch.then(({ data, error }) => {
       if (error) console.error('[Meridian MPL] mpl_categories fetch failed', error)
       if (data) setCategories(data)
     })
