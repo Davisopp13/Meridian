@@ -131,7 +131,7 @@ supabase/
   - If there are more than 10 categories, show top 8 + &quot;Other&quot; bucket.
   - Acceptance: builds, category names and minutes render.
 
-- [ ] **Task 10: Build `TrendComparisonPanel.jsx`**
+- [x] **Task 10: Build `TrendComparisonPanel.jsx`**
   - Props: `{ period, perAgentStats, previousPerAgentStats }`.
   - For this task, `previousPerAgentStats` is computed inside `useTeamInsights` by calling it a second time with the shifted period (`this_week` → `last_week`, etc.). The hook returns both.
   - Renders: total activity this period, total last period, percentage change, and a small sparkline if recharts is available.

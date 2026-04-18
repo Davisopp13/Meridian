@@ -2776,3 +2776,46 @@ Learnings for future iterations:
   - AgentRow renders 5 fixed columns; when adding extra columns, render <tr>/<td> directly instead of wrapping AgentRow
   - inferActiveDays heuristic: round(totalActivity / 5), min 1 if any activity — keep this simple placeholder until bar_sessions is wired
 ---
+
+## Iteration Insights-9 - Task 9 (Insights PRD): Build MplByCategoryPanel.jsx
+- Created src/components/insights/MplByCategoryPanel.jsx
+- Props: { byCategory } — map of { categoryName/categoryId: totalMinutes }
+- Sorts entries descending by minutes (longest bar at top)
+- Top-8 + "Other" bucket when > 10 categories (Other sums remaining minutes)
+- HorizBar component: percentage-width div inside a var(--border) track, BAR_COLOR #60a5fa
+- Label (160px, ellipsis), bar (flex:1), minutes count (48px right-aligned)
+- Empty state: "No process data for this period."
+- Commented mock data snippet at bottom for smoke testing
+- `npx vite build` passes — ✓ built in 1.21s, 0 errors
+
+Files changed:
+  src/components/insights/MplByCategoryPanel.jsx (created)
+  PRD.md (Task 9 marked [x])
+
+Learnings for future iterations:
+  - byCategory keys are category_id strings from useTeamInsights — InsightsTab (Task 11) must resolve names before passing down, or pass IDs and let panel display them as-is
+  - HorizBar uses a percentage-width inner div inside a fixed-height track (not SVG) — simpler than the StackedBar SVG pattern in TeamCaseVolumePanel
+  - top-8 slice before "Other" bucket: sorted[0][1] is max after bucketing, so maxMinutes is always the longest visible bar
+---
+
+## Iteration Insights-10 - Task 10: Build TrendComparisonPanel.jsx
+- Created src/components/insights/TrendComparisonPanel.jsx
+- Props: { period, perAgentStats, previousPerAgentStats }
+- sumTotalActivity() sums totalActivity across all entries in perAgentStats map (shape { agentId: { agent, stats } })
+- formatPct() handles divide-by-zero: returns '—' when previous === 0
+- PERIOD_LABELS map translates period key to [currentLabel, previousLabel] strings
+- % change color: green (#4ade80) if positive, red (#f87171) if negative, neutral if previous is 0
+- Uses recharts BarChart (2-bar: previous in gray, current in blue) — recharts 3.7.0 confirmed in package.json
+- Commented mock data snippet at bottom for smoke testing
+- `npx vite build 2>&1 | tail -8` → ✓ built in 1.47s, 0 errors
+
+Files changed:
+  src/components/insights/TrendComparisonPanel.jsx (created)
+  PRD.md (Task 10 marked [x])
+
+Learnings for future iterations:
+  - perAgentStats shape confirmed: { agentId: { agent, stats: { totalActivity, ... } } }
+  - recharts Cell component: import from 'recharts', apply per-bar colors inside <Bar> with <Cell fill="..." /> for each data point
+  - ResponsiveContainer needs explicit height (e.g. 80) to render correctly in a flex card
+  - previousPerAgentStats can be null/undefined (no previous period data) — sumTotalActivity handles this with a null check
+---
