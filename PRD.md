@@ -139,7 +139,7 @@ supabase/
 
 ### Phase 4 — Wiring and gating
 
-- [ ] **Task 11: Create `InsightsTab.jsx`**
+- [x] **Task 11: Create `InsightsTab.jsx`**
   - Props: `{ user, profile, period, onPeriodChange }`.
   - If `profile.role !== &#x27;supervisor&#x27; &amp;&amp; profile.role !== &#x27;director&#x27;` → render `InsightsEmptyState` with the &quot;supervisors only&quot; message.
   - Otherwise: call `useTeamInsights({ supervisorId: user.id, period })`. Render period tabs (copy from `Dashboard.jsx`) at the top, then a 2x2 grid of the four panels (Task 7–10). On mobile (&lt; 768px), stack vertically.
