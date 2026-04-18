@@ -19,7 +19,7 @@ function getInitials(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings, onFeedback, onAdmin, activeView }) {
+export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings, onFeedback, onAdmin, onInsights, activeView }) {
     const [isCtHovered, setIsCtHovered] = useState(false);
     const [isMplHovered, setIsMplHovered] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -264,6 +264,33 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                     >
                         <span>🛡️</span>
                         <span>Admin</span>
+                    </button>
+                )}
+
+                {(profile?.role === 'supervisor' || profile?.role === 'director') && (
+                    <button
+                        onClick={onInsights}
+                        style={{
+                            ...secondaryBtnStyle,
+                            background: activeView === 'insights' ? 'rgba(96, 165, 250, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                            borderColor: activeView === 'insights' ? 'rgba(96, 165, 250, 0.5)' : C.border,
+                            color: activeView === 'insights' ? '#60a5fa' : C.textPri,
+                        }}
+                        onMouseOver={(e) => {
+                            if (activeView !== 'insights') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                            }
+                        }}
+                        onMouseOut={(e) => {
+                            if (activeView !== 'insights') {
+                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                e.currentTarget.style.borderColor = C.border;
+                            }
+                        }}
+                    >
+                        <span>📊</span>
+                        <span>Insights</span>
                     </button>
                 )}
 

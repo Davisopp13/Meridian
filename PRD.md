@@ -152,7 +152,7 @@ supabase/
   - Pass a callback up from `Navbar.jsx` to set the view.
   - Acceptance: clicking the Insights tab (next task) switches the body to InsightsTab.
 
-- [ ] **Task 13: Add Insights tab to `Navbar.jsx` with role gating**
+- [x] **Task 13: Add Insights tab to `Navbar.jsx` with role gating**
   - Next to the existing Dashboard / Activity / Settings buttons, add an Insights button.
   - Only render the button when `profile?.role === &#x27;supervisor&#x27; || profile?.role === &#x27;director&#x27;`.
   - Click handler: set `view = &#x27;insights&#x27;` via the callback from Task 12.

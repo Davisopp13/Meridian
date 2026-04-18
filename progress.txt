@@ -2857,3 +2857,19 @@ Learnings for future iterations:
   - InsightsTab is lazy-loaded as its own chunk matching DashboardChart pattern
   - onInsights prop flows: Dashboard owns setView, passes callback to Navbar; Task 13 will wire the button
 ---
+
+## Iteration N - Task 13: Add Insights tab to Navbar.jsx with role gating
+- Added `onInsights` prop to Navbar destructuring
+- Added Insights button gated on `profile?.role === 'supervisor' || profile?.role === 'director'`
+- Button uses blue highlight (#60a5fa) to distinguish from admin's orange
+- Placed after Admin button, before Bookmarklet button
+- Build passes: `✓ built in 1.31s`
+
+Files changed:
+  src/components/Navbar.jsx
+  PRD.md (Task 13 marked [x])
+
+Learnings for future iterations:
+  - Dashboard.jsx already passed `onInsights` prop in Task 12 — Navbar just needed to accept and wire it
+  - Role gate pattern: conditional render identical to admin button, just different role check
+---
