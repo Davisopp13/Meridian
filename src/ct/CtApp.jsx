@@ -5,6 +5,7 @@ import { useStats } from '../hooks/useStats.js'
 import { useContextFocus } from '../hooks/useContextFocus.js'
 import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { supabase } from '../lib/supabase.js'
+import { logCaseEvent, fetchProfile } from '../lib/api.js'
 import CtPipBar from './CtPipBar.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
 import Onboarding from '../components/Onboarding.jsx'
@@ -199,8 +200,7 @@ export default function CtApp() {
       const u = session?.user ?? null
       setUser(u)
       if (u) {
-        supabase.from('platform_users').select('*').eq('id', u.id).single()
-          .then(({ data: p }) => { setProfile(p); setAuthLoading(false) })
+        fetchProfile(u.id).then(({ data: p }) => { setProfile(p); setAuthLoading(false) })
       } else {
         setAuthLoading(false)
       }
@@ -210,8 +210,7 @@ export default function CtApp() {
       const u = session?.user ?? null
       setUser(u)
       if (u) {
-        supabase.from('platform_users').select('*').eq('id', u.id).single()
-          .then(({ data: p }) => setProfile(p))
+        fetchProfile(u.id).then(({ data: p }) => setProfile(p))
       } else {
         setProfile(null)
       }
@@ -665,13 +664,7 @@ export default function CtApp() {
           pin(getCtBarMode(remaining, trayOpen, false))
         }
       }
-      const ok = await safeWrite(supabase.from('case_events').insert({
-        session_id: focusedCaseId,
-        user_id: user.id,
-        type: 'resolved',
-        excluded: false,
-        rfc: false,
-      }))
+      const ok = await safeWrite(logCaseEvent({ userId: user.id, type: 'resolved', sessionId: focusedCaseId, excluded: false, rfc: false }))
       if (!ok) {
         setRfcPending(null)
         setRfcBannerOpen(false)
@@ -706,13 +699,7 @@ export default function CtApp() {
       } else {
         pin(getCtBarMode(remaining, trayOpen, false))
       }
-      const ok = await safeWrite(supabase.from('case_events').insert({
-        session_id: focusedCaseId,
-        user_id: user.id,
-        type: 'reclassified',
-        excluded: false,
-        rfc: false,
-      }))
+      const ok = await safeWrite(logCaseEvent({ userId: user.id, type: 'reclassified', sessionId: focusedCaseId, excluded: false, rfc: false }))
       if (!ok) return
       stopCaseTimer(focusedCaseId)
       await safeWrite(supabase.from('ct_cases')
@@ -740,13 +727,7 @@ export default function CtApp() {
       } else {
         pin(getCtBarMode(remaining, trayOpen, false))
       }
-      const ok1 = await safeWrite(supabase.from('case_events').insert({
-        session_id: sessionId,
-        user_id: user.id,
-        type: 'rfc',
-        excluded: false,
-        rfc: true,
-      }))
+      const ok1 = await safeWrite(logCaseEvent({ userId: user.id, type: 'rfc', sessionId, excluded: false, rfc: true }))
       if (!ok1) return
       await safeWrite(supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
@@ -790,13 +771,7 @@ export default function CtApp() {
 
   async function handleCall() {
     if (!user) return
-    const ok = await safeWrite(supabase.from('case_events').insert({
-      session_id: focusedCaseId || null,
-      user_id: user.id,
-      type: 'call',
-      excluded: false,
-      rfc: false,
-    }))
+    const ok = await safeWrite(logCaseEvent({ userId: user.id, type: 'call', sessionId: focusedCaseId || null, excluded: false, rfc: false }))
     if (ok) refetch()
   }
 
@@ -826,13 +801,7 @@ export default function CtApp() {
           pin(getCtBarMode(remaining, trayOpen, false))
         }
       }
-      await supabase.from('case_events').insert({
-        session_id: id,
-        user_id: user.id,
-        type: 'resolved',
-        excluded: false,
-        rfc: false,
-      })
+      await logCaseEvent({ userId: user.id, type: 'resolved', sessionId: id, excluded: false, rfc: false })
       if (!c.previouslyResolved) {
         stopCaseTimer(id)
         await supabase.from('ct_cases')
@@ -863,13 +832,7 @@ export default function CtApp() {
       } else {
         pin(getCtBarMode(remaining, trayOpen, false))
       }
-      await supabase.from('case_events').insert({
-        session_id: id,
-        user_id: user.id,
-        type: 'reclassified',
-        excluded: false,
-        rfc: false,
-      })
+      await logCaseEvent({ userId: user.id, type: 'reclassified', sessionId: id, excluded: false, rfc: false })
       await supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'reclassified', is_rfc: false })
         .eq('id', id)
@@ -883,13 +846,7 @@ export default function CtApp() {
 
   async function handleCallCase(id) {
     if (!user) return
-    await supabase.from('case_events').insert({
-      session_id: id,
-      user_id: user.id,
-      type: 'call',
-      excluded: false,
-      rfc: false,
-    })
+    await logCaseEvent({ userId: user.id, type: 'call', sessionId: id, excluded: false, rfc: false })
     refetch()
   }
 
@@ -919,13 +876,7 @@ export default function CtApp() {
       } else {
         pin(getCtBarMode(remaining, trayOpen, false))
       }
-      await supabase.from('case_events').insert({
-        session_id: id,
-        user_id: user.id,
-        type: 'not_a_case',
-        excluded: true,
-        rfc: false,
-      })
+      await logCaseEvent({ userId: user.id, type: 'not_a_case', sessionId: id, excluded: true, rfc: false })
       await supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'abandoned' })
         .eq('id', id)
@@ -952,13 +903,7 @@ export default function CtApp() {
       } else {
         pin(getCtBarMode(remaining, trayOpen, false))
       }
-      await supabase.from('case_events').insert({
-        session_id: id,
-        user_id: user.id,
-        type: 'rfc',
-        excluded: false,
-        rfc: true,
-      })
+      await logCaseEvent({ userId: user.id, type: 'rfc', sessionId: id, excluded: false, rfc: true })
       await supabase.from('ct_cases')
         .update({ ended_at: new Date().toISOString(), duration_s: c.elapsed, status: 'closed', resolution: 'resolved', is_rfc: true })
         .eq('id', id)

@@ -4,6 +4,7 @@ import { usePipWindow } from '../hooks/usePipWindow.js'
 import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
+import { logMplEntry, fetchProfile, fetchCategoriesForTeam } from '../lib/api.js'
 import MplPipBar from './MplPipBar.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
@@ -103,8 +104,7 @@ export default function MplApp() {
       const u = session?.user ?? null
       setUser(u)
       if (u) {
-        supabase.from('platform_users').select('*').eq('id', u.id).single()
-          .then(({ data: p }) => { setProfile(p); setAuthLoading(false) })
+        fetchProfile(u.id).then(({ data: p }) => { setProfile(p); setAuthLoading(false) })
       } else {
         setAuthLoading(false)
       }
@@ -114,8 +114,7 @@ export default function MplApp() {
       const u = session?.user ?? null
       setUser(u)
       if (u) {
-        supabase.from('platform_users').select('*').eq('id', u.id).single()
-          .then(({ data: p }) => setProfile(p))
+        fetchProfile(u.id).then(({ data: p }) => setProfile(p))
       } else {
         setProfile(null)
       }
@@ -127,17 +126,10 @@ export default function MplApp() {
   // ── Category fetch ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !profile?.team) return
-    supabase
-      .from('mpl_categories')
-      .select('id, name, team, display_order, mpl_subcategories(id, name, display_order)')
-      .eq('team', profile.team)
-      .eq('is_active', true)
-      .order('display_order')
-      .order('display_order', { referencedTable: 'mpl_subcategories' })
-      .then(({ data, error }) => {
-        if (error) console.error('[Meridian MPL] mpl_categories fetch failed', error)
-        if (data) setCategories(data)
-      })
+    fetchCategoriesForTeam(profile.team).then(({ data, error }) => {
+      if (error) console.error('[Meridian MPL] mpl_categories fetch failed', error)
+      if (data) setCategories(data)
+    })
   }, [user, profile])
 
   // ── Connection health-check ────────────────────────────────────────────
@@ -287,13 +279,7 @@ export default function MplApp() {
     const cat = categories.find(c => c.id === categoryId)
     const catName = cat?.name || 'Process'
 
-    const ok = await safeWrite(supabase.from('mpl_entries').insert({
-      user_id: user.id,
-      category_id: categoryId,
-      subcategory_id: subcategoryId,
-      minutes,
-      source: 'manual',
-    }))
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes, source: 'manual' }))
     if (ok) {
       showToast(`Logged ${catName} · ${minutes} min`)
       if (showSwimlane && swimlaneOpen) pinActive()
@@ -326,13 +312,7 @@ export default function MplApp() {
       setSwimlaneOpen(false)
       pin('idle')
     }
-    const ok = await safeWrite(supabase.from('mpl_entries').insert({
-      user_id: user.id,
-      category_id: categoryId,
-      subcategory_id: subcategoryId,
-      minutes: Math.round(durationSeconds / 60) || 1,
-      source: 'pip',
-    }))
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes: Math.round(durationSeconds / 60) || 1, source: 'pip' }))
     if (ok) refetch()
   }
 
