@@ -2539,3 +2539,56 @@ Learnings for future iterations:
   - Pass onRowClick=null to SuggestionList for non-clickable rows (SuggestionRow uses cursor:default when onClick is falsy)
   - FeedbackTab uses CSS variable tokens (var(--text-pri), etc.) — it's a host-page component, not PiP
 ---
+
+## Iteration SB-9 - Tasks 10 + 10a + 11 (Suggestion Box PRD): Build SuggestionDetailPanel, AttachmentPreview, CategoryPromotionModal
+- Created src/components/feedback/AttachmentPreview.jsx (Task 10a)
+  - Props: { storagePath } — uses useSignedAttachmentUrl hook
+  - 3 states: loading placeholder, error placeholder, loaded img + open-in-tab link
+  - img capped at max-width 320px, auto height
+- Created src/components/feedback/CategoryPromotionModal.jsx (Task 11)
+  - Props: { suggestion, onConfirm, onCancel }
+  - Fixed overlay with centered dialog, click-outside closes
+  - Calls promoteSuggestion(suggestion.id) on confirm; shows error inline (no auto-retry)
+  - typeLabel: 'categories' or 'subcategories' derived from suggestion.type
+- Created src/components/feedback/SuggestionDetailPanel.jsx (Task 10)
+  - Props: { suggestion, onClose, onUpdated }
+  - Fetches attachment via fetchAttachmentForSuggestion on mount (bug type only)
+  - Fetches parent category name via fetchCategoriesForTeam + ID match (subcategory only)
+  - Status picker: onChange calls updateSuggestion + onUpdated immediately
+  - Admin notes textarea + Save button (manual save, not auto-save); shows "Saved." / "Save failed." inline
+  - Promote button shown when type is category/subcategory AND status != 'shipped'
+  - CategoryPromotionModal onConfirm: closes modal, sets local status to 'shipped', calls onUpdated
+- Build passes: ✓ built in 1.27s, 2464 modules, 0 errors
+
+Files changed:
+  src/components/feedback/AttachmentPreview.jsx (created)
+  src/components/feedback/CategoryPromotionModal.jsx (created)
+  src/components/feedback/SuggestionDetailPanel.jsx (created)
+  PRD.md (Tasks 10, 10a, 11 marked [x])
+
+Learnings for future iterations:
+  - Tasks 10, 10a, and 11 are tightly coupled — SuggestionDetailPanel imports both AttachmentPreview and CategoryPromotionModal, so all three must be built together
+  - For subcategory parent name: use fetchCategoriesForTeam(haulage_type) + Array.find by ID — no new API needed
+  - Status change is applied immediately (no draft state for status) — only admin notes use draft state
+  - CategoryPromotionModal updates local status optimistically (setStatus('shipped')) in addition to calling onUpdated for refetch
+---
+
+## Iteration N - Task 12: Build AdminTab.jsx
+- Created src/components/AdminTab.jsx
+- Props: { user, profile } — role guard renders "Not authorized" for non-admins
+- Two filter selects (status, type) built inline with option arrays; filters clear selectedId on change
+- Uses useAllSuggestions twice: once with filters (displayed list), once unfiltered (for accurate counts)
+- Counts summary line: "N new · N in progress · N total" from unfiltered set
+- Row expand/collapse: selectedId toggles on row click; SuggestionDetailPanel renders inline below the row
+- SuggestionList renders single-item arrays per suggestion to allow per-row panel insertion
+- Build passes: ✓ built in 1.17s, 0 errors
+
+Files changed:
+  src/components/AdminTab.jsx (created)
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - Double useAllSuggestions call (filtered + unfiltered) is idiomatic for showing accurate summary counts while filtering the list
+  - Expand-in-place pattern: map over suggestions, render panel immediately after matching row's SuggestionList
+  - SELECT_STYLE object defined once outside component; referenced by both selects (avoids duplicate inline literals)
+---

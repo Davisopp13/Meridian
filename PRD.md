@@ -589,7 +589,7 @@ supabase/
 
   Acceptance: builds. On confirm with a real category suggestion, a new row appears in `mpl_categories` and the suggestion row flips to `shipped` status.
 
-- [ ] **Task 12: Build `AdminTab.jsx`**
+- [x] **Task 12: Build `AdminTab.jsx`**
 
   Props: `{ user, profile }`. Layout:
   - If `profile.role !== &#x27;admin&#x27;` → render a graceful &quot;Not authorized&quot; state (shouldn&#x27;t happen — navbar hides the tab — but defense in depth).
