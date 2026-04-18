@@ -550,7 +550,7 @@ supabase/
 
 ### Phase 4 — Admin surface
 
-- [ ] **Task 10: Build `SuggestionDetailPanel.jsx`**
+- [x] **Task 10: Build `SuggestionDetailPanel.jsx`**
 
   Props: `{ suggestion, onClose, onUpdated }`. Rendered inline (not modal) below the row that was clicked — expand/collapse pattern, simpler than a modal.
 
@@ -566,7 +566,7 @@ supabase/
 
   Acceptance: builds, status changes persist, notes save, bug suggestions with an image show the preview.
 
-- [ ] **Task 10a: Build `AttachmentPreview.jsx`**
+- [x] **Task 10a: Build `AttachmentPreview.jsx`**
 
   Props: `{ storagePath }`. Uses `useSignedAttachmentUrl(storagePath)` to fetch a 5-minute signed URL.
 
@@ -581,7 +581,7 @@ supabase/
 
   Acceptance: builds. Admin clicking a bug suggestion with an attached image sees the image inline.
 
-- [ ] **Task 11: Build `CategoryPromotionModal.jsx`**
+- [x] **Task 11: Build `CategoryPromotionModal.jsx`**
 
   Props: `{ suggestion, onConfirm, onCancel }`. Simple confirmation dialog: &quot;Promote &#x27;{title}&#x27; to live {categories|subcategories} under {haulage_type}? This will insert it into the live taxonomy. Agents will see it in their widget on next refresh.&quot;
 
