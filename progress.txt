@@ -2725,3 +2725,22 @@ Learnings for future iterations:
   - Three reason values: 'not-supervisor', 'no-teams', default — covers all PRD states plus the no-teams gotcha from Notes
   - var(--dash-*) tokens are the correct host-page tokens (not var(--*) PiP tokens)
 ---
+
+## Iteration Insights-6 - Task 6 (Insights PRD): Build AgentRow.jsx
+- Created src/components/insights/AgentRow.jsx
+- Props: { agent: { id, full_name, email }, stats: { resolved, reclass, calls, notACase, processes, totalActivity } }
+- Renders a <tr> with 6 columns: Agent name, Resolved, Reclassified, Calls, Processes, Total activity
+- Colors match METRICS array in Dashboard.jsx: resolved #16a34a, reclass #dc2626, calls #0d9488, processes #60a5fa, totalActivity #E8540A
+- notACase not shown as separate column (matches PRD spec — only 5 stat columns)
+- Falls back to agent.email when full_name is missing
+- `npx vite build 2>&1 | tail -8` → ✓ built in 1.30s, 0 errors
+
+Files changed:
+  src/components/insights/AgentRow.jsx (created)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - AgentRow renders a <tr> only — must be used inside a <tbody>/<table> by parent panels
+  - Color constants kept local (not imported from Dashboard.jsx) — same pattern as other insight components
+  - notACase is in the props type but not rendered as a column per the PRD column list (resolved, reclass, calls, processes, total)
+---

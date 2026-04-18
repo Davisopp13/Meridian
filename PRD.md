@@ -107,7 +107,7 @@ supabase/
   - Match the visual style of `Dashboard.jsx`&#x27;s existing empty states (check the component for the pattern).
   - Acceptance: builds, component is self-contained.
 
-- [ ] **Task 6: Build `AgentRow.jsx`**
+- [x] **Task 6: Build `AgentRow.jsx`**
   - Props: `{ agent: { id, full_name, email }, stats: { resolved, reclass, calls, notACase, processes, totalActivity } }`.
   - Renders a single table row with columns: Agent name, Resolved, Reclassified, Calls, Processes, Total activity. Use the same colors as the `METRICS` array in `Dashboard.jsx` for the numbers.
   - Reusable across panels that show per-agent breakdowns.
