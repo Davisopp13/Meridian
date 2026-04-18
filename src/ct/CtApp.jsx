@@ -49,6 +49,7 @@ function restoreCaseFromRow(row) {
     ),
     paused: awaiting,
     awaiting,
+    reopenCount: row.reopen_count ?? 0,
   }
 }
 
@@ -423,9 +424,23 @@ export default function CtApp() {
       .eq('case_number', caseNumber)
       .eq('resolution', 'resolved')
       .neq('id', sessionId)
-      .limit(1)
-    const previouslyResolved = (priorData?.length ?? 0) > 0
-    const newCase = { id: sessionId, caseNum: caseNumber, elapsed: 0, paused: false, awaiting: false, previouslyResolved }
+    const reopenCount = priorData?.length ?? 0
+    const previouslyResolved = reopenCount > 0
+
+    // Stamp the just-created row with its reopen_count.
+    // Fire-and-forget — if this fails, the case still works;
+    // the audit will catch any drift and we can re-stamp later.
+    if (reopenCount > 0) {
+      void supabase
+        .from('ct_cases')
+        .update({ reopen_count: reopenCount })
+        .eq('id', sessionId)
+        .then(({ error }) => {
+          if (error) console.warn('[Meridian CT] Failed to stamp reopen_count', error)
+        })
+    }
+
+    const newCase = { id: sessionId, caseNum: caseNumber, elapsed: 0, paused: false, awaiting: false, previouslyResolved, reopenCount }
 
     setCases(prev => [...prev, newCase])
     setFocusedCaseId(sessionId)
