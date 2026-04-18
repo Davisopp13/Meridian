@@ -2873,3 +2873,21 @@ Learnings for future iterations:
   - Dashboard.jsx already passed `onInsights` prop in Task 12 — Navbar just needed to accept and wire it
   - Role gate pattern: conditional render identical to admin button, just different role check
 ---
+
+## Iteration Insights-14 - Task 14: Build and sanity-grep
+- All verification checks passed
+- `npx vite build 2>&1 | tail -8` → ✓ built in 1.32s, 0 errors
+- `grep -rn "useTeamInsights" src/` → 4 matches (hook file + InsightsTab import + 2 call sites)
+- `grep -rn "aggregateStats" src/` → 5 matches covering useDashboardStats.js AND useTeamInsights.js (confirms reuse)
+- `grep -rn "profile?.role" src/components/Navbar.jsx` → 2 matches (admin gate + supervisor/director gate)
+- Bundle check: InsightsTab-BcZY4Ul0.js = 15.33 kB (well under 80 kB threshold — no extra lazy wrapping needed)
+- Note for Davis: migration 004_insights_rls_policies.sql must be applied in Supabase SQL editor before team data appears
+
+Files changed:
+  PRD.md (Task 14 marked [x])
+
+Learnings for future iterations:
+  - All Insights tasks are complete. The full feature set is built and verified.
+  - InsightsTab is lazy-loaded as its own chunk (15.33 kB) — no bundle size concern
+  - RLS migration is the only remaining step for production data visibility
+---

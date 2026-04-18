@@ -161,7 +161,7 @@ supabase/
 
 ### Phase 5 — Verification
 
-- [ ] **Task 14: Build and sanity-grep**
+- [x] **Task 14: Build and sanity-grep**
   - `npx vite build 2&gt;&amp;1 | tail -8` passes.
   - `grep -rn &quot;useTeamInsights&quot; src/` returns at least 2 matches (the hook file + InsightsTab).
   - `grep -rn &quot;aggregateStats&quot; src/` returns matches in both `useDashboardStats.js` AND `useTeamInsights.js` (confirming reuse).
