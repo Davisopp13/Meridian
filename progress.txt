@@ -2650,3 +2650,42 @@ Learnings for future iterations:
   - byUser map is only populated when at least one event/proc has user_id; otherwise byUser = null
   - dailyRows output key matches PRD: sorted ascending by "MM/DD" date string
 ---
+
+## Iteration Insights-2 - Task 2 (Insights PRD): Add insights-scoped helpers to src/lib/api.js
+- Added fetchTeamAgents(teamIds): queries platform_users with team_id IN teamIds, role='agent', onboarding_complete=true; selects id, email, full_name, team_id
+- Added fetchTeamCaseEvents({ userIds, from, to }): queries case_events with user_id IN userIds and timestamp range; selects type, excluded, timestamp, user_id
+- Added fetchTeamMplEntries({ userIds, from, to }): queries mpl_entries with user_id IN userIds and created_at range; selects created_at, minutes, category_id, user_id
+- All three guard against empty userIds/teamIds arrays (return { data: [], error: null })
+- npx vite build passes: ✓ built in 1.25s, 0 errors
+- grep check: 3 matches for fetchTeamAgents|fetchTeamCaseEvents|fetchTeamMplEntries ✓
+
+Files changed:
+  src/lib/api.js (3 functions added)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - from/to params for fetchTeamCaseEvents/fetchTeamMplEntries should be ISO strings (passed directly from getDateRange().from.toISOString())
+  - useTeamInsights (Task 3) will import all three functions from api.js
+---
+
+## Iteration Insights-3 - Task 3 (Insights PRD): Write src/hooks/useTeamInsights.js
+- Created src/hooks/useTeamInsights.js
+- Signature: useTeamInsights({ supervisorId, period }) → { loading, error, teams, agents, perAgentStats, teamTotals, byCategory, byDayByTeam }
+- Flow: fetchSupervisedTeams → teamIds → fetchTeamAgents → userIds → parallel fetchTeamCaseEvents + fetchTeamMplEntries → aggregateStats
+- perAgentStats: object keyed by agent id, each entry has { resolved, reclass, calls, notACase, processes, casesAndCalls, totalActivity }
+- teamTotals: aggregateStats over all events/procs combined
+- byCategory: { [categoryId]: totalMinutes } — category_id keys (not names; panels resolve display names separately)
+- byDayByTeam: dailyRows from aggregateStats on full team data
+- Empty-team guard: returns empty state when supervisorId has no teams or no agents
+- Cancellation: cancelled flag on effect cleanup, matches useDashboardStats pattern
+- npx vite build passes: ✓ built in 1.29s, 0 errors
+
+Files changed:
+  src/hooks/useTeamInsights.js (created)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - fetchSupervisedTeams returns { data: [{ team_id, teams: { id, name, ... } }] } — map st.teams to extract team objects
+  - byCategory uses category_id as key; MplByCategoryPanel (Task 9) will need a category lookup map to display names
+  - Empty userIds/teamIds cases should setState and return early (not just return) to clear loading state
+---

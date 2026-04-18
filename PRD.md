@@ -74,7 +74,7 @@ supabase/
 
 ### Phase 2 — Insights hook + RLS migration file
 
-- [ ] **Task 3: Write `src/hooks/useTeamInsights.js`**
+- [x] **Task 3: Write `src/hooks/useTeamInsights.js`**
   - Signature: `useTeamInsights({ supervisorId, period })` → `{ loading, error, teams, agents, perAgentStats, teamTotals, byCategory, byDayByTeam }`.
   - Internally: call `fetchSupervisedTeams` → extract team_ids → `fetchTeamAgents(team_ids)` → collect agent user_ids → `fetchTeamCaseEvents` and `fetchTeamMplEntries` with the period range → group events/procs by `user_id` → run `aggregateStats` for each agent and for the whole team.
   - Reuse `getDateRange(period)` from `useDashboardStats.js` — extract it into `src/lib/stats.js` if needed and export it.
