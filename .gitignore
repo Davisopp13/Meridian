@@ -4,3 +4,10 @@ dist/
 .env.local
 .env.*.local
 .vercel
+
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store
+
+# Local reference artifacts
+meridian-roadmap.html
