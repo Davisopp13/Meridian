@@ -19,7 +19,7 @@ function getInitials(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings, onFeedback, onAdmin, onInsights, activeView }) {
+export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunchMpl, setShowBookmarkletModal, onSettings, onFeedback, onAdmin, onInsights, onHome, activeView }) {
     const [isCtHovered, setIsCtHovered] = useState(false);
     const [isMplHovered, setIsMplHovered] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
