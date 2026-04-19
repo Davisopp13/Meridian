@@ -45,6 +45,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         display: 'flex',
         alignItems: 'center',
         gap: 12,
+        cursor: 'pointer',
     };
 
     const logoStyle = {
@@ -209,7 +210,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
 
     return (
         <nav style={containerStyle}>
-            <div style={logoSectionStyle}>
+            <div style={logoSectionStyle} onClick={() => onHome?.()}>
                 <img src="/meridian-mark-192.png" alt="Meridian" style={logoStyle} />
                 <span style={brandStyle}>Meridian</span>
             </div>
