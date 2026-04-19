@@ -28,7 +28,7 @@ export default function InsightsTab({ user, profile }) {
   const [period, setPeriod] = useState('this_week');
   const prevPeriod = PREV_PERIOD[period] ?? null;
 
-  const isAuthorized = profile?.role === 'supervisor' || profile?.role === 'director';
+  const isAuthorized = profile?.role === 'supervisor' || profile?.role === 'director' || profile?.role === 'admin';
 
   const insights = useTeamInsights({
     supervisorId: isAuthorized ? user?.id : null,
