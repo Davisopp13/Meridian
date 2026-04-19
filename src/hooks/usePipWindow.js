@@ -86,7 +86,7 @@ export function usePipWindow() {
   const openPip = useCallback(async ({ width, height, position, theme = 'dark' } = {}) => {
     if (!window.documentPictureInPicture) {
       console.warn('Document Picture-in-Picture API not supported in this browser.');
-      return null;
+      return { ok: false, reason: 'unsupported', error: null };
     }
 
     try {
@@ -183,10 +183,13 @@ export function usePipWindow() {
       setPipWindow(pw);
       pipWindowRef.current = pw;
       setIsOpen(true);
-      return pw;
+      return { ok: true, window: pw };
     } catch (err) {
       console.error('Failed to open PiP window:', err);
-      return null;
+      const reason = (err?.name === 'NotAllowedError' || err?.name === 'AbortError')
+        ? 'denied'
+        : 'setup';
+      return { ok: false, reason, error: err };
     }
   }, []);
 

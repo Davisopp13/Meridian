@@ -8,6 +8,7 @@ import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesFor
 import MplPipBar from './MplPipBar.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
+import MplLaunchError from '../components/MplLaunchError.jsx'
 import { getMplSizeForState, getMplBarWidth } from '../lib/constants.js'
 
 // ── Widget mode detection ──────────────────────────────────────────────────
@@ -34,6 +35,7 @@ export default function MplApp() {
   const [isMinimized, setIsMinimized] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState('connected')
   const [pipToast, setPipToast] = useState(null)
+  const [launchError, setLaunchError] = useState(null)  // null | 'unsupported' | 'denied' | 'setup'
 
   // ── Stats ──────────────────────────────────────────────────────────────
   const { processes: processCount, refetch } = useStats()
@@ -158,9 +160,13 @@ export default function MplApp() {
 
     ;(async () => {
       const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
-      const pw = await openPip({ width, height, position: 'bottom-right' })
-      if (!pw) return
-      mountPipWindow(pw)
+      const result = await openPip({ width, height, position: 'bottom-right' })
+      if (!result.ok) {
+        widgetInitRef.current = false
+        setLaunchError(result.reason)
+        return
+      }
+      mountPipWindow(result.window)
       setTimeout(() => { try { window.close() } catch (e) {} }, 400)
     })()
   }, [isMplWidget, authLoading, user, profile])
@@ -203,16 +209,11 @@ export default function MplApp() {
   async function handleStart() {
     // Open PiP if not already open — use idle height since swimlane defaults to collapsed
     if (!isOpen) {
-      try {
-        const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
-        const pw = await openPip({ width, height, position: 'bottom-right' })
-        if (!pw) { showToast('Open the widget first from the dashboard'); return }
-        mountPipWindow(pw)
-        setTimeout(() => { try { window.close() } catch (e) {} }, 300)
-      } catch (e) {
-        showToast('Open the widget first from the dashboard')
-        return
-      }
+      const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
+      const result = await openPip({ width, height, position: 'bottom-right' })
+      if (!result.ok) { showToast('Could not open widget — try again'); return }
+      mountPipWindow(result.window)
+      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     } else {
       pin('idle')
     }
@@ -264,9 +265,9 @@ export default function MplApp() {
     if (chipStripProcessId) setChipStripProcessId(null)  // mutual exclusivity
     if (!isOpen) {
       const size = getMplSizeForState('quickLog', STAT_BUTTONS)
-      const pw = await openPip({ ...size, position: 'bottom-right' })
-      if (!pw) return
-      mountPipWindow(pw)
+      const result = await openPip({ ...size, position: 'bottom-right' })
+      if (!result.ok) { showToast('Could not open widget — try again'); return }
+      mountPipWindow(result.window)
       setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     } else {
       pin('quickLog')
@@ -348,6 +349,23 @@ export default function MplApp() {
     window.open(window.location.origin, 'meridian-dashboard')
   }
 
+  // ── Retry launch after failure ────────────────────────────────────────
+  function handleRetry() {
+    setLaunchError(null)
+    widgetInitRef.current = true
+    ;(async () => {
+      const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
+      const result = await openPip({ width, height, position: 'bottom-right' })
+      if (!result.ok) {
+        widgetInitRef.current = false
+        setLaunchError(result.reason)
+        return
+      }
+      mountPipWindow(result.window)
+      setTimeout(() => { try { window.close() } catch (e) {} }, 400)
+    })()
+  }
+
   // ── buildMplBar — JSX rendered into PiP window ────────────────────────
   function buildMplBar() {
     return (
@@ -425,6 +443,10 @@ export default function MplApp() {
         Please complete onboarding in the main Meridian dashboard first.
       </div>
     )
+  }
+
+  if (launchError) {
+    return <MplLaunchError reason={launchError} onRetry={handleRetry} />
   }
 
   return (

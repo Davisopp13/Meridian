@@ -369,9 +369,9 @@ export default function CtApp() {
   // ── Ensure PiP window is open ─────────────────────────────────────────────
   async function ensurePipOpen(targetMode = 'idle') {
     if (!isOpen) {
-      const pw = await openPip({ ...getCtSizeForState(targetMode, userSettingsRef.current.stat_buttons), position: userSettingsRef.current.pip_position })
-      if (!pw) return false
-      mountPipWindow(pw)
+      const result = await openPip({ ...getCtSizeForState(targetMode, userSettingsRef.current.stat_buttons), position: userSettingsRef.current.pip_position })
+      if (!result.ok) return false
+      mountPipWindow(result.window)
       if (user) createBarSession(user.id)
     }
     return true
@@ -526,9 +526,9 @@ export default function CtApp() {
   async function handleLaunch() {
     if (!user || !profile?.onboarding_complete) return
     const initialSize = getCtSizeForState('idle', userSettingsRef.current.stat_buttons)
-    const pw = await openPip({ ...initialSize, position: userSettingsRef.current.pip_position })
-    if (!pw) return
-    mountPipWindow(pw)
+    const result = await openPip({ ...initialSize, position: userSettingsRef.current.pip_position })
+    if (!result.ok) return
+    mountPipWindow(result.window)
     if (user) createBarSession(user.id)
   }
 
@@ -546,10 +546,10 @@ export default function CtApp() {
     }
     const { width, height } = getCtSizeForState(targetMode, userSettingsRef.current.stat_buttons)
 
-    const pw = await openPip({ width, height, position: userSettingsRef.current.pip_position })
-    if (!pw) return
+    const result = await openPip({ width, height, position: userSettingsRef.current.pip_position })
+    if (!result.ok) return
 
-    mountPipWindow(pw)
+    mountPipWindow(result.window)
     if (user) createBarSession(user.id)
 
     if (trigger.type === 'case') {
