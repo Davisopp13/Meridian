@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { fetchSupervisedTeams, fetchTeamAgents, fetchTeamCaseEvents, fetchTeamMplEntries } from '../lib/api.js';
+import { fetchSupervisedTeams, fetchTeamAgents, fetchTeamCaseEvents, fetchTeamMplEntries, fetchAllCategoryNames } from '../lib/api.js';
 import { aggregateStats, getDateRange } from '../lib/stats.js';
 
 export function useTeamInsights({ supervisorId, period }) {
@@ -12,6 +12,7 @@ export function useTeamInsights({ supervisorId, period }) {
     teamTotals: null,
     byCategory: {},
     byDayByTeam: [],
+    categoryNames: {},
   });
 
   useEffect(() => {
@@ -33,7 +34,7 @@ export function useTeamInsights({ supervisorId, period }) {
       const teamIds = teams.map(t => t.id);
 
       if (teamIds.length === 0) {
-        setState({ loading: false, error: null, teams: [], agents: [], perAgentStats: {}, teamTotals: null, byCategory: {}, byDayByTeam: [] });
+        setState({ loading: false, error: null, teams: [], agents: [], perAgentStats: {}, teamTotals: null, byCategory: {}, byDayByTeam: [], categoryNames: {} });
         return;
       }
 
@@ -48,16 +49,17 @@ export function useTeamInsights({ supervisorId, period }) {
       const userIds = agents.map(a => a.id);
 
       if (userIds.length === 0) {
-        setState({ loading: false, error: null, teams, agents: [], perAgentStats: {}, teamTotals: null, byCategory: {}, byDayByTeam: [] });
+        setState({ loading: false, error: null, teams, agents: [], perAgentStats: {}, teamTotals: null, byCategory: {}, byDayByTeam: [], categoryNames: {} });
         return;
       }
 
       const range = getDateRange(period);
       if (!range) return;
 
-      const [eventsResult, procsResult] = await Promise.all([
+      const [eventsResult, procsResult, categoryNamesResult] = await Promise.all([
         fetchTeamCaseEvents({ userIds, from: range.from.toISOString(), to: range.to.toISOString() }),
         fetchTeamMplEntries({ userIds, from: range.from.toISOString(), to: range.to.toISOString() }),
+        fetchAllCategoryNames(),
       ]);
       if (cancelled) return;
 
@@ -65,6 +67,8 @@ export function useTeamInsights({ supervisorId, period }) {
         setState(prev => ({ ...prev, loading: false, error: eventsResult.error || procsResult.error }));
         return;
       }
+
+      const categoryNames = categoryNamesResult.data || {};
 
       const allEvents = eventsResult.data || [];
       const allProcs = procsResult.data || [];
@@ -101,7 +105,7 @@ export function useTeamInsights({ supervisorId, period }) {
         byCategory[p.category_id] = (byCategory[p.category_id] || 0) + (p.minutes || 0);
       }
 
-      setState({ loading: false, error: null, teams, agents, perAgentStats, teamTotals, byCategory, byDayByTeam });
+      setState({ loading: false, error: null, teams, agents, perAgentStats, teamTotals, byCategory, byDayByTeam, categoryNames });
     }
 
     fetchInsights();

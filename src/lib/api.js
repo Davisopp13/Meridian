@@ -55,6 +55,26 @@ export async function fetchCategoriesForTeam(team) {
     .order('display_order', { referencedTable: 'mpl_subcategories' })
 }
 
+/**
+ * Fetch all MPL category names across all teams.
+ * Returns { data: { [categoryId]: categoryName }, error }.
+ * Used by useTeamInsights to resolve category_id keys into display names.
+ */
+export async function fetchAllCategoryNames() {
+  const { data, error } = await supabase
+    .from('mpl_categories')
+    .select('id, name')
+    .eq('is_active', true);
+
+  if (error) return { data: null, error };
+
+  const map = {};
+  for (const row of (data || [])) {
+    map[row.id] = row.name;
+  }
+  return { data: map, error: null };
+}
+
 export async function fetchSupervisedTeams(supervisorId) {
   return supabase
     .from('supervisor_teams')

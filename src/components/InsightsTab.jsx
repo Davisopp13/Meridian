@@ -153,7 +153,7 @@ export default function InsightsTab({ user, profile }) {
           <AgentHandleTimePanel perAgentStats={insights.perAgentStats} />
         </div>
         <div style={panelStyle}>
-          <MplByCategoryPanel byCategory={insights.byCategory} />
+          <MplByCategoryPanel byCategory={insights.byCategory} categoryNames={insights.categoryNames} />
         </div>
         <div style={panelStyle}>
           <TrendComparisonPanel

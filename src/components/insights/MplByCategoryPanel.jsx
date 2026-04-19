@@ -46,21 +46,28 @@ function HorizBar({ minutes, maxMinutes }) {
   );
 }
 
-export default function MplByCategoryPanel({ byCategory }) {
+export default function MplByCategoryPanel({ byCategory, categoryNames = {} }) {
   const entries = byCategory ? Object.entries(byCategory) : [];
 
+  // Resolve category IDs to display names before bucketing.
+  const named = entries.map(([id, minutes]) => ({
+    id,
+    name: categoryNames[id] ?? 'Unknown category',
+    minutes,
+  }));
+
   // Sort descending by minutes
-  const sorted = [...entries].sort((a, b) => b[1] - a[1]);
+  const sorted = [...named].sort((a, b) => b.minutes - a.minutes);
 
   // Bucket: top 8 + "Other" if > 10 categories
   let displayed = sorted;
   if (sorted.length > 10) {
     const top8 = sorted.slice(0, 8);
-    const otherMinutes = sorted.slice(8).reduce((sum, [, m]) => sum + m, 0);
-    displayed = [...top8, ['Other', otherMinutes]];
+    const otherMinutes = sorted.slice(8).reduce((sum, row) => sum + row.minutes, 0);
+    displayed = [...top8, { id: '__other__', name: 'Other', minutes: otherMinutes }];
   }
 
-  const maxMinutes = displayed.length > 0 ? displayed[0][1] : 0;
+  const maxMinutes = displayed.length > 0 ? displayed[0].minutes : 0;
 
   return (
     <div style={cardStyle}>
@@ -69,8 +76,8 @@ export default function MplByCategoryPanel({ byCategory }) {
         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No process data for this period.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {displayed.map(([name, minutes]) => (
-            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {displayed.map(({ id, name, minutes }) => (
+            <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={labelStyle}>{name}</span>
               <HorizBar minutes={minutes} maxMinutes={maxMinutes} />
               <span style={minutesStyle}>{minutes}m</span>
