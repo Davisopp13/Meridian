@@ -4,6 +4,7 @@ import {
   updateSuggestion,
   fetchCategoriesForTeam,
 } from '../../lib/api.js';
+import { formatSuggestionForClaude } from '../../lib/suggestionFormat.js';
 import SuggestionStatusBadge from './SuggestionStatusBadge.jsx';
 import AttachmentPreview from './AttachmentPreview.jsx';
 import CategoryPromotionModal from './CategoryPromotionModal.jsx';
@@ -40,6 +41,7 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
   const [adminNotes, setAdminNotes]         = useState(suggestion.admin_notes ?? '');
   const [saving, setSaving]                 = useState(false);
   const [saveMsg, setSaveMsg]               = useState(null);
+  const [copyMsg, setCopyMsg]               = useState(null);
   const [showModal, setShowModal]           = useState(false);
 
   // Fetch attachment for bug suggestions
@@ -81,6 +83,18 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
     setSaveMsg(error ? 'Save failed.' : 'Saved.');
     if (!error) onUpdated();
     setTimeout(() => setSaveMsg(null), 2500);
+  }
+
+  async function handleCopyForClaude() {
+    const hasAttachment = suggestion.type === 'bug' ? !!attachment : null;
+    const text = formatSuggestionForClaude(suggestion, { hasAttachment });
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyMsg('Copied to clipboard.');
+    } catch (err) {
+      setCopyMsg('Copy failed — select text manually.');
+    }
+    setTimeout(() => setCopyMsg(null), 2500);
   }
 
   const submitter     = suggestion.platform_users;
@@ -204,7 +218,7 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
               padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit',
             }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
             <button
               onClick={handleSaveNotes}
               disabled={saving}
@@ -220,6 +234,22 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
             {saveMsg && (
               <span style={{ fontSize: 13, color: saveMsg === 'Saved.' ? '#16a34a' : '#ef4444' }}>
                 {saveMsg}
+              </span>
+            )}
+            <button
+              onClick={handleCopyForClaude}
+              style={{
+                padding: '6px 14px', borderRadius: 6,
+                border: `1px solid ${C.border}`,
+                background: 'transparent', color: C.textPri,
+                cursor: 'pointer', fontSize: 13,
+              }}
+            >
+              Copy for Claude
+            </button>
+            {copyMsg && (
+              <span style={{ fontSize: 12, color: C.textDim }}>
+                {copyMsg}
               </span>
             )}
           </div>

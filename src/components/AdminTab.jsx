@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAllSuggestions } from '../hooks/useAllSuggestions.js';
+import { formatSuggestionListForClaude } from '../lib/suggestionFormat.js';
 import SuggestionList from './feedback/SuggestionList.jsx';
 import SuggestionDetailPanel from './feedback/SuggestionDetailPanel.jsx';
 
@@ -44,6 +45,7 @@ export default function AdminTab({ user, profile }) {
   const [statusFilter, setStatusFilter] = useState('');
   const [typeFilter, setTypeFilter]     = useState('');
   const [selectedId, setSelectedId]     = useState(null);
+  const [copyMsg, setCopyMsg]           = useState(null);
 
   const { suggestions, loading, error, refetch } = useAllSuggestions({
     statusFilter: statusFilter || null,
@@ -86,6 +88,18 @@ export default function AdminTab({ user, profile }) {
     setSelectedId(null);
   }
 
+  async function handleCopyAllForClaude() {
+    const text = formatSuggestionListForClaude(suggestions, { statusFilter, typeFilter });
+    try {
+      await navigator.clipboard.writeText(text);
+      const n = suggestions.length;
+      setCopyMsg(`Copied ${n} ${n === 1 ? 'suggestion' : 'suggestions'} to clipboard.`);
+    } catch (err) {
+      setCopyMsg('Copy failed.');
+    }
+    setTimeout(() => setCopyMsg(null), 2500);
+  }
+
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
       <h2 style={{ color: C.textPri, fontSize: 22, fontWeight: 700, margin: '0 0 4px' }}>
@@ -98,7 +112,7 @@ export default function AdminTab({ user, profile }) {
       </p>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
         <select
           value={statusFilter}
           onChange={e => { setStatusFilter(e.target.value); setSelectedId(null); }}
@@ -118,6 +132,25 @@ export default function AdminTab({ user, profile }) {
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+
+        <div style={{ flex: 1 }} />
+
+        <button
+          onClick={handleCopyAllForClaude}
+          disabled={suggestions.length === 0}
+          style={{
+            padding: '6px 14px', borderRadius: 6,
+            border: `1px solid ${C.border}`,
+            background: 'transparent', color: C.textPri,
+            cursor: suggestions.length === 0 ? 'not-allowed' : 'pointer',
+            fontSize: 13, opacity: suggestions.length === 0 ? 0.45 : 1,
+          }}
+        >
+          Copy all for Claude
+        </button>
+        {copyMsg && (
+          <span style={{ fontSize: 12, color: C.textDim }}>{copyMsg}</span>
+        )}
       </div>
 
       {/* Error state */}
