@@ -1,258 +1,229 @@
-# Meridian MPL — Crash Recovery PRD
+# Meridian Insights — 3-Tab Restructure PRD
 
 ## Project Overview
 
-Add crash recovery to Meridian MPL so agents don't lose active Process timers when the PiP window is killed unexpectedly (Windows Update, browser crash, tab close, accidental X). Incident source: Carlos Cuba, 4/20/26 — Windows Update force-closed the PiP mid-session and the active timer + category were lost.
+Meridian Insights is currently a single-page supervisor dashboard with four stacked panels. This PRD restructures Insights into a **three-tab interface** modeled on the CT 1.0 pattern — **Overview**, **Activity Log**, and **Reports** — and adds a team filter, a clickable-agent-name interaction, and a generalized multi-agent Activity Log that reuses the existing `ActivityLog` component.
 
-Currently MPL timer state lives only in React memory inside `MplApp.jsx`. When the PiP window closes, the interval refs and the `processes` array are gone. This PRD adds four layers of persistence so a killed session can always be recovered: localStorage snapshot on every tick, debounced `mpl_active_timers` upsert, `bar_sessions` heartbeat for stale-session detection, and a `beforeunload` sendBeacon flush.
+The result: one Insights surface, three purpose-built tabs. Each tab answers a different question a supervisor walks up with.
 
-Success = Carlos can have his PiP force-closed mid-timer, reopen it, and see a "Resume / Log now / Discard" prompt with his accumulated time intact.
+- **Overview** — "how's my team doing?" (the existing four panels, plus a team filter and clickable agent names)
+- **Activity Log** — "what has Wanda actually been working on?" (new tab; reuses `ActivityLog.jsx` generalized to multiple users)
+- **Reports** — "I need a specific number for the staff meeting" (scaffolded only — renders a clean empty state; real reports ship in a later PRD)
 
----
+Scope is additive. The personal Activity Log on the home Dashboard is untouched. No existing panels are removed. No schema changes.
+
+Success looks like: Davis (supervisor) opens Insights, sees three tabs, can filter Overview to one team, clicks Wanda's name on Overview, lands on Activity Log pre-filtered to Wanda, scans her last 20 events, tabs to Reports, sees a "Coming soon" empty state. Build passes. Personal Dashboard still works identically for every user.
 
 ## Architecture & Key Decisions
 
-- **Framework**: Vite + React 18 (do not change)
-- **State target file**: `src/mpl/MplApp.jsx` — this is the MPL orchestrator; all process state lives here
-- **DO NOT TOUCH**: `src/App.jsx`, `src/PipBar.jsx` (legacy fallbacks), `src/ct/*` (CT widget — this PRD is MPL-only), `src/hooks/useTimer.js` (used elsewhere; do not modify its signature)
-- **Storage hierarchy** (fastest → most durable):
-  1. React state (`processes` array in `MplApp.jsx`) — existing, unchanged
-  2. `localStorage` under key `meridian.mpl.active.v1` — NEW, written every tick
-  3. `mpl_active_timers` Supabase table — NEW writes every 10s (table already exists)
-  4. `bar_sessions` heartbeat — NEW, every 30s
-- **Recovery order on mount**: localStorage first (instant, most recent), then Supabase fallback (survives machine death)
-- **Staleness threshold**: `bar_sessions.last_seen_at` older than 5 minutes = crash detected
-- **Debounce, don't hammer**: Supabase writes are debounced at 10s intervals (not every second) to respect quota
-- **Optimistic recovery**: restore timer state immediately from localStorage on mount; verify against Supabase async
-- **All new code is additive** — no refactors of existing working paths
-- **No new npm packages** — use browser APIs only (`localStorage`, `navigator.sendBeacon`)
+These decisions are locked. Ralph must not renegotiate them.
 
----
+- **Framework:** Vite + React 18, existing Meridian codebase at `/Users/davis/Meridian 1.0`.
+- **Data layer:** All Supabase access goes through `src/lib/api.js` wrappers. No direct `supabase.from(...)` calls in new components. Add new wrappers to `api.js` when needed.
+- **State:** Local React state only. No new state management library. Tab state + filter state live on `InsightsTab.jsx` and are passed down as props.
+- **URL state:** No query params or routing changes in this PRD. Tab and filter state is in-memory only. A future PRD can add `?tab=activity&agent=<id>` deep-linking if needed.
+- **Component reuse:** The Insights Activity Log **reuses** `src/components/ActivityLog.jsx`. Do not create a parallel component. Generalize `ActivityLog` and `useActivityData` to accept an array of user IDs in addition to the existing single-user signature. Agents continue to call it the current way with zero visual or behavioral change.
+- **Role gating:** Existing logic. Insights tab is only rendered when `profile.role === 'supervisor' || 'director' || 'admin'`. Already enforced in `InsightsTab.jsx` and `Navbar.jsx`. No changes to role logic.
+- **Styling:** CSS variables from the existing theme. Hapag Blue `#003087`, Hapag Orange `#E8540A`, Segoe UI. Match the styling patterns in `InsightsTab.jsx` — period tabs, dark cards, existing `tabStyle()` function.
+- **No schema changes.** No migrations. No new tables. This is a pure UI + hook generalization PRD.
+- **Mutations stay single-user.** The existing `ActivityLog` lets an agent edit or delete their own entries. When rendered in multi-user mode on Insights, those mutation buttons must be hidden or disabled. Supervisors do not edit teammates' logs through the Activity Log.
 
-## Environment & Setup
-
-- Supabase client: `src/lib/supabase.js` (already configured)
-- Meridian Supabase project ref: `wluynppocsoqjdbmwass`
-- MPL table: `mpl_active_timers` (exists, currently has at least: `id`, `user_id`, `category_id` nullable, `started_at`, `status`, `total_paused_seconds`)
-- Build command: `npx vite build`
-- Typecheck: there is no separate tsc step — this is a JS project; `npx vite build` is the verification
-- Deployment: `meridian-hlag.vercel.app` (auto-deploys on push to `main`)
-
----
-
-## File Structure Impact
+## File Structure
 
 ```
 src/
-├── mpl/
-│   ├── MplApp.jsx              ← MODIFY: integrate useMplRecovery, call snapshot on process changes
-│   ├── MplPipBar.jsx           ← MODIFY: render <RecoveryPrompt /> when recovery state is set
-│   └── RecoveryPrompt.jsx      ← NEW: Resume / Log now / Discard UI
-├── hooks/
-│   ├── useMplRecovery.js       ← NEW: localStorage snapshot + Supabase sync + recovery detection
-│   └── useBarHeartbeat.js      ← NEW: pings bar_sessions every 30s
-├── lib/
-│   ├── mplRecoveryStorage.js   ← NEW: localStorage read/write helpers + schema versioning
-│   └── api.js                  ← MODIFY: add upsertMplActiveTimer, clearMplActiveTimer, pingBarSession
-supabase/
-└── migrations/
-    └── 009_mpl_crash_recovery.sql  ← NEW: ensure mpl_active_timers has the columns we need + bar_sessions.last_seen_at
+  components/
+    InsightsTab.jsx                    (modify — add tab shell, passes filter state)
+    ActivityLog.jsx                    (modify — accept userIds, hide mutations in multi-user)
+    insights/
+      InsightsTabs.jsx                 (new — the 3-tab strip)
+      OverviewTab.jsx                  (new — wraps existing 4 panels + team filter)
+      ActivityLogTab.jsx               (new — wraps ActivityLog with agent filter)
+      ReportsTab.jsx                   (new — empty-state scaffold)
+      AgentFilterStrip.jsx             (new — chip row of agent names)
+      TeamFilterDropdown.jsx           (new — supervisor's assigned teams)
+      AgentHandleTimePanel.jsx         (modify — clickable agent names)
+  hooks/
+    useActivityData.js                 (modify — accept userIds)
+    useTeamInsights.js                 (modify — expose raw events + accept teamId filter)
+  lib/
+    api.js                             (modify — add wrapper if needed)
 ```
 
----
+## Environment & Setup
+
+- Ralph is working against the existing repo. All dependencies are installed.
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set in `.env.local`.
+- No new npm packages required. Do not run `npm install` for new packages. If a new package seems needed, stop and leave the task unchecked with a note in `progress.txt`.
+- Primary test command: `npm run build`. Must complete with zero errors. Warnings that exist in `main` today are acceptable; do not introduce new ones.
 
 ## Tasks
 
-### Phase 1: Schema verification + migration
+### Phase 1: Generalize ActivityLog to multi-user
 
-- [x] **Task 1: Verify + migrate `mpl_active_timers` schema**
-  - What: Create `supabase/migrations/009_mpl_crash_recovery.sql` that adds any missing columns needed by this PRD.
-  - Required columns on `mpl_active_timers`:
-    - `id` uuid PK (exists)
-    - `user_id` uuid FK → platform_users (exists)
-    - `process_id` text — the UUID generated in `MplApp.jsx` via `crypto.randomUUID()` for each process; lets us match on restore. Add if missing.
-    - `category_id` uuid nullable (exists)
-    - `subcategory_id` uuid nullable — add if missing
-    - `started_at` timestamptz (exists)
-    - `accumulated_seconds` integer default 0 — add if missing (NOT elapsed; this is the authoritative seconds count, written on every sync)
-    - `status` text (exists; values: 'running', 'paused')
-    - `total_paused_seconds` integer default 0 (exists)
-    - `updated_at` timestamptz default now() — add if missing
-  - Required columns on `bar_sessions`:
-    - `last_seen_at` timestamptz — add if missing, default now()
-    - `widget_mode` text — add if missing ('mpl-widget' | 'ct-widget')
-  - Use `ADD COLUMN IF NOT EXISTS` for every column.
-  - Add an index: `CREATE INDEX IF NOT EXISTS idx_mpl_active_timers_user ON mpl_active_timers(user_id, updated_at DESC);`
-  - Do NOT drop any existing columns.
-  - Files: Create `supabase/migrations/009_mpl_crash_recovery.sql`
-  - Acceptance criteria: File exists, uses only `ADD COLUMN IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`, no destructive statements.
-  - Test: `grep -E "DROP|TRUNCATE|DELETE FROM" supabase/migrations/009_mpl_crash_recovery.sql` returns empty.
+- [x] **Task 1: Generalize `useActivityData` to accept `userIds` array**
+  - **What to build:** Change the hook signature from `useActivityData({ userId, rangeDays })` to `useActivityData({ userIds, rangeDays })`. For backward compatibility, also accept `userId` as a string and internally normalize to `userIds = [userId]`. Detect: if `userId` is a non-empty string and `userIds` is missing, use `[userId]`. If both are passed, prefer `userIds`.
+  - In the fetch queries at the existing `.eq('user_id', userId)` call sites (two of them), change to `.in('user_id', userIds)`.
+  - In the realtime channel subscription, change the filter from `user_id=eq.${userId}` to `user_id=in.(${userIds.join(',')})`. Channel name should become `activity-${userIds.join('-').slice(0, 50)}-${rangeDays}` (slice to cap length).
+  - In the mutation paths (`editEntry`, `deleteEntry`, the RFC/exclusion toggles), preserve existing behavior — they still operate on a single row by `id`, and the `.eq('user_id', ...)` guard should use the entry's own `user_id` not the hook's input. If that means reading `entry.user_id` off the entry instead of from the hook scope, do that. These mutations must only succeed when the caller is the entry's owner; keep the existing guard pattern.
+  - Update the dependency arrays in the `useEffect` / `useCallback` hooks from `[userId, ...]` to `[userIds.join(','), ...]` so array identity doesn't cause infinite re-fetches. Memoize `userIdsKey = userIds.join(',')` once at the top and use that in deps.
+  - **Files to modify:** `src/hooks/useActivityData.js`
+  - **Acceptance:** Hook accepts either `{ userId }` or `{ userIds }` and returns correct data. Existing call sites (`<ActivityLog userId={user.id} />`) continue to work. Build passes. `grep -n "useActivityData" src/` shows the existing agent call site still compiles.
+  - **Test:** `npm run build` completes with zero errors.
 
-### Phase 2: localStorage layer (biggest resilience win, smallest code change)
+- [ ] **Task 2: Add `allowMutations` prop to `ActivityLog`**
+  - **What to build:** Add an optional prop `allowMutations` (boolean, default `true`) to `ActivityLog`. When `false`, hide or disable any edit/delete buttons, RFC toggles, and exclusion toggles on rendered rows. The personal Dashboard call site passes nothing and gets the default (mutations allowed). The Insights call site will pass `allowMutations={false}`.
+  - Locate all interactive elements in `ActivityLog.jsx` that call `editEntry`, `deleteEntry`, RFC toggle, exclusion toggle, or similar mutations. Wrap them in `{allowMutations && ...}` or set `disabled` + add a muted tooltip "View only".
+  - **Files to modify:** `src/components/ActivityLog.jsx`
+  - **Acceptance:** `<ActivityLog userId={...} />` renders identically to today. `<ActivityLog userIds={[...]} allowMutations={false} />` renders rows without mutation UI. Build passes.
+  - **Test:** `npm run build`.
 
-- [x] **Task 2: localStorage read/write helpers**
-  - What: Create `src/lib/mplRecoveryStorage.js` with these exports:
-    - `STORAGE_KEY = 'meridian.mpl.active.v1'`
-    - `saveSnapshot(userId, processes)` — serializes `{ userId, savedAt: Date.now(), processes }` to localStorage. `processes` is `[{ id, elapsed, paused, categoryId, subcategoryId, startedAt }]`. Wraps in try/catch (localStorage can throw in incognito / quota exceeded) and logs on failure without crashing.
-    - `loadSnapshot(userId)` — reads, parses, returns null if empty, stale (>24h old), or wrong userId.
-    - `clearSnapshot()` — removes the key.
-    - `STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000` — exported constant.
-  - Files: Create `src/lib/mplRecoveryStorage.js`
-  - Acceptance criteria: File exports all four symbols; all functions are synchronous; all use try/catch around localStorage access.
-  - Test: `npx vite build 2>&1 | tail -5` — no errors. `grep -c "try" src/lib/mplRecoveryStorage.js` returns ≥ 3.
+- [ ] **Task 3: Accept `userIds` on `ActivityLog` and forward to hook**
+  - **What to build:** Update `ActivityLog`'s signature from `({ userId })` to `({ userId, userIds, allowMutations = true })`. Forward both `userId` and `userIds` to `useActivityData`. The hook (from Task 1) already handles the normalization.
+  - **Files to modify:** `src/components/ActivityLog.jsx`
+  - **Acceptance:** `<ActivityLog userIds={['uuid-a', 'uuid-b']} allowMutations={false} />` compiles and renders events from both users merged chronologically.
+  - **Test:** `npm run build`.
 
-- [x] **Task 3: Write snapshot on every MPL tick**
-  - What: In `src/mpl/MplApp.jsx`, after the existing `processes` state and the `processesRef` effect (around line 48), add a new `useEffect` that calls `saveSnapshot(user.id, processes)` whenever `processes` changes. This fires on start, every second (because the tick updates `processes`), on pause/resume, and on stop.
-  - Import `saveSnapshot` from `../lib/mplRecoveryStorage.js`.
-  - Gate on `if (!user?.id) return;` — don't write before auth resolves.
-  - Do NOT replace the existing `processesRef` effect — this is additive.
-  - Also call `clearSnapshot()` from the unmount cleanup effect near line 96 when `processes` is empty at unmount, so we don't leave a stale snapshot after a graceful session.
-  - Files: Modify `src/mpl/MplApp.jsx`
-  - Acceptance criteria: On every tick while a process is running, localStorage key `meridian.mpl.active.v1` contains the current process array.
-  - Test: `npx vite build 2>&1 | tail -5` passes. In dev: open PiP, start a timer, check `localStorage.getItem('meridian.mpl.active.v1')` in console — should show updated `savedAt` and `elapsed`.
+### Phase 2: Tab shell on Insights
 
-### Phase 3: Supabase sync layer
+- [ ] **Task 4: Create `InsightsTabs.jsx` — the 3-tab strip**
+  - **What to build:** A stateless presentational component that renders three pill tabs — "Overview", "Activity Log", "Reports" — matching the existing `tabStyle()` pattern from `InsightsTab.jsx`. Props: `{ activeTab, onTabChange }` where `activeTab` is `'overview' | 'activity' | 'reports'`.
+  - Use the same `var(--color-mmark)` for the active pill, same `tabStyle` shape. Tabs sit directly under the period selector on Insights.
+  - **Files to create:** `src/components/insights/InsightsTabs.jsx`
+  - **Acceptance:** Component renders. Clicking a tab fires `onTabChange` with the key. Build passes.
+  - **Test:** `npm run build`.
 
-- [x] **Task 4: Add API wrappers**
-  - What: In `src/lib/api.js`, add these three exports (place them next to the existing `logMplEntry`):
-    - `upsertMplActiveTimer({ userId, processId, categoryId, subcategoryId, startedAt, accumulatedSeconds, status })` → `supabase.from('mpl_active_timers').upsert({...}, { onConflict: 'process_id' })`
-    - `clearMplActiveTimer(processId)` → `supabase.from('mpl_active_timers').delete().eq('process_id', processId)`
-    - `fetchMyActiveMplTimers(userId)` → `supabase.from('mpl_active_timers').select('*').eq('user_id', userId).order('started_at', { ascending: false })`
-  - All three return the Supabase `{ data, error }` shape directly.
-  - Files: Modify `src/lib/api.js`
-  - Acceptance criteria: All three functions exported, use the existing `supabase` client import.
-  - Test: `npx vite build 2>&1 | tail -5` passes. `grep -E "^export (async )?function (upsertMplActiveTimer|clearMplActiveTimer|fetchMyActiveMplTimers)" src/lib/api.js | wc -l` returns `3`.
+- [ ] **Task 5: Restructure `InsightsTab.jsx` to host tabs**
+  - **What to build:** Add `const [activeTab, setActiveTab] = useState('overview')` to `InsightsTab`. Render `<InsightsTabs activeTab={activeTab} onTabChange={setActiveTab} />` directly under the period selector row. Below the tabs, conditionally render one of three tab-body components based on `activeTab`:
+    - `'overview'` → `<OverviewTab insights={insights} prevInsights={prevInsights} onAgentClick={handleAgentClick} selectedTeamId={selectedTeamId} onTeamChange={setSelectedTeamId} />`
+    - `'activity'` → `<ActivityLogTab agents={insights.agents} selectedAgentId={activityAgentFilter} onAgentChange={setActivityAgentFilter} />`
+    - `'reports'` → `<ReportsTab />`
+  - Add new state: `selectedTeamId` (string or `null` for "all teams"), `activityAgentFilter` (string or `null`).
+  - Add handler `handleAgentClick(agentId)` that sets `activityAgentFilter = agentId` and `activeTab = 'activity'`. This is the click-from-Overview-jumps-to-Activity-Log behavior.
+  - Move the existing four-panel render block into the new `OverviewTab` component (Task 6); after this task, `InsightsTab.jsx` should no longer render panels directly.
+  - **Files to modify:** `src/components/InsightsTab.jsx`
+  - **Acceptance:** Insights page renders with three tabs. Overview tab shows the existing 4 panels. Other two tabs render placeholder text (real bodies land in later tasks). Build passes.
+  - **Test:** `npm run build`. Run `npm run dev`, log in, navigate to Insights — confirm tabs render and Overview shows the existing 4 panels.
 
-- [x] **Task 5: `useMplRecovery` hook — debounced Supabase sync**
-  - What: Create `src/hooks/useMplRecovery.js`. It accepts `(userId, processes)` and:
-    - Uses a ref-based debouncer (10-second interval) that upserts every active process to `mpl_active_timers` via the new `upsertMplActiveTimer` API. Do not write every second; batch into 10s windows.
-    - When a process is removed from the `processes` array (logged/discarded), call `clearMplActiveTimer(processId)`.
-    - Tracks previously-synced process IDs in a ref so removed ones get a delete call.
-    - Exposes: `{ syncNow: () => Promise<void> }` — a manual flush used by the `beforeunload` handler (Task 8).
-  - Handle errors silently (console.warn) — a failed sync should never crash the widget. The localStorage layer is the primary resilience net.
-  - Files: Create `src/hooks/useMplRecovery.js`
-  - Acceptance criteria: Hook exports a default function; uses `setInterval` with 10000ms; cleans up interval on unmount.
-  - Test: `npx vite build 2>&1 | tail -5` passes.
+### Phase 3: Overview enhancements
 
-- [x] **Task 6: Wire `useMplRecovery` into MplApp**
-  - What: In `src/mpl/MplApp.jsx`, import `useMplRecovery` and call it with `(user?.id, processes)` near the other hook calls (around line 188, next to `usePendingTriggers`). Destructure `syncNow` from the return value and hold it in a ref for Task 8.
-  - Files: Modify `src/mpl/MplApp.jsx`
-  - Acceptance criteria: Hook is invoked; `syncNow` is available in a ref.
-  - Test: `npx vite build 2>&1 | tail -5` passes. Start a timer in dev, wait 15 seconds, query `SELECT process_id, accumulated_seconds FROM mpl_active_timers WHERE user_id = '<davis-uuid>'` in Supabase — should show the running timer.
+- [ ] **Task 6: Create `OverviewTab.jsx` wrapping existing panels**
+  - **What to build:** Move the existing panel-render block from `InsightsTab.jsx` into `src/components/insights/OverviewTab.jsx`. Props: `{ insights, prevInsights, onAgentClick, selectedTeamId, onTeamChange }`.
+  - At the top of the tab body, render a row with `<TeamFilterDropdown teams={insights.teams} selectedTeamId={selectedTeamId} onChange={onTeamChange} />` on the left.
+  - Filter the agents passed to child panels: if `selectedTeamId` is set, filter `insights.agents` and `insights.perAgentStats` to that team before handing to panels. If `null` (All Teams), pass through unchanged.
+  - Pass `onAgentClick` down to `AgentHandleTimePanel` for the name-click interaction.
+  - **Files to create:** `src/components/insights/OverviewTab.jsx`
+  - **Acceptance:** Overview tab renders the 4 panels exactly as before. Team filter dropdown appears at the top. Build passes.
+  - **Test:** `npm run build`.
 
-### Phase 4: Heartbeat + stale-session detection
+- [ ] **Task 7: Create `TeamFilterDropdown.jsx`**
+  - **What to build:** A `<select>` styled to match the period selector aesthetic. Props: `{ teams, selectedTeamId, onChange }`. First option is "All teams" with value `''` (empty). Subsequent options are each team's `name` with value `id`. Use inline styles matching the existing Admin filters (`SELECT_STYLE` pattern in `AdminTab.jsx`) adapted for the dark Insights background.
+  - **Files to create:** `src/components/insights/TeamFilterDropdown.jsx`
+  - **Acceptance:** Dropdown renders. Selecting a team fires `onChange(teamId)`. Selecting "All teams" fires `onChange(null)`. Build passes.
+  - **Test:** `npm run build`.
 
-- [x] **Task 7: `useBarHeartbeat` hook**
-  - What: Create `src/hooks/useBarHeartbeat.js`. It accepts `(userId, widgetMode)` and upserts a row to `bar_sessions` every 30 seconds with `{ user_id, widget_mode, last_seen_at: new Date().toISOString() }`. Use `onConflict: 'user_id,widget_mode'` so each user has one row per widget type.
-  - On unmount, fire a final upsert with `last_seen_at = now` so a graceful close has a recent timestamp (this helps distinguish crash from graceful close on the next mount).
-  - Export default function `useBarHeartbeat`.
-  - Files: Create `src/hooks/useBarHeartbeat.js`
-  - Acceptance criteria: Hook exports default; uses `setInterval(30000)`; cleans up on unmount.
-  - Test: `npx vite build 2>&1 | tail -5` passes. Call from `MplApp.jsx` with `(user?.id, 'mpl-widget')` — `SELECT last_seen_at FROM bar_sessions WHERE widget_mode = 'mpl-widget'` updates every 30s.
+- [ ] **Task 8: Make agent names clickable in `AgentHandleTimePanel`**
+  - **What to build:** Locate the agent name render at approximately line 133 of `src/components/insights/AgentHandleTimePanel.jsx` (`{agent?.full_name || agent?.email || agentId}`). Wrap it in a `<button>` with link-style appearance — no background, Hapag Orange (`#E8540A`) text on hover, underline on hover, cursor pointer. Accept a new optional prop `onAgentClick(agentId)` and call it on click. If `onAgentClick` is not provided, render as plain text (current behavior).
+  - **Files to modify:** `src/components/insights/AgentHandleTimePanel.jsx`
+  - **Acceptance:** When `onAgentClick` is passed, agent names are clickable. When it's not, they render as before. Build passes.
+  - **Test:** `npm run build`.
 
-  IMPORTANT SCHEMA NOTE: `bar_sessions` may not have a composite unique constraint on `(user_id, widget_mode)` yet. If the upsert fails with a constraint error, add this to migration 009: `CREATE UNIQUE INDEX IF NOT EXISTS idx_bar_sessions_user_mode ON bar_sessions(user_id, widget_mode);` — then redo Task 1.
+### Phase 4: Activity Log tab
 
-### Phase 5: Graceful-close flush + Recovery UI
+- [ ] **Task 9: Create `AgentFilterStrip.jsx`**
+  - **What to build:** A horizontal chip row above or at the top of the Activity Log body. First chip is "All agents" (active when `selectedAgentId === null`). Subsequent chips are each agent's first name + last initial (e.g., "Wanda K.") with the agent's full name as the `title` tooltip. Active chip uses Hapag Orange background; inactive chips match the existing dark-theme chip style in `ActivityLog.jsx`.
+  - Props: `{ agents, selectedAgentId, onChange }`. `agents` is the array from `insights.agents`.
+  - If there are more than ~8 agents, let the row wrap to a second line. Do not add a horizontal scroller in v1.
+  - **Files to create:** `src/components/insights/AgentFilterStrip.jsx`
+  - **Acceptance:** Strip renders with one chip per agent plus "All agents". Clicking a chip fires `onChange(agentId)`. Clicking "All agents" fires `onChange(null)`. Active state highlights correctly. Build passes.
+  - **Test:** `npm run build`.
 
-- [x] **Task 8: `beforeunload` sendBeacon flush**
-  - What: In `src/mpl/MplApp.jsx`, add a `useEffect` that attaches a `beforeunload` handler to the PiP window (and the main window as fallback). The handler:
-    - Reads current `processes` from `processesRef.current`
-    - For each active process, calls `navigator.sendBeacon(url, blob)` where the URL is the Supabase REST endpoint for `mpl_active_timers` and blob is a JSON payload upserting the current state
-    - Uses `fetch` with `keepalive: true` as a fallback if `sendBeacon` returns false
-  - Because `sendBeacon` is fire-and-forget, it does NOT use the supabase-js client — it must hit the REST endpoint directly with the anon key header. Build the request URL from `import.meta.env.VITE_SUPABASE_URL || supabase.supabaseUrl` and the anon key from `supabase.supabaseKey`.
-  - This handler runs on graceful close (user closes window, closes tab, browser quit). It will NOT run on OS-force-kill (Windows Update), but that's what Task 3 (localStorage) covers.
-  - Files: Modify `src/mpl/MplApp.jsx`
-  - Acceptance criteria: `window.addEventListener('beforeunload', ...)` fires during PiP close; `sendBeacon` is called.
-  - Test: `npx vite build 2>&1 | tail -5` passes. In dev: start a timer, close PiP window, check `mpl_active_timers` row has `updated_at` within 2 seconds of close.
+- [ ] **Task 10: Create `ActivityLogTab.jsx`**
+  - **What to build:** Tab body for the Activity Log. Props: `{ agents, selectedAgentId, onAgentChange }`.
+  - Renders, top to bottom:
+    1. `<AgentFilterStrip agents={agents} selectedAgentId={selectedAgentId} onChange={onAgentChange} />`
+    2. `<ActivityLog userIds={userIdsForLog} allowMutations={false} />`
+  - `userIdsForLog` is computed: if `selectedAgentId` is null, pass every agent's ID from `agents`. If set, pass `[selectedAgentId]`.
+  - If `agents` is empty (e.g., supervisor assigned no teams), render an empty state: "No agents on your teams yet. Add team members via Admin."
+  - **Files to create:** `src/components/insights/ActivityLogTab.jsx`
+  - **Acceptance:** Tab renders the agent filter strip over the existing `ActivityLog`. Selecting an agent narrows the log. Selecting "All agents" shows the full team feed. Mutation UI is hidden. Build passes.
+  - **Test:** `npm run build`. Run `npm run dev`, log in as Davis, navigate to Insights → Activity Log, verify multiple agents' events appear and the filter strip narrows them.
 
-- [x] **Task 9: `RecoveryPrompt` component**
-  - What: Create `src/mpl/RecoveryPrompt.jsx` — a bar-width overlay that takes `{ recoveredProcesses, onResume, onLogNow, onDiscard, categories }` and renders:
-    - Message: "Meridian closed unexpectedly. You had {N} active {process|processes}."
-    - List: each process as `• {category name || 'Uncategorized'} — {formatted elapsed time}`
-    - Three buttons: `Resume`, `Log now`, `Discard`
-  - Use existing design tokens: Hapag Blue `#003087`, Orange `#E8540A`, dark bg `#0f1117`, Segoe UI. Match the visual language of existing MPL overlays (look at `ProcessPicker.jsx` for pattern).
-  - The component is pure presentational — all state lives in `MplApp`.
-  - Files: Create `src/mpl/RecoveryPrompt.jsx`
-  - Acceptance criteria: Component exports default; accepts all four props; renders three action buttons.
-  - Test: `npx vite build 2>&1 | tail -5` passes.
+- [ ] **Task 11: Wire click-through from Overview to Activity Log**
+  - **What to build:** In `InsightsTab.jsx` (already modified in Task 5), confirm `handleAgentClick(agentId)` is wired. Verify that clicking an agent name in the Overview's `AgentHandleTimePanel` sets `activityAgentFilter = agentId` and `activeTab = 'activity'`.
+  - Smoke-check: clicking an agent on Overview should land the user on the Activity Log tab with that agent's chip highlighted in `AgentFilterStrip` and only their events showing.
+  - **Files to modify:** `src/components/InsightsTab.jsx` (may already be done in Task 5 — if so, mark complete after verification)
+  - **Acceptance:** End-to-end click works. Build passes.
+  - **Test:** `npm run build` + manual verification in `npm run dev`.
 
-- [x] **Task 10: Recovery detection + restoration logic**
-  - What: In `src/mpl/MplApp.jsx`, add a `useEffect` that runs once after `user` and `categories` are loaded (gate on `if (!user?.id || categories.length === 0 || recoveryChecked) return;` and set a `recoveryChecked` state flag after running). The effect:
-    1. Reads localStorage via `loadSnapshot(user.id)`. If found and `savedAt` is less than 1 hour old, these are the recovered processes.
-    2. Falls back to `fetchMyActiveMplTimers(user.id)`. Cross-reference against `bar_sessions.last_seen_at` for this user's `mpl-widget` row: if `last_seen_at` is older than 5 minutes OR localStorage had a snapshot, treat as a crash.
-    3. If recovered processes exist, set state `recoveredProcesses` and open the PiP if closed. `MplPipBar` renders `<RecoveryPrompt />` when `recoveredProcesses.length > 0`.
-    4. `onResume`: restore each process into the `processes` array with its elapsed time (capped at `min(stored elapsed, seconds since startedAt)`), restart timers, clear `recoveredProcesses`.
-    5. `onLogNow`: for each recovered process with a category, call `logMplEntry` with the elapsed minutes. For uncategorized processes, route to the existing category picker. Then clear both localStorage and `mpl_active_timers` rows.
-    6. `onDiscard`: call `clearSnapshot()` and `clearMplActiveTimer(processId)` for each, clear `recoveredProcesses`.
-  - Files: Modify `src/mpl/MplApp.jsx`, modify `src/mpl/MplPipBar.jsx` to accept and render the prompt overlay
-  - Acceptance criteria: On mount with a stale snapshot present, `<RecoveryPrompt />` renders. Each button path leaves both storage layers clean.
-  - Test: `npx vite build 2>&1 | tail -5` passes. Manual dev test: start timer, kill browser via Task Manager, reopen — prompt appears with correct category + elapsed.
+### Phase 5: Reports scaffold
 
-### Phase 6: End-to-end verification
+- [ ] **Task 12: Create `ReportsTab.jsx`**
+  - **What to build:** Minimal empty-state tab body. Renders a centered block with:
+    - A neutral icon (use a simple inline SVG — a bar chart or document — not an emoji, ~48px, Hapag Blue `#003087` with reduced opacity)
+    - Heading: "Reports are coming soon"
+    - Subcopy: "Saved reports will let you answer specific questions — handle time by category, re-resolves by agent, MPL time breakdowns — and export to CSV."
+    - No interactive elements.
+  - **Files to create:** `src/components/insights/ReportsTab.jsx`
+  - **Acceptance:** Reports tab renders the empty-state block. Build passes.
+  - **Test:** `npm run build`.
 
-- [x] **Task 11: Build + smoke test**
-  - What: Run `npx vite build` and confirm no errors or warnings related to new files. Confirm bundle size didn't balloon (should be within 10KB of pre-change baseline).
-  - Files: None (verification only)
-  - Acceptance criteria: Build succeeds. No console errors on widget mount in Chrome.
-  - Test: `npx vite build 2>&1 | tail -20` — shows "✓ built in" message, no red errors.
+### Phase 6: Documentation
 
-- [x] **Task 12: Document in progress.txt**
-  - What: Append a summary to `progress.txt`:
-    - Files added
-    - Storage keys introduced (`meridian.mpl.active.v1`)
-    - New Supabase columns added (via migration 009)
-    - How to manually trigger recovery for testing (kill the PiP via DevTools → Application → localStorage is populated, then reopen)
-    - Known limitation: Windows Update force-close may beat even `beforeunload`; localStorage is the only true safety net for that case (which is fine — it's the whole point).
-  - Files: Modify `progress.txt`
-  - Acceptance criteria: New section appended with heading `## MPL Crash Recovery (PRD 009)`.
-  - Test: `grep -c "MPL Crash Recovery" progress.txt` returns `≥ 1`.
-
----
+- [ ] **Task 13: Update `AGENTS.md`**
+  - **What to build:** Add a new subsection under "Insights Tab" titled "Three-tab structure" that documents:
+    - The three tabs (Overview / Activity Log / Reports) and what each answers
+    - The `ActivityLog` multi-user signature (`userIds` array + `allowMutations` prop)
+    - The click-from-Overview-to-Activity-Log pattern (tab switch + filter carryover)
+    - That personal Activity Log on the Dashboard is unchanged
+    - That Reports is scaffold-only in this iteration
+  - **Files to modify:** `AGENTS.md`
+  - **Acceptance:** Documentation is accurate and ≤ 30 added lines.
+  - **Test:** none required beyond Ralph reading the file back to itself to confirm it was written.
 
 ## Testing Strategy
 
-- **Primary**: `npx vite build 2>&1 | tail -10` after every task. This is the project's type + lint + bundle check all in one.
-- **Manual smoke test after Task 11** (if Ralph can open a browser): load dev server, start an MPL timer, close the tab via Task Manager, reopen — recovery prompt should appear.
-- **Schema verification** (after Task 1): Ralph should output the full SQL file content to `progress.txt` for Davis to manually apply. Do NOT attempt to run migrations — Davis applies them manually via Supabase SQL Editor.
-
----
+- **Primary:** `npm run build` after every task. Zero new errors. No new warnings beyond what's in `main`.
+- **Manual smoke (after Task 11):**
+  1. Log in as Davis (supervisor). Navigate to Insights.
+  2. Confirm three tabs render: Overview, Activity Log, Reports.
+  3. Overview tab: confirm the 4 panels render. Team filter dropdown appears. Selecting a team narrows the panels. "All teams" resets.
+  4. Click an agent's name in the Agent Handle Time panel. Confirm the page switches to the Activity Log tab with that agent's chip selected and their events showing.
+  5. Agent filter strip: click "All agents" — full team feed returns. Click another agent — feed narrows.
+  6. Mutation UI (edit/delete buttons, RFC toggle) should be absent or disabled in the Insights Activity Log. Spot-check one row.
+  7. Reports tab: confirm "Coming soon" empty state renders.
+  8. Log out. Log in as an agent account (or any non-supervisor). Confirm:
+     - Personal Activity Log on the home Dashboard works identically to before
+     - Insights tab is not visible in nav
 
 ## Out of Scope
 
-- **Do NOT modify** `src/App.jsx`, `src/PipBar.jsx`, or any file under `src/ct/` — CT widget gets its own PRD later
-- **Do NOT modify** `src/hooks/useTimer.js` signature
-- **Do NOT refactor** the existing `processes` state shape in `MplApp.jsx` — the recovery layers wrap around it, not replace it
-- **Do NOT add** new npm dependencies — all storage APIs used are browser built-ins
-- **Do NOT touch** RLS policies — `mpl_active_timers` and `bar_sessions` already have correct RLS from earlier migrations
-- **Do NOT apply the migration automatically** — only write the SQL file; Davis applies it manually
-- **No cross-device session sync** beyond what Supabase provides naturally — if agent opens Meridian on a second machine while another is running, that's fine; recovery prompt will show on whichever they open next
-- **No automatic recovery**; always prompt the user. Silent auto-resume risks double-counting time.
+Do not do any of the following in this PRD. If something seems to require it, leave the task unchecked and log a note in `progress.txt`.
 
----
+- No URL/routing changes. No `?tab=...` or `?agent=...` query params.
+- No real Reports. Reports tab is a scaffold only.
+- No schema migrations, new tables, or new columns.
+- No changes to the personal Activity Log on the home Dashboard.
+- No changes to role logic or authorization.
+- No changes to how `supervisor_teams` or `platform_users` are populated.
+- No edit/delete/RFC-toggle functionality for supervisors on teammates' entries.
+- No mobile-specific styling beyond existing responsiveness.
+- No new npm packages.
+- No deprecation of the existing 4 panels. They move into OverviewTab intact.
+- No streak badges, no rank indicators, no "vs team average" callouts.
+- No changes to `useTeamInsights`'s return shape except what's explicitly called for in tasks.
+- Do not "improve" or refactor files not listed in Task's "Files to modify" block.
 
 ## Notes for Ralph
 
-### Existing patterns to follow
-
-- **Supabase writes use `safeWrite()` helper** inside `MplApp.jsx` (line ~62). Reuse it for any non-beacon writes to get consistent error toasts.
-- **Timers are tracked in `processTimers.current`** keyed by process id — a ref object, not state. Do not change this; recovery on Resume must add new interval IDs to this ref.
-- **`processesRef.current`** mirrors `processes` state for use inside callbacks that can't close over fresh state (see line 48). If you need the current processes array inside a `beforeunload` handler or interval callback, read from this ref.
-- **`showToast(message)`** displays PiP-local toasts — use for recovery confirmations ("Timer resumed", "Logged 14 minutes").
-- **PiP window lifecycle** is managed by `usePipWindow` in `src/hooks/usePipWindow.js`. Do not call `window.open` or `documentPictureInPicture.requestWindow` directly.
-
-### Known gotchas
-
-- **`crypto.randomUUID()`** is used for `process.id` and must be matched as `process_id` (text) in `mpl_active_timers`. If the column doesn't exist yet, Task 1 adds it.
-- **localStorage does NOT inherit into PiP windows the way some APIs do** — but PiP windows share the same origin, so `localStorage` is actually the same store. This works correctly by default; no special handling needed.
-- **`navigator.sendBeacon` requires a Blob with a content type** — use `new Blob([JSON.stringify(payload)], { type: 'application/json' })`.
-- **Supabase upsert with `onConflict`** requires the conflict column to have a unique constraint. Task 1 adds unique indexes for this.
-- **RLS**: writes to `mpl_active_timers` require `auth.uid() = user_id`. Beacon writes use the anon key + JWT; the JWT must be in the request header. Get it from `(await supabase.auth.getSession()).data.session.access_token` at effect setup and keep it in a ref.
-- **Debounce timing**: 10s for Supabase sync is deliberate — NOT 1s, NOT 60s. This balances write cost vs data freshness.
-- **Staleness window**: 5 minutes is deliberate — PiP heartbeat is 30s, so 5min = 10 missed pings, well beyond any transient network blip.
-- **Do not block widget startup on recovery checks** — if Supabase is slow, localStorage alone is sufficient to surface the prompt. Recovery should render within 100ms of mount.
-
-### If things look different than expected
-
-- If `mpl_active_timers` already has columns this PRD describes as "add if missing", the `ADD COLUMN IF NOT EXISTS` is a no-op — that's correct, continue.
-- If `bar_sessions` doesn't have `widget_mode`, add it in migration 009 and default existing rows to `'legacy'`.
-- If the build fails on unused imports after a task, that's a real error — clean up and retry, don't leave them.
+- **The personal Activity Log is sacred.** Every agent uses it daily. If a change to `ActivityLog.jsx` or `useActivityData.js` breaks the existing single-user call site, that is a production regression. Test the single-user path after every task that touches these files. The single-user path is: `<ActivityLog userId={user.id} />` — passing `userId` as a string with no `userIds` prop.
+- **`MOCK_ENTRIES` in `ActivityLog.jsx`** is a dev fallback. Do not delete it. Do not re-enable it. Leave it alone.
+- **Existing warnings in the build are acceptable.** Don't introduce new ones. If a lint rule fires on new code, fix the new code, don't disable the rule.
+- **CSS variables are defined at the Dashboard level.** New components inside Insights can assume `var(--text-pri)`, `var(--text-sec)`, `var(--bg-card)`, `var(--border)`, `var(--color-mmark)` are available. No need to redeclare.
+- **The `agents` array from `useTeamInsights`** has the shape `[{ id, full_name, email, team_id, team_name }]`. Use `full_name` (not `display_name` — that column does not exist; see prior learnings).
+- **Hapag Orange is `#E8540A`. Hapag Blue is `#003087`.** Do not use any other accent colors.
+- **Segoe UI is the font stack.** Do not introduce a new font.
+- **When in doubt, match the patterns already in `InsightsTab.jsx`.** Period tab styling, card spacing, max-width 1200px, and the dark card backgrounds are all there to copy.
+- **Phase order matters.** Phase 1 generalizes `ActivityLog`. Phase 2 installs the tab shell. Phase 3 enhances Overview. Phase 4 builds the Activity Log tab on top of Phase 1. Phase 5 is Reports scaffold. Phase 6 is docs. Do not reorder.
+- **If a task fails a test, leave the checkbox empty and log what failed in `progress.txt`.** Do not try to "make it green" by weakening the test.
+- **If a task seems ambiguous, do the simpler, smaller version.** Ask forgiveness in `progress.txt` rather than building something elaborate that wasn't asked for.

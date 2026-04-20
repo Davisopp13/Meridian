@@ -28,6 +28,7 @@ const TYPE_DB = {
 function normalizeCaseEvent(row) {
   return {
     id: row.id,
+    user_id: row.user_id,
     type: TYPE_LABEL[row.type] || row.type,
     rawType: row.type,
     src: 'case',
@@ -44,6 +45,7 @@ function normalizeCaseEvent(row) {
 function normalizeMplEntry(row) {
   return {
     id: row.id,
+    user_id: row.user_id,
     type: 'Process',
     rawType: 'process',
     src: 'process',
@@ -60,7 +62,14 @@ function normalizeMplEntry(row) {
   };
 }
 
-export function useActivityData({ userId, rangeDays }) {
+export function useActivityData({ userId, userIds, rangeDays }) {
+  // Normalize: prefer userIds array; fall back to wrapping userId string
+  const resolvedIds = (userIds && userIds.length > 0)
+    ? userIds
+    : (userId ? [userId] : []);
+
+  const userIdsKey = resolvedIds.join(',');
+
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,13 +84,13 @@ export function useActivityData({ userId, rangeDays }) {
     const [caseResult, mplResult] = await Promise.all([
       supabase
         .from('case_events')
-        .select('id, type, rfc, timestamp, session_id, ct_cases(id, case_number, duration_s)')
-        .eq('user_id', userId)
+        .select('id, user_id, type, rfc, timestamp, session_id, ct_cases(id, case_number, duration_s)')
+        .in('user_id', resolvedIds)
         .gte('timestamp', cutoff.toISOString()),
       supabase
         .from('mpl_entries')
-        .select('id, minutes, created_at, category_id, subcategory_id, mpl_categories(name)')
-        .eq('user_id', userId)
+        .select('id, user_id, minutes, created_at, category_id, subcategory_id, mpl_categories(name)')
+        .in('user_id', resolvedIds)
         .gte('created_at', cutoff.toISOString()),
     ]);
 
@@ -100,10 +109,12 @@ export function useActivityData({ userId, rangeDays }) {
 
     setEntries(merged);
     setLoading(false);
-  }, [userId, rangeDays]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userIdsKey, rangeDays]);
 
   const editEntry = useCallback(async (entry, updates) => {
-    if (!userId) return false;
+    const entryUserId = entry.user_id;
+    if (!entryUserId) return false;
 
     if (entry.src === 'case') {
       const eventPayload = {};
@@ -115,7 +126,7 @@ export function useActivityData({ userId, rangeDays }) {
           .from('case_events')
           .update(eventPayload)
           .eq('id', entry.id)
-          .eq('user_id', userId);
+          .eq('user_id', entryUserId);
         if (error) { console.error('[Meridian] edit case_events failed', error); return false; }
       }
 
@@ -140,45 +151,49 @@ export function useActivityData({ userId, rangeDays }) {
         .from('mpl_entries')
         .update(payload)
         .eq('id', entry.id)
-        .eq('user_id', userId);
+        .eq('user_id', entryUserId);
       if (error) { console.error('[Meridian] edit mpl_entries failed', error); return false; }
     }
 
     await fetchData();
     return true;
-  }, [userId, fetchData]);
+  }, [fetchData]);
 
   const deleteEntry = useCallback(async (entry) => {
-    if (!userId) return false;
+    const entryUserId = entry.user_id;
+    if (!entryUserId) return false;
 
     const table = entry.src === 'case' ? 'case_events' : 'mpl_entries';
     const { error } = await supabase
       .from(table)
       .delete()
       .eq('id', entry.id)
-      .eq('user_id', userId);
+      .eq('user_id', entryUserId);
 
     if (error) { console.error(`[Meridian] delete ${table} failed`, error); return false; }
     await fetchData();
     return true;
-  }, [userId, fetchData]);
+  }, [fetchData]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (resolvedIds.length === 0) return;
 
     cancelledRef.current = false;
     fetchData();
 
+    const channelName = `activity-${resolvedIds.join('-').slice(0, 50)}-${rangeDays}`;
+    const filterStr = `user_id=in.(${userIdsKey})`;
+
     const channel = supabase
-      .channel(`activity-${userId}-${rangeDays}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'case_events', filter: `user_id=eq.${userId}` },
+        { event: '*', schema: 'public', table: 'case_events', filter: filterStr },
         () => { fetchData(); }
       )
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'mpl_entries', filter: `user_id=eq.${userId}` },
+        { event: '*', schema: 'public', table: 'mpl_entries', filter: filterStr },
         () => { fetchData(); }
       )
       .subscribe();
@@ -187,7 +202,8 @@ export function useActivityData({ userId, rangeDays }) {
       cancelledRef.current = true;
       supabase.removeChannel(channel);
     };
-  }, [userId, rangeDays, fetchData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userIdsKey, rangeDays, fetchData]);
 
   return { entries, loading, error, refetch: fetchData, editEntry, deleteEntry };
 }
