@@ -3369,3 +3369,21 @@ Files changed:
 Learnings for future iterations:
   - Task 11 was already wired in Task 5; future tasks that say "verify only" may be pure smoke-check iterations
 ---
+
+## Iteration Insights-11 - Task 12 (Insights 3-Tab PRD): Create ReportsTab.jsx
+
+- Replaced stub ReportsTab.jsx with full empty-state implementation
+- Inline SVG bar chart icon (~48px, #003087 at 40% opacity)
+- Heading: "Reports are coming soon"
+- Subcopy matching PRD spec verbatim
+- No interactive elements; centered flex column layout
+- `npm run build` passes — 2498 modules, 0 errors
+
+Files changed:
+  src/components/insights/ReportsTab.jsx (implemented)
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - Inline SVG with fill + opacity works well for icon-only empty states in inline-style-only codebase
+  - Stub was already created in Task 5; only needed to replace the placeholder content
+---

@@ -158,7 +158,7 @@ src/
 
 ### Phase 5: Reports scaffold
 
-- [ ] **Task 12: Create `ReportsTab.jsx`**
+- [x] **Task 12: Create `ReportsTab.jsx`**
   - **What to build:** Minimal empty-state tab body. Renders a centered block with:
     - A neutral icon (use a simple inline SVG — a bar chart or document — not an emoji, ~48px, Hapag Blue `#003087` with reduced opacity)
     - Heading: "Reports are coming soon"
