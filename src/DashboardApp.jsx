@@ -1,18 +1,62 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import * as ReactDOM from 'react-dom/client'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { supabase } from './lib/supabase.js'
-import { fetchProfile } from './lib/api.js'
+import { logMplEntry, fetchProfile, fetchCategoriesForTeam, fetchCategoriesForTeamId } from './lib/api.js'
+import { usePipWindow } from './hooks/usePipWindow.js'
+import { useStats } from './hooks/useStats.js'
+import { getMplSizeForState, getMplBarWidth } from './lib/constants.js'
 import Onboarding from './components/Onboarding.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import AuthScreen from './components/auth/AuthScreen.jsx'
+import MplPipBar from './mpl/MplPipBar.jsx'
+import { PipErrorBoundary } from './components/PipErrorBoundary.jsx'
+
+const STAT_BUTTONS = ['processes', 'total']
+const SWIMLANE_H = 220
 
 export default function DashboardApp() {
+  // ── Auth state ──────────────────────────────────────────────────────────
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [connectionStatus, setConnectionStatus] = useState('connected') // eslint-disable-line no-unused-vars
 
-  // ── Auth: fetch current session + listen for changes ──────────────────
+  // ── MPL state ───────────────────────────────────────────────────────────
+  const [processes, setProcesses] = useState([])
+  const [showSwimlane, setShowSwimlane] = useState(false)
+  const [swimlaneOpen, setSwimlaneOpen] = useState(false)
+  const [quickLogOpen, setQuickLogOpen] = useState(false)
+  const [chipStripProcessId, setChipStripProcessId] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [isMinimized, setIsMinimized] = useState(false)
+  const [pipToast, setPipToast] = useState(null)
+
+  // ── MPL PiP window ──────────────────────────────────────────────────────
+  const {
+    isOpen: mplIsOpen,     // eslint-disable-line no-unused-vars
+    openPip: openMplPip,
+    resizeAndPin: resizeAndPinMpl,
+    pipRootRef: mplPipRootRef,
+  } = usePipWindow()
+
+  // ── Stats (for processCount badge in MPL bar) ───────────────────────────
+  const { processes: processCount, refetch } = useStats()
+
+  // ── Refs ────────────────────────────────────────────────────────────────
+  const processTimers = useRef({})
+  const toastTimerRef = useRef(null)
+  const processesRef = useRef(processes)
+  useEffect(() => { processesRef.current = processes }, [processes])
+
+  const currentThemeRef = useRef('dark')
+  const userSettingsRef = useRef({ pip_position: 'bottom-right' })
+  useEffect(() => {
+    currentThemeRef.current = profile?.settings?.theme ?? 'dark'
+    userSettingsRef.current = { pip_position: profile?.settings?.pip_position ?? 'bottom-right' }
+  }, [profile])
+
+  // ── Auth: fetch current session + listen for changes ───────────────────
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null
@@ -37,7 +81,7 @@ export default function DashboardApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // ── Connection status health-check ────────────────────────────────────
+  // ── Connection status health-check ──────────────────────────────────────
   useEffect(() => {
     if (!user) return
     async function pingConnection() {
@@ -49,6 +93,35 @@ export default function DashboardApp() {
     return () => clearInterval(intervalId)
   }, [user])
 
+  // ── Category fetch when profile loads ──────────────────────────────────
+  useEffect(() => {
+    if (!user || (!profile?.team_id && !profile?.team)) return
+    const fetch = profile.team_id
+      ? fetchCategoriesForTeamId(profile.team_id)
+      : fetchCategoriesForTeam(profile.team)
+    fetch.then(({ data, error }) => {
+      if (error) console.error('[Meridian Dashboard] categories fetch failed', error)
+      if (data) setCategories(data)
+    })
+  }, [user, profile])
+
+  // ── Cleanup timers on unmount ───────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      Object.values(processTimers.current).forEach(clearInterval)
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    }
+  }, [])
+
+  // ── Re-render MPL PiP window after every render ─────────────────────────
+  // No dependency array — intentional, matches pre-April-17 App.jsx pattern.
+  // React 18 batching makes this cheap; avoids stale closure bugs in handlers.
+  useEffect(() => {
+    if (!mplPipRootRef.current) return
+    mplPipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
+  })
+
+  // ── Profile refresh ─────────────────────────────────────────────────────
   async function refreshProfile() {
     if (!user) return
     const { data } = await fetchProfile(user.id)
@@ -59,17 +132,252 @@ export default function DashboardApp() {
     setProfile(updatedProfile)
   }
 
+  // ── Toast helper ────────────────────────────────────────────────────────
+  function showToast(message) {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+    setPipToast(message)
+    toastTimerRef.current = setTimeout(() => {
+      setPipToast(null)
+      toastTimerRef.current = null
+    }, 2000)
+  }
+
+  // ── Safe Supabase write ─────────────────────────────────────────────────
+  async function safeWrite(promise) {
+    const { error } = await promise
+    if (error) {
+      console.error('[Meridian Dashboard] Supabase write failed', error)
+      showToast('Save failed: ' + (error.message || 'Unknown error'))
+      return false
+    }
+    return true
+  }
+
+  // ── MPL sizing helpers ──────────────────────────────────────────────────
+  function pin(stateKey) {
+    const { width, height } = getMplSizeForState(stateKey, STAT_BUTTONS)
+    resizeAndPinMpl({ width, height }, userSettingsRef.current.pip_position)
+  }
+
+  function pinActive() {
+    const width = getMplBarWidth('timerActive', STAT_BUTTONS)
+    resizeAndPinMpl({ width, height: 64 + SWIMLANE_H }, userSettingsRef.current.pip_position)
+  }
+
+  // ── Process timer helpers ───────────────────────────────────────────────
+  function startTimer(id) {
+    if (processTimers.current[id]) return
+    processTimers.current[id] = setInterval(() => {
+      setProcesses(prev => prev.map(p => p.id === id ? { ...p, elapsed: p.elapsed + 1 } : p))
+    }, 1000)
+  }
+
+  function stopTimer(id) {
+    clearInterval(processTimers.current[id])
+    delete processTimers.current[id]
+  }
+
+  // ── mountMplPipWindow ───────────────────────────────────────────────────
+  function mountMplPipWindow(pw) {
+    const existing = pw.document.getElementById('meridian-mpl-pip-root')
+    if (existing) existing.remove()
+    const container = pw.document.createElement('div')
+    container.id = 'meridian-mpl-pip-root'
+    container.style.cssText = 'width:100%;height:100%'
+    pw.document.body.appendChild(container)
+    mplPipRootRef.current = ReactDOM.createRoot(container)
+    mplPipRootRef.current.render(<PipErrorBoundary>{buildMplBar()}</PipErrorBoundary>)
+  }
+
+  // ── buildMplBar ─────────────────────────────────────────────────────────
+  function buildMplBar() {
+    return (
+      <MplPipBar
+        processes={processes}
+        categories={categories}
+        showSwimlane={showSwimlane}
+        swimlaneOpen={swimlaneOpen}
+        chipStripProcessId={chipStripProcessId}
+        quickLogOpen={quickLogOpen}
+        onToggleSwimlane={handleToggleSwimlane}
+        processCount={processCount}
+        onOpenDashboard={handleOpenDashboard}
+        onStart={handleStart}
+        onQuickLog={handleQuickLog}
+        onConfirmProcess={handleConfirmProcess}
+        onCancelProcess={handleCancelProcess}
+        onLogProcess={handleProcessLog}
+        onChipStripConfirm={handleChipStripConfirm}
+        onChipStripCancel={handleChipStripCancel}
+        onQuickLogConfirm={handleQuickLogConfirm}
+        onQuickLogCancel={handleQuickLogCancel}
+        onMinimize={handleMinimize}
+        onRestore={handleRestore}
+        isMinimized={isMinimized}
+        connectionStatus={connectionStatus}
+        pipToast={pipToast}
+      />
+    )
+  }
+
+  // ── MPL handlers ────────────────────────────────────────────────────────
+
+  async function handleStart() {
+    if (!mplIsOpen) {
+      const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
+      const result = await openMplPip({ width, height, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
+      if (!result.ok) { showToast('Could not open widget — try again'); return }
+      mountMplPipWindow(result.window)
+    } else {
+      pin('idle')
+    }
+
+    const id = crypto.randomUUID()
+    const newCount = processesRef.current.length + 1
+    setProcesses(prev => [...prev, { id, elapsed: 0, paused: false }])
+    setShowSwimlane(true)
+    setQuickLogOpen(false)
+    setChipStripProcessId(null)
+    startTimer(id)
+
+    if (newCount > 2) {
+      setSwimlaneOpen(true)
+      pinActive()
+    }
+  }
+
+  function handleProcessLog(id) {
+    if (quickLogOpen) setQuickLogOpen(false)
+    setChipStripProcessId(id)
+    pin('categoryPicker')
+  }
+
+  async function handleChipStripConfirm(processId, categoryId, subcategoryId) {
+    const proc = processesRef.current.find(p => p.id === processId)
+    const elapsed = proc?.elapsed || 0
+    setChipStripProcessId(null)
+
+    const cat = categories.find(c => c.id === categoryId)
+    const catName = cat?.name || 'Process'
+
+    await handleConfirmProcess(processId, categoryId, subcategoryId, elapsed)
+    showToast(`Logged ${catName} · ${Math.round(elapsed / 60) || 1} min`)
+  }
+
+  function handleChipStripCancel() {
+    setChipStripProcessId(null)
+    if (showSwimlane && swimlaneOpen) pinActive()
+    else pin('idle')
+  }
+
+  async function handleQuickLog() {
+    if (chipStripProcessId) setChipStripProcessId(null)
+    if (!mplIsOpen) {
+      const size = getMplSizeForState('quickLog', STAT_BUTTONS)
+      const result = await openMplPip({ ...size, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
+      if (!result.ok) { showToast('Could not open widget — try again'); return }
+      mountMplPipWindow(result.window)
+    } else {
+      pin('quickLog')
+    }
+    setQuickLogOpen(true)
+  }
+
+  async function handleQuickLogConfirm(categoryId, subcategoryId, minutes) {
+    if (!user || !minutes) return
+    setQuickLogOpen(false)
+
+    const cat = categories.find(c => c.id === categoryId)
+    const catName = cat?.name || 'Process'
+
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes, source: 'manual' }))
+    if (ok) {
+      showToast(`Logged ${catName} · ${minutes} min`)
+      if (showSwimlane && swimlaneOpen) pinActive()
+      else pin('idle')
+      refetch()
+    }
+  }
+
+  function handleQuickLogCancel() {
+    setQuickLogOpen(false)
+    if (showSwimlane && swimlaneOpen) pinActive()
+    else pin('idle')
+  }
+
+  function handleToggleSwimlane() {
+    const next = !swimlaneOpen
+    setSwimlaneOpen(next)
+    if (next) pinActive()
+    else pin('idle')
+  }
+
+  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
+    if (!user) return
+    stopTimer(id)
+    const next = processesRef.current.filter(p => p.id !== id)
+    setProcesses(next)
+    if (next.length === 0) {
+      setShowSwimlane(false)
+      setSwimlaneOpen(false)
+      pin('idle')
+    }
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes: Math.round(durationSeconds / 60) || 1, source: 'pip' }))
+    if (ok) refetch()
+  }
+
+  function handleCancelProcess(id) {
+    stopTimer(id)
+    const next = processesRef.current.filter(p => p.id !== id)
+    setProcesses(next)
+    if (next.length === 0) {
+      setShowSwimlane(false)
+      setSwimlaneOpen(false)
+      pin('idle')
+    }
+  }
+
+  function handleMinimize() {
+    setIsMinimized(true)
+    pin('minimized')
+  }
+
+  function handleRestore() {
+    setIsMinimized(false)
+    if (quickLogOpen) { pin('quickLog'); return }
+    if (chipStripProcessId) { pin('chipStrip'); return }
+    if (showSwimlane && swimlaneOpen) { pinActive(); return }
+    pin('idle')
+  }
+
+  function handleOpenDashboard() {
+    window.focus()
+  }
+
+  // ── CT widget launch (popup + resizeTo) ─────────────────────────────────
   function handleLaunch() {
     const url = window.location.origin + '/?mode=ct-widget'
     window.open(url, 'meridian-ct', 'popup,width=600,height=64,top=0,left=' + (screen.availWidth - 616))
   }
 
-  function handleLaunchMpl() {
-    const url = window.location.origin + '/?mode=mpl-widget'
-    window.open(url, 'meridian-mpl', 'popup,width=500,height=64,top=80,left=' + (screen.availWidth - 516))
+  // ── MPL PiP launch — direct, inside the user's click gesture ───────────
+  async function handleLaunchMpl() {
+    if (!user || !profile?.onboarding_complete) return
+    const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
+    const result = await openMplPip({
+      width,
+      height,
+      position: userSettingsRef.current.pip_position,
+      theme: currentThemeRef.current,
+    })
+    if (!result.ok) {
+      showToast('Could not open widget — try again')
+      return
+    }
+    mountMplPipWindow(result.window)
   }
 
-  // ── Auth gate ──────────────────────────────────────────────────────────
+  // ── Auth gate ───────────────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div style={{ background: '#0f0f1e', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
