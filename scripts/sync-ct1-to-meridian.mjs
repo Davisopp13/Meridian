@@ -176,11 +176,43 @@ async function buildUserMap() {
   return userMap
 }
 
+// ── Preflight: verify CT 1.0 activity_log schema ──────────────────────────
+// Fails loud if column names have drifted; prevents debugging after a full scan.
+async function verifyCt1Schema() {
+  const required = ['id', 'user_id', 'type', 'case_number', 'timestamp', 'is_rfc']
+
+  // Try information_schema first (works if PostgREST exposes it)
+  const { data, error } = await ct1Client
+    .from('information_schema.columns')
+    .select('column_name')
+    .eq('table_name', 'activity_log')
+
+  if (!error && data) {
+    const present = new Set(data.map(r => r.column_name))
+    const missing = required.filter(c => !present.has(c))
+    if (missing.length > 0) {
+      throw new Error(`CT 1.0 activity_log missing required columns: ${missing.join(', ')}`)
+    }
+    return
+  }
+
+  // Fallback: probe query — succeeds silently when all columns exist
+  const { error: probeErr } = await ct1Client
+    .from('activity_log')
+    .select('id, user_id, type, case_number, timestamp, is_rfc')
+    .limit(1)
+  if (probeErr) {
+    throw new Error(`CT 1.0 schema preflight failed: ${probeErr.message}`)
+  }
+}
+
 // ── Scan CT 1.0 activity_log and map rows ─────────────────────────────────
 const PAGE_SIZE = 1000
 const BATCH_SIZE = 500
 
 async function scanAndSync(userMap) {
+  await verifyCt1Schema()
+
   let offset = 0
   let totalScanned = 0
   let totalWouldInsert = 0
@@ -207,8 +239,8 @@ async function scanAndSync(userMap) {
   while (true) {
     const { data: rows, error } = await ct1Client
       .from('activity_log')
-      .select('id, user_id, case_number, activity_type, rfc, created_at, session_id')
-      .order('created_at', { ascending: true })
+      .select('id, user_id, case_number, type, is_rfc, timestamp')
+      .order('timestamp', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1)
 
     if (error) {

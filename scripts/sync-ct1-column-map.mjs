@@ -2,13 +2,20 @@
 // Pure mapping function: CT 1.0 activity_log row → Meridian case_events row.
 // No I/O — safe to unit-test without network.
 
-// Maps CT 1.0 activity_type values to Meridian case_events type values.
+// Keys are lowercased CT 1.0 type values; values are Meridian case_events.type values.
+// Keys must be lowercase — caller lowercases the CT 1.0 row's type before lookup.
+// CT 1.0 stores Title Case ("Resolved", "Reclassified", "Awaiting_Info") and lowercase
+// ("incoming_call", "outgoing_call", "call", "email") — normalize to lowercase at the edge.
 const ACTIVITY_TYPE_MAP = {
-  resolved:    'resolved',
-  reclass:     'reclassified',
-  call:        'call',
-  not_a_case:  'not_a_case',
-  rfc:         'rfc',
+  resolved:      'resolved',
+  reclassified:  'reclassified',
+  call:          'call',
+  incoming_call: 'call',          // collapse direction — Meridian has no inbound/outbound distinction
+  outgoing_call: 'call',
+  awaiting_info: 'awaiting_info', // CT 1.0: Awaiting_Info; preserved for planned Meridian feature
+  not_a_case:    'not_a_case',    // defensive — not observed in CT 1.0 data but handled if it appears
+  rfc:           'rfc',           // defensive — not observed in CT 1.0 data but handled if it appears
+  // email — intentionally absent. Legacy type removed from CT 1.0; maps to unknown_activity_type.
 }
 
 /**
@@ -23,14 +30,15 @@ export function mapActivityRowToCaseEvent(ct1Row, userMap) {
     return { valid: false, reason: 'no_user_match' }
   }
 
-  // activity_type must be a recognised value
-  const type = ACTIVITY_TYPE_MAP[ct1Row.activity_type]
+  // Normalize CT 1.0 type to lowercase before map lookup
+  const rawType = (ct1Row.type || '').toLowerCase()
+  const type = ACTIVITY_TYPE_MAP[rawType]
   if (!type) {
     return { valid: false, reason: 'unknown_activity_type' }
   }
 
   // excluded: true only for not_a_case events (per CLAUDE.md case outcomes table)
-  const excluded = ct1Row.activity_type === 'not_a_case'
+  const excluded = rawType === 'not_a_case'
 
   return {
     valid: true,
@@ -39,10 +47,10 @@ export function mapActivityRowToCaseEvent(ct1Row, userMap) {
       type,
       session_id:      ct1Row.session_id ?? null,
       excluded,
-      rfc:             ct1Row.rfc ?? false,
-      timestamp:       ct1Row.created_at,
+      rfc:             !!ct1Row.is_rfc,
+      timestamp:       ct1Row.timestamp,
       source:          'ct_1_migration',
-      source_event_id: ct1Row.id,
+      source_event_id: String(ct1Row.id),
     },
   }
 }

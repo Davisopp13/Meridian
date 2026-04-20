@@ -23,6 +23,11 @@ Idempotent — safe to re-run; duplicate rows are silently skipped.
    node scripts/sync-ct1-column-map.test.mjs
    ```
 
+4. **Apply the type-domain expansion migration** in the Meridian SQL editor:
+   - Open `supabase/migrations/008_expand_case_events_types.sql`
+   - Paste the full contents into the SQL editor and run it
+   - The final SELECT should return the new constraint definition with `awaiting_info` included
+
 ---
 
 ## Dry run
@@ -102,6 +107,21 @@ by re-running `--commit` after fixing whatever was wrong.
 - **User matching is email-based.** CT 1.0 and Meridian UUIDs are different. Any CT 1.0
   user without a matching Meridian `platform_users` row is skipped (logged, not an error).
 
-- **CT 1.0 `activity_log` schema assumed.** Assumed columns: `id, user_id, case_number,
-  activity_type, rfc, created_at, session_id`. If CT 1.0 has different column names, update
-  the `SELECT` clause in `scanAndSync()` and the mapper in `sync-ct1-column-map.mjs`.
+- **CT 1.0 `activity_log` schema.** Columns used: `id, user_id, case_number, type, is_rfc, timestamp`.
+  The script runs a preflight check and fails immediately if any of these are missing.
+
+- **CT 1.0 type-value casing.** CT 1.0 stores `Resolved`, `Reclassified`, and `Awaiting_Info`
+  in Title Case, while Meridian uses lowercase. The mapper lowercases all CT 1.0 `type` values
+  before matching. This is documented in `sync-ct1-column-map.mjs`'s ACTIVITY_TYPE_MAP.
+
+- **Call direction is collapsed.** CT 1.0 has separate `incoming_call`, `outgoing_call`, and `call`
+  types; Meridian has only `call`. All three CT 1.0 types map to Meridian's `call`. Direction info
+  is lost in the migration.
+
+- **`email` type is discarded.** 1 row in the CT 1.0 data has `type = 'email'`. This was a
+  short-lived feature that was removed from CT 1.0; the row is skipped rather than migrated.
+
+- **`Awaiting_Info` requires migration 008.** The sync script inserts with `type = 'awaiting_info'`,
+  which requires migration 008 to have been applied first (expanding the case_events type CHECK
+  constraint). If you run the sync without that migration, all 15 Awaiting_Info rows will fail
+  with a CHECK violation and the entire batch will roll back.
