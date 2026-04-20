@@ -176,7 +176,7 @@ supabase/
   - Acceptance criteria: Component exports default; accepts all four props; renders three action buttons.
   - Test: `npx vite build 2>&1 | tail -5` passes.
 
-- [ ] **Task 10: Recovery detection + restoration logic**
+- [x] **Task 10: Recovery detection + restoration logic**
   - What: In `src/mpl/MplApp.jsx`, add a `useEffect` that runs once after `user` and `categories` are loaded (gate on `if (!user?.id || categories.length === 0 || recoveryChecked) return;` and set a `recoveryChecked` state flag after running). The effect:
     1. Reads localStorage via `loadSnapshot(user.id)`. If found and `savedAt` is less than 1 hour old, these are the recovered processes.
     2. Falls back to `fetchMyActiveMplTimers(user.id)`. Cross-reference against `bar_sessions.last_seen_at` for this user's `mpl-widget` row: if `last_seen_at` is older than 5 minutes OR localStorage had a snapshot, treat as a crash.

@@ -5,8 +5,8 @@ import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import useMplRecovery from '../hooks/useMplRecovery.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
-import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam } from '../lib/api.js'
-import { saveSnapshot, clearSnapshot } from '../lib/mplRecoveryStorage.js'
+import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam, fetchMyActiveMplTimers, clearMplActiveTimer } from '../lib/api.js'
+import { saveSnapshot, clearSnapshot, loadSnapshot } from '../lib/mplRecoveryStorage.js'
 import MplPipBar from './MplPipBar.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
@@ -38,6 +38,8 @@ export default function MplApp() {
   const [connectionStatus, setConnectionStatus] = useState('connected')
   const [pipToast, setPipToast] = useState(null)
   const [launchError, setLaunchError] = useState(null)  // null | 'unsupported' | 'denied' | 'setup'
+  const [recoveredProcesses, setRecoveredProcesses] = useState([])
+  const recoveryCheckedRef = useRef(false)
 
   // ── Stats ──────────────────────────────────────────────────────────────
   const { processes: processCount, refetch } = useStats()
@@ -168,6 +170,117 @@ export default function MplApp() {
       if (processesRef.current.length === 0) clearSnapshot()
     }
   }, [])
+
+  // ── Recovery: cap elapsed to time-since-start ─────────────────────────
+  function capElapsed(p) {
+    const stored = p.elapsed ?? p.accumulated_seconds ?? 0
+    if (!p.startedAt) return stored
+    const sinceStart = Math.floor((Date.now() - new Date(p.startedAt).getTime()) / 1000)
+    return Math.min(stored, sinceStart)
+  }
+
+  // ── Recovery detection — runs once after user + categories load ────────
+  useEffect(() => {
+    if (!user?.id || categories.length === 0 || recoveryCheckedRef.current) return
+    recoveryCheckedRef.current = true
+
+    ;(async () => {
+      try {
+        const HOUR_MS = 60 * 60 * 1000
+        const snapshot = loadSnapshot(user.id)
+        let recovered = null
+
+        if (snapshot && snapshot.processes.length > 0 && Date.now() - snapshot.savedAt < HOUR_MS) {
+          recovered = snapshot.processes
+        } else {
+          const [{ data: timers }, { data: barRow }] = await Promise.all([
+            fetchMyActiveMplTimers(user.id),
+            supabase.from('bar_sessions').select('last_seen_at').eq('user_id', user.id).eq('widget_mode', 'mpl-widget').maybeSingle(),
+          ])
+          if (timers && timers.length > 0) {
+            const CRASH_MS = 5 * 60 * 1000
+            const lastSeen = barRow?.last_seen_at ? new Date(barRow.last_seen_at).getTime() : 0
+            const isStale = !lastSeen || Date.now() - lastSeen > CRASH_MS
+            if (isStale) {
+              recovered = timers.map(row => ({
+                id: row.process_id,
+                elapsed: row.accumulated_seconds ?? 0,
+                paused: row.status === 'paused',
+                categoryId: row.category_id,
+                subcategoryId: row.subcategory_id,
+                startedAt: row.started_at,
+              }))
+            }
+          }
+        }
+
+        if (!recovered || recovered.length === 0) return
+        setRecoveredProcesses(recovered)
+        if (!isOpen) {
+          const { width, height } = getMplSizeForState('idle', STAT_BUTTONS)
+          const result = await openPip({ width, height, position: 'bottom-right' })
+          if (result.ok) mountPipWindow(result.window)
+        }
+      } catch (err) {
+        console.warn('[Meridian MPL] Recovery detection failed:', err)
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, categories])
+
+  // ── Recovery handlers ──────────────────────────────────────────────────
+  function handleRecoveryResume() {
+    const restoredProcesses = recoveredProcesses.map(p => ({
+      id: p.id,
+      elapsed: capElapsed(p),
+      paused: false,
+      categoryId: p.categoryId,
+      subcategoryId: p.subcategoryId,
+      startedAt: p.startedAt,
+    }))
+    setProcesses(restoredProcesses)
+    setShowSwimlane(true)
+    restoredProcesses.forEach(p => startTimer(p.id))
+    setRecoveredProcesses([])
+    clearSnapshot()
+    showToast(`${restoredProcesses.length} timer${restoredProcesses.length > 1 ? 's' : ''} resumed`)
+  }
+
+  async function handleRecoveryLogNow() {
+    const categorized = recoveredProcesses.filter(p => p.categoryId)
+    const uncategorized = recoveredProcesses.filter(p => !p.categoryId)
+    for (const p of categorized) {
+      const minutes = Math.round(capElapsed(p) / 60) || 1
+      await safeWrite(logMplEntry({ userId: user.id, categoryId: p.categoryId, subcategoryId: p.subcategoryId, minutes, source: 'recovery' }))
+      clearMplActiveTimer(p.id)
+    }
+    clearSnapshot()
+    setRecoveredProcesses([])
+    if (categorized.length > 0) {
+      showToast(`Logged ${categorized.length} process${categorized.length > 1 ? 'es' : ''}`)
+      refetch()
+    }
+    if (uncategorized.length > 0) {
+      const restored = uncategorized.map(p => ({
+        id: p.id,
+        elapsed: capElapsed(p),
+        paused: true,
+        categoryId: null,
+        subcategoryId: null,
+        startedAt: p.startedAt,
+      }))
+      setProcesses(restored)
+      setShowSwimlane(true)
+      setChipStripProcessId(restored[0].id)
+      pin('categoryPicker')
+    }
+  }
+
+  function handleRecoveryDiscard() {
+    clearSnapshot()
+    recoveredProcesses.forEach(p => clearMplActiveTimer(p.id))
+    setRecoveredProcesses([])
+  }
 
   // ── Auth: fetch current session + listen for changes ──────────────────
   useEffect(() => {
@@ -475,6 +588,10 @@ export default function MplApp() {
         isMinimized={isMinimized}
         connectionStatus={connectionStatus}
         pipToast={pipToast}
+        recoveredProcesses={recoveredProcesses}
+        onRecoveryResume={handleRecoveryResume}
+        onRecoveryLogNow={handleRecoveryLogNow}
+        onRecoveryDiscard={handleRecoveryDiscard}
       />
     )
   }

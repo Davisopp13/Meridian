@@ -3,6 +3,7 @@ import ProcessesLane from '../components/ProcessesLane.jsx'
 import ProcessPill from '../components/ProcessPill.jsx'
 import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
+import RecoveryPrompt from './RecoveryPrompt.jsx'
 
 const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
 
@@ -55,6 +56,10 @@ export default function MplPipBar({
   isMinimized = false,
   connectionStatus = 'connected',
   pipToast = null,
+  recoveredProcesses = [],
+  onRecoveryResume,
+  onRecoveryLogNow,
+  onRecoveryDiscard,
   children,
 }) {
   const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
@@ -104,6 +109,7 @@ export default function MplPipBar({
       background: 'var(--bg-card)', boxShadow: 'var(--shadow-subtle)',
       border: '1px solid var(--border)', borderRadius: 12,
       overflow: 'hidden', height: '100%', minHeight: 0,
+      position: 'relative',
     }}>
       {/* ── Bar row ──────────────────────────────────────────────── */}
       <div style={{
@@ -299,6 +305,17 @@ export default function MplPipBar({
 
       {/* ── Overlay slot (ManualEntryForm) ─────────────────────────── */}
       {children}
+
+      {/* ── Recovery overlay — rendered on top of everything ─────── */}
+      {recoveredProcesses.length > 0 && (
+        <RecoveryPrompt
+          recoveredProcesses={recoveredProcesses}
+          categories={categories}
+          onResume={onRecoveryResume}
+          onLogNow={onRecoveryLogNow}
+          onDiscard={onRecoveryDiscard}
+        />
+      )}
     </div>
   )
 }

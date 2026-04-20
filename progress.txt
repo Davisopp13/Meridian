@@ -3069,3 +3069,29 @@ Learnings for future iterations:
   - elapsed field may come from localStorage snapshot (p.elapsed) or Supabase row (p.accumulated_seconds) — handle both with ?? fallback
   - getCategoryName() looks up category by id from the categories prop array
 ---
+
+## Iteration N - Task 10: Recovery detection + restoration logic
+- Added `recoveredProcesses` state and `recoveryCheckedRef` to MplApp.jsx
+- Added `loadSnapshot` import alongside existing `saveSnapshot`/`clearSnapshot` imports
+- Added `fetchMyActiveMplTimers`/`clearMplActiveTimer` imports to api.js import line
+- Recovery detection useEffect: gates on user + categories + recoveryCheckedRef; reads localStorage first (1-hour window), falls back to Supabase timer rows + bar_sessions staleness check (5-minute threshold)
+- If recovered: sets `recoveredProcesses` state; opens PiP if not already open
+- capElapsed() helper: caps stored elapsed at `min(stored, seconds since startedAt)` to prevent time fraud
+- handleRecoveryResume: restores processes array, restarts timers, clears snapshot + state
+- handleRecoveryLogNow: logs categorized ones via logMplEntry; uncategorized ones restored to processes + chip strip opened
+- handleRecoveryDiscard: calls clearSnapshot + clearMplActiveTimer for each, clears state
+- MplPipBar.jsx: added RecoveryPrompt import; added `position: 'relative'` to outer container; renders `<RecoveryPrompt>` overlay when `recoveredProcesses.length > 0`
+- npx vite build passes — ✓ built in 1.32s, 0 errors
+
+Files changed:
+  src/mpl/MplApp.jsx (imports, state, recoveryCheckedRef, capElapsed, recovery effect, 3 handlers, buildMplBar props)
+  src/mpl/MplPipBar.jsx (RecoveryPrompt import, position:relative, overlay render)
+  PRD.md (Task 10 marked [x])
+
+Learnings for future iterations:
+  - Recovery detection uses a ref guard (recoveryCheckedRef) not state to avoid extra re-renders
+  - capElapsed is critical: without it, a user could manually set their clock and get inflated time
+  - Supabase fallback: query fetchMyActiveMplTimers + bar_sessions in parallel with Promise.all
+  - MplPipBar outer container needs position:relative for RecoveryPrompt's position:absolute inset:0 to work
+  - onLogNow handles mixed case (some categorized, some not) — categorized logged immediately, uncategorized go to chip strip
+---
