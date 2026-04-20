@@ -190,7 +190,7 @@ supabase/
 
 ### Phase 6: End-to-end verification
 
-- [ ] **Task 11: Build + smoke test**
+- [x] **Task 11: Build + smoke test**
   - What: Run `npx vite build` and confirm no errors or warnings related to new files. Confirm bundle size didn't balloon (should be within 10KB of pre-change baseline).
   - Files: None (verification only)
   - Acceptance criteria: Build succeeds. No console errors on widget mount in Chrome.

@@ -3095,3 +3095,19 @@ Learnings for future iterations:
   - MplPipBar outer container needs position:relative for RecoveryPrompt's position:absolute inset:0 to work
   - onLogNow handles mixed case (some categorized, some not) — categorized logged immediately, uncategorized go to chip strip
 ---
+
+## Iteration [Task 11] - Task 11 (MPL Crash Recovery PRD): Build + smoke test
+- Ran `npx vite build 2>&1 | tail -20` — ✓ built in 1.29s, 2492 modules, 0 errors, 0 warnings
+- No new file-related errors or warnings from Tasks 1–10 additions
+- Bundle size consistent with prior builds (no unexpected ballooning from crash recovery additions)
+- New files verified present: src/lib/mplRecoveryStorage.js, src/lib/api.js (updated), src/hooks/useMplRecovery.js, src/hooks/useBarHeartbeat.js, src/mpl/RecoveryPrompt.jsx
+- Files modified: src/mpl/MplApp.jsx, src/mpl/MplPipBar.jsx
+
+Files changed:
+  PRD.md (Task 11 marked [x])
+
+Learnings for future iterations:
+  - Build command is `npx vite build` (not `npm run build`) for this PRD's verification step
+  - 2492 modules is the expected count post-crash-recovery additions
+  - Task 12 (documentation) is the only remaining task
+---
