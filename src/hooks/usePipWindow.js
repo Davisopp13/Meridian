@@ -164,17 +164,15 @@ export function usePipWindow() {
       resizeScript.textContent = `
         window.addEventListener('__mResize', function(e) {
           var d = e.detail;
-          console.log('[MERIDIAN DIAG] __mResize listener fired from stateKey=' + (d.stateKey || 'unknown'), d);
           try {
             window.resizeTo(d.w, d.h);
-            console.log('[MERIDIAN DIAG] resizeTo succeeded for stateKey=' + (d.stateKey || 'unknown'), d.w, d.h, '-> actual:', window.innerWidth, window.innerHeight);
           } catch(err) {
-            console.error('[MERIDIAN DIAG] resizeTo threw for stateKey=' + (d.stateKey || 'unknown') + ':', err.name, err.message);
+            console.warn('[Meridian] PiP resizeTo failed:', err.name, err.message);
           }
           try {
             window.moveTo(d.x, d.y);
           } catch(err) {
-            console.error('[MERIDIAN DIAG] moveTo threw:', err.name, err.message);
+            console.warn('[Meridian] PiP moveTo failed:', err.name, err.message);
           }
         });
       `;
@@ -234,7 +232,7 @@ export function usePipWindow() {
     pw.document.body.style.background = theme === 'light' ? '#f1f5f9' : '#0f1117';
   }, []);
 
-  const resizeAndPin = useCallback((size, position = 'bottom-right', stateKey = 'unknown') => {
+  const resizeAndPin = useCallback((size, position = 'bottom-right') => {
     const pw = pipWindowRef.current;
     if (!pw || !size) {
       console.warn('resizeAndPin called but pipWindow or size is null');
@@ -263,12 +261,10 @@ export function usePipWindow() {
     // when the user clicks inside the PiP widget).  A direct pw.resizeTo()
     // call from the opener context fails silently because Chrome checks the
     // caller's browsing context for activation, not the target window's.
-    console.log('[MERIDIAN DIAG] resizeAndPin dispatching', { width, height, x, y, pwAlive: !pw.closed });
     try {
-      pw.dispatchEvent(new pw.CustomEvent('__mResize', { detail: { w: width, h: height, x, y, stateKey } }));
-      console.log('[MERIDIAN DIAG] dispatchEvent returned');
+      pw.dispatchEvent(new pw.CustomEvent('__mResize', { detail: { w: width, h: height, x, y } }));
     } catch (e) {
-      console.error('[MERIDIAN DIAG] dispatchEvent threw:', e.name, e.message);
+      console.warn('[Meridian] PiP resize dispatch failed:', size, e);
     }
   }, []);
 

@@ -71,16 +71,12 @@ export default function MplApp() {
   // ── Sizing helpers ────────────────────────────────────────────────────
   function pin(stateKey) {
     const { width, height } = getMplSizeForState(stateKey, STAT_BUTTONS)
-    console.log('[MERIDIAN DIAG] pin called', stateKey, { width, height })
-    console.trace('[MERIDIAN DIAG] pin call stack for', stateKey)
-    resizeAndPin({ width, height }, 'bottom-right', stateKey)
+    resizeAndPin({ width, height }, 'bottom-right')
   }
 
   function pinActive() {
     const width = getMplBarWidth('timerActive', STAT_BUTTONS)
-    console.log('[MERIDIAN DIAG] pinActive called', { width, height: 64 + SWIMLANE_H })
-    console.trace('[MERIDIAN DIAG] pinActive call stack')
-    resizeAndPin({ width, height: 64 + SWIMLANE_H }, 'bottom-right', 'active')
+    resizeAndPin({ width, height: 64 + SWIMLANE_H }, 'bottom-right')
   }
 
   // ── Timer helpers ─────────────────────────────────────────────────────

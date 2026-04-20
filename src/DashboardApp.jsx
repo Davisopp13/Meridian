@@ -156,16 +156,12 @@ export default function DashboardApp() {
   // ── MPL sizing helpers ──────────────────────────────────────────────────
   function pin(stateKey) {
     const { width, height } = getMplSizeForState(stateKey, STAT_BUTTONS)
-    console.log('[MERIDIAN DIAG Dashboard] pin called', stateKey, { width, height })
-    console.trace('[MERIDIAN DIAG Dashboard] pin call stack for', stateKey)
-    resizeAndPinMpl({ width, height }, userSettingsRef.current.pip_position, stateKey)
+    resizeAndPinMpl({ width, height }, userSettingsRef.current.pip_position)
   }
 
   function pinActive() {
     const width = getMplBarWidth('timerActive', STAT_BUTTONS)
-    console.log('[MERIDIAN DIAG Dashboard] pinActive called', { width, height: 64 + SWIMLANE_H })
-    console.trace('[MERIDIAN DIAG Dashboard] pinActive call stack')
-    resizeAndPinMpl({ width, height: 64 + SWIMLANE_H }, userSettingsRef.current.pip_position, 'active')
+    resizeAndPinMpl({ width, height: 64 + SWIMLANE_H }, userSettingsRef.current.pip_position)
   }
 
   // ── Process timer helpers ───────────────────────────────────────────────
