@@ -260,18 +260,27 @@ export default function MplApp() {
     else pin('idle')
   }
 
-  // Quick Log — opens chip strip in untimed mode (same 108px height)
-  async function handleQuickLog() {
-    if (chipStripProcessId) setChipStripProcessId(null)  // mutual exclusivity
-    if (!isOpen) {
-      const size = getMplSizeForState('categoryPicker', STAT_BUTTONS)
-      const result = await openPip({ ...size, position: 'bottom-right' })
-      if (!result.ok) { showToast('Could not open widget — try again'); return }
-      mountPipWindow(result.window)
-      setTimeout(() => { try { window.close() } catch (e) {} }, 300)
-    } else {
+  // Quick Log — opens ManualEntryForm in PiP window
+  function handleQuickLog() {
+    // Fast path: widget is already open. Fully synchronous so resizeTo runs
+    // inside the click's user activation window.
+    if (isOpen) {
+      if (chipStripProcessId) setChipStripProcessId(null)
+      setQuickLogOpen(true)
       pin('categoryPicker')
+      return
     }
+    // Slow path: widget not yet open. Must await openPip.
+    handleQuickLogColdStart()
+  }
+
+  async function handleQuickLogColdStart() {
+    if (chipStripProcessId) setChipStripProcessId(null)
+    const size = getMplSizeForState('categoryPicker', STAT_BUTTONS)
+    const result = await openPip({ ...size, position: 'bottom-right' })
+    if (!result.ok) { showToast('Could not open widget — try again'); return }
+    mountPipWindow(result.window)
+    setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     setQuickLogOpen(true)
   }
 
