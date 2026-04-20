@@ -122,7 +122,7 @@ src/
   - **Acceptance:** Dropdown renders. Selecting a team fires `onChange(teamId)`. Selecting "All teams" fires `onChange(null)`. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 8: Make agent names clickable in `AgentHandleTimePanel`**
+- [x] **Task 8: Make agent names clickable in `AgentHandleTimePanel`**
   - **What to build:** Locate the agent name render at approximately line 133 of `src/components/insights/AgentHandleTimePanel.jsx` (`{agent?.full_name || agent?.email || agentId}`). Wrap it in a `<button>` with link-style appearance — no background, Hapag Orange (`#E8540A`) text on hover, underline on hover, cursor pointer. Accept a new optional prop `onAgentClick(agentId)` and call it on click. If `onAgentClick` is not provided, render as plain text (current behavior).
   - **Files to modify:** `src/components/insights/AgentHandleTimePanel.jsx`
   - **Acceptance:** When `onAgentClick` is passed, agent names are clickable. When it's not, they render as before. Build passes.

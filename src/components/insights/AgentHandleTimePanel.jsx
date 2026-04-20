@@ -63,7 +63,7 @@ function inferActiveDays(stats) {
   return Math.max(1, Math.round(total / 5));
 }
 
-export default function AgentHandleTimePanel({ perAgentStats }) {
+export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
   const [sortKey, setSortKey] = useState('casesPerHour');
   const [sortDir, setSortDir] = useState('desc');
 
@@ -130,7 +130,27 @@ export default function AgentHandleTimePanel({ perAgentStats }) {
               {sorted.map(({ agentId, agent, stats, casesPerHour }) => (
                 <tr key={agentId} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '8px 12px', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}>
-                    {agent?.full_name || agent?.email || agentId}
+                    {onAgentClick ? (
+                      <button
+                        onClick={() => onAgentClick(agentId)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          font: 'inherit',
+                          fontSize: 14,
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          textDecoration: 'none',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.color = '#E8540A'; e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.textDecoration = 'none'; }}
+                      >
+                        {agent?.full_name || agent?.email || agentId}
+                      </button>
+                    ) : (
+                      agent?.full_name || agent?.email || agentId
+                    )}
                   </td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#16a34a' }}>{stats.resolved ?? 0}</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#dc2626' }}>{stats.reclass ?? 0}</td>

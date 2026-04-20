@@ -3300,3 +3300,20 @@ Learnings for future iterations:
   - prevInsights?.perAgentStats can be null/undefined — always guard with `|| {}`
   - Task 7 (TeamFilterDropdown) is a natural dependency of Task 6 — safe to combine in one iteration
 ---
+
+## Iteration Insights-7 - Task 8 (Insights 3-Tab PRD): Make agent names clickable in AgentHandleTimePanel
+
+- Added `onAgentClick` prop to `AgentHandleTimePanel`
+- Wrapped agent name td content: if `onAgentClick` provided, renders a `<button>` with link-style — no bg/border, cursor pointer, Hapag Orange + underline on hover via `onMouseEnter`/`onMouseLeave`
+- If `onAgentClick` not provided, renders plain text (unchanged behavior)
+- `npm run build` passes — 2497 modules, 0 errors
+
+Files changed:
+  src/components/insights/AgentHandleTimePanel.jsx
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - Use onMouseEnter/onMouseLeave on inline-styled buttons to achieve hover effects (no CSS class available)
+  - Button inherits font via `font: 'inherit'` — important for matching surrounding text size
+  - `onAgentClick` is already wired from OverviewTab via InsightsTab.handleAgentClick — no further changes needed
+---
