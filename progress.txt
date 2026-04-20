@@ -3111,3 +3111,65 @@ Learnings for future iterations:
   - 2492 modules is the expected count post-crash-recovery additions
   - Task 12 (documentation) is the only remaining task
 ---
+
+## Iteration [Task 12] - Task 12 (MPL Crash Recovery PRD): Documentation
+
+## MPL Crash Recovery (PRD 009)
+
+### Files Added
+- `supabase/migrations/009_mpl_crash_recovery.sql` — schema migration (applied manually via Supabase SQL Editor)
+- `src/lib/mplRecoveryStorage.js` — localStorage read/write helpers (key: `meridian.mpl.active.v1`)
+- `src/hooks/useMplRecovery.js` — debounced 10s Supabase sync + process delete on removal
+- `src/hooks/useBarHeartbeat.js` — 30s heartbeat upsert to `bar_sessions`
+- `src/mpl/RecoveryPrompt.jsx` — "Resume / Log now / Discard" overlay component
+
+### Files Modified
+- `src/lib/api.js` — added `upsertMplActiveTimer`, `clearMplActiveTimer`, `fetchMyActiveMplTimers`
+- `src/mpl/MplApp.jsx` — integrated all hooks, recovery detection on mount, beforeunload flush
+- `src/mpl/MplPipBar.jsx` — renders `<RecoveryPrompt />` when `recoveredProcesses.length > 0`
+
+### Storage Keys Introduced
+- `meridian.mpl.active.v1` — localStorage key; JSON payload: `{ userId, savedAt, processes: [{ id, elapsed, paused, categoryId, subcategoryId, startedAt }] }`
+- Stale threshold: 24 hours (STALE_THRESHOLD_MS)
+- Crash threshold: snapshot older than 1 hour triggers recovery prompt
+
+### New Supabase Columns (migration 009)
+**`mpl_active_timers`**:
+- `process_id` text — UUID from `crypto.randomUUID()`, used as upsert conflict key
+- `subcategory_id` uuid nullable
+- `accumulated_seconds` integer default 0
+- `updated_at` timestamptz default now()
+
+**`bar_sessions`**:
+- `last_seen_at` timestamptz default now()
+- `widget_mode` text (values: `'mpl-widget'` | `'ct-widget'` | `'legacy'`)
+
+**Indexes added**:
+- `idx_mpl_active_timers_user` on `mpl_active_timers(user_id, updated_at DESC)`
+- `idx_bar_sessions_user_mode` unique on `bar_sessions(user_id, widget_mode)` (required for upsert onConflict)
+
+### How to Manually Trigger Recovery for Testing
+1. Open the MPL widget in Chrome DevTools
+2. Start an MPL timer (any category)
+3. Verify localStorage: `localStorage.getItem('meridian.mpl.active.v1')` — should show process with elapsed time
+4. Kill the PiP window via DevTools → Application tab → Storage → Clear Session Storage (do NOT use graceful X; instead force-kill via Task Manager or `document.pictureInPictureElement.close()` from console without letting beforeunload fire cleanly)
+5. Alternatively: simulate crash by navigating to Application → Local Storage, edit `savedAt` to a recent timestamp, then reload the page — recovery prompt should appear immediately
+6. On reopen, `<RecoveryPrompt />` renders with accumulated time and category name
+7. Test all three buttons: Resume (restores timer), Log now (calls logMplEntry), Discard (clears storage)
+
+### Known Limitations
+- **Windows Update / OS force-kill**: `beforeunload` does NOT fire on OS-level kill (e.g., Windows Update forcing browser shutdown). In this case, only the localStorage snapshot (written every tick) is the safety net. The Supabase `mpl_active_timers` row may be up to 10 seconds stale, but localStorage is authoritative and should be < 1 second stale.
+- **sendBeacon on graceful close**: fires for tab close, window close, browser quit via File → Exit. Does not fire for process kill (`kill -9`, Task Manager end process).
+- **No cross-device sync UI**: if the same user opens Meridian on a second machine while a session is active on another, recovery prompt will show on whichever they open next. This is acceptable behavior per PRD scope.
+
+---
+
+Files changed:
+  progress.txt (this section)
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - Documentation tasks should include enough detail for a new developer to understand the system without reading all prior iterations
+  - Storage key naming convention: `meridian.<domain>.<feature>.v<version>` for easy namespace management
+  - Always document the "known limitations" — they set correct expectations and prevent re-investigating non-bugs
+---

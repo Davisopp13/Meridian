@@ -196,7 +196,7 @@ supabase/
   - Acceptance criteria: Build succeeds. No console errors on widget mount in Chrome.
   - Test: `npx vite build 2>&1 | tail -20` — shows "✓ built in" message, no red errors.
 
-- [ ] **Task 12: Document in progress.txt**
+- [x] **Task 12: Document in progress.txt**
   - What: Append a summary to `progress.txt`:
     - Files added
     - Storage keys introduced (`meridian.mpl.active.v1`)
