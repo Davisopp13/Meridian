@@ -86,7 +86,7 @@ src/
 
 ### Phase 2: Tab shell on Insights
 
-- [ ] **Task 4: Create `InsightsTabs.jsx` — the 3-tab strip**
+- [x] **Task 4: Create `InsightsTabs.jsx` — the 3-tab strip**
   - **What to build:** A stateless presentational component that renders three pill tabs — "Overview", "Activity Log", "Reports" — matching the existing `tabStyle()` pattern from `InsightsTab.jsx`. Props: `{ activeTab, onTabChange }` where `activeTab` is `'overview' | 'activity' | 'reports'`.
   - Use the same `var(--color-mmark)` for the active pill, same `tabStyle` shape. Tabs sit directly under the period selector on Insights.
   - **Files to create:** `src/components/insights/InsightsTabs.jsx`

@@ -3215,6 +3215,23 @@ Learnings for future iterations:
   - `EditModal` guard also needed even though icon is hidden — defensive in case someone calls setEditingEntry from outside
 ---
 
+## Iteration Insights-4 - Task 4 (Insights 3-Tab PRD): Create InsightsTabs.jsx — 3-tab strip
+
+- Created `src/components/insights/InsightsTabs.jsx`
+- Stateless presentational component with three pill tabs: Overview, Activity Log, Reports
+- Uses same `tabStyle()` pattern from `InsightsTab.jsx` (active pill: `var(--color-mmark)`, inactive: translucent bg)
+- Props: `{ activeTab, onTabChange }` — clicking fires `onTabChange(key)`
+- `npm run build` passes — 2492 modules, 0 errors
+
+Files changed:
+  src/components/insights/InsightsTabs.jsx (created)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - `tabStyle()` uses `useTheme()` for light/dark background switching — import ThemeContext
+  - Tab keys are 'overview', 'activity', 'reports'
+---
+
 ## Iteration Insights-3 - Task 3 (Insights 3-Tab PRD): Accept userIds on ActivityLog and forward to hook
 
 - Updated `ActivityLog` signature from `({ userId, allowMutations = true })` to `({ userId, userIds, allowMutations = true })`
