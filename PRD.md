@@ -71,7 +71,7 @@ src/
   - **Acceptance:** Hook accepts either `{ userId }` or `{ userIds }` and returns correct data. Existing call sites (`<ActivityLog userId={user.id} />`) continue to work. Build passes. `grep -n "useActivityData" src/` shows the existing agent call site still compiles.
   - **Test:** `npm run build` completes with zero errors.
 
-- [ ] **Task 2: Add `allowMutations` prop to `ActivityLog`**
+- [x] **Task 2: Add `allowMutations` prop to `ActivityLog`**
   - **What to build:** Add an optional prop `allowMutations` (boolean, default `true`) to `ActivityLog`. When `false`, hide or disable any edit/delete buttons, RFC toggles, and exclusion toggles on rendered rows. The personal Dashboard call site passes nothing and gets the default (mutations allowed). The Insights call site will pass `allowMutations={false}`.
   - Locate all interactive elements in `ActivityLog.jsx` that call `editEntry`, `deleteEntry`, RFC toggle, exclusion toggle, or similar mutations. Wrap them in `{allowMutations && ...}` or set `disabled` + add a muted tooltip "View only".
   - **Files to modify:** `src/components/ActivityLog.jsx`

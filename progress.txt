@@ -3173,3 +3173,44 @@ Learnings for future iterations:
   - Storage key naming convention: `meridian.<domain>.<feature>.v<version>` for easy namespace management
   - Always document the "known limitations" — they set correct expectations and prevent re-investigating non-bugs
 ---
+
+## Iteration Insights-1 - Task 1 (Insights 3-Tab PRD): Generalize useActivityData to accept userIds array
+
+- Changed hook signature to `useActivityData({ userId, userIds, rangeDays })`
+- Normalization: if `userIds` is present and non-empty use it; else wrap `userId` string into `[userId]`
+- Added `userIdsKey = resolvedIds.join(',')` memoized at top; used in all dep arrays
+- Changed `.eq('user_id', userId)` → `.in('user_id', resolvedIds)` in both fetch queries
+- Added `user_id` to both select queries and both normalize functions so entries carry their owner
+- Mutation guards (`editEntry`, `deleteEntry`) now use `entry.user_id` instead of hook-scope `userId`
+- Realtime channel name: `activity-${resolvedIds.join('-').slice(0, 50)}-${rangeDays}`
+- Realtime filter: `user_id=in.(${userIdsKey})`
+- `npm run build` passes — 2492 modules, 0 errors
+
+Files changed:
+  src/hooks/useActivityData.js
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - `resolvedIds` must be computed OUTSIDE the useCallback/useEffect (at component top level) to be stable for dep comparisons
+  - Supabase realtime supports `user_id=in.(uuid1,uuid2)` filter syntax — tested in build
+  - Mutation guards switched from hook-scope userId to entry.user_id — this is critical for RLS correctness when multi-user mode is used
+  - eslint-disable comments needed on two useEffect/useCallback where resolvedIds is used as closure dep (not in dep array to avoid identity churn)
+---
+
+## Iteration Insights-2 - Task 2 (Insights 3-Tab PRD): Add allowMutations prop to ActivityLog
+
+- Added `allowMutations = true` to `ActivityLog` function signature
+- Passed `allowMutations` down to `EntryRow` component
+- In `EntryRow`: wrapped edit icon in `{allowMutations && ...}` — icon disappears entirely when false
+- In `ActivityLog`: guarded `EditModal` render with `allowMutations && editingEntry`
+- `npm run build` passes — 2492 modules, 0 errors
+
+Files changed:
+  src/components/ActivityLog.jsx
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - `EntryRow` is defined outside `ActivityLog` to avoid hooks-in-loop — remember to pass new props explicitly
+  - Edit icon is hover-only (opacity 0→0.6), so `allowMutations={false}` removes it completely without layout shift (the 28px slot is also hidden)
+  - `EditModal` guard also needed even though icon is hidden — defensive in case someone calls setEditingEntry from outside
+---

@@ -612,7 +612,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
 }
 
 // Defined outside ActivityLog to avoid hooks-in-loop
-function EntryRow({ entry, onEdit, C }) {
+function EntryRow({ entry, onEdit, allowMutations, C }) {
   const [hovered, setHovered] = useState(false);
   const ts = TYPE_STYLE[entry.type] || { color: C.textMuted, bg: 'transparent', border: C.border };
 
@@ -711,27 +711,29 @@ function EntryRow({ entry, onEdit, C }) {
         </span>
       </div>
 
-      {/* Edit icon — hover only */}
-      <div
-        style={{
-          width: 28,
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          opacity: hovered ? 0.6 : 0,
-          transition: 'opacity 120ms',
-          cursor: 'pointer',
-        }}
-        onClick={() => onEdit(entry)}
-      >
-        <span style={{ fontSize: 13, color: C.textSecondary }}>✎</span>
-      </div>
+      {/* Edit icon — hover only, hidden when mutations disabled */}
+      {allowMutations && (
+        <div
+          style={{
+            width: 28,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: hovered ? 0.6 : 0,
+            transition: 'opacity 120ms',
+            cursor: 'pointer',
+          }}
+          onClick={() => onEdit(entry)}
+        >
+          <span style={{ fontSize: 13, color: C.textSecondary }}>✎</span>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function ActivityLog({ userId }) {
+export default function ActivityLog({ userId, allowMutations = true }) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const C = {
@@ -906,7 +908,7 @@ export default function ActivityLog({ userId }) {
         </div>
       </div>
 
-      {editingEntry && (
+      {allowMutations && editingEntry && (
         <EditModal
           entry={editingEntry}
           onClose={() => setEditingEntry(null)}
@@ -945,7 +947,7 @@ export default function ActivityLog({ userId }) {
               key={entry.id}
               style={{ opacity: isVisible(entry) ? 1 : 0.15, transition: 'opacity 150ms' }}
             >
-              <EntryRow entry={entry} onEdit={setEditingEntry} C={C} />
+              <EntryRow entry={entry} onEdit={setEditingEntry} allowMutations={allowMutations} C={C} />
             </div>
           ))
         )}
