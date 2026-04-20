@@ -3353,3 +3353,19 @@ Learnings for future iterations:
   - ActivityLog accepts { userIds, allowMutations } — forward both from ActivityLogTab
   - Empty-state guard on agents array length before rendering log
 ---
+
+## Iteration Insights-10 - Task 11 (Insights 3-Tab PRD): Wire click-through from Overview to Activity Log
+
+- Verified end-to-end wiring was already complete from Task 5:
+  - `handleAgentClick(agentId)` in InsightsTab.jsx sets `activityAgentFilter` + `activeTab = 'activity'`
+  - `onAgentClick={handleAgentClick}` passed to OverviewTab → AgentHandleTimePanel
+  - `selectedAgentId={activityAgentFilter}` passed to ActivityLogTab → AgentFilterStrip
+- No code changes required — verification-only task
+- `npm run build` passes — 2498 modules, 0 errors
+
+Files changed:
+  PRD.md (Task 11 marked [x])
+
+Learnings for future iterations:
+  - Task 11 was already wired in Task 5; future tasks that say "verify only" may be pure smoke-check iterations
+---

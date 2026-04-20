@@ -149,7 +149,7 @@ src/
   - **Acceptance:** Tab renders the agent filter strip over the existing `ActivityLog`. Selecting an agent narrows the log. Selecting "All agents" shows the full team feed. Mutation UI is hidden. Build passes.
   - **Test:** `npm run build`. Run `npm run dev`, log in as Davis, navigate to Insights → Activity Log, verify multiple agents' events appear and the filter strip narrows them.
 
-- [ ] **Task 11: Wire click-through from Overview to Activity Log**
+- [x] **Task 11: Wire click-through from Overview to Activity Log**
   - **What to build:** In `InsightsTab.jsx` (already modified in Task 5), confirm `handleAgentClick(agentId)` is wired. Verify that clicking an agent name in the Overview's `AgentHandleTimePanel` sets `activityAgentFilter = agentId` and `activeTab = 'activity'`.
   - Smoke-check: clicking an agent on Overview should land the user on the Activity Log tab with that agent's chip highlighted in `AgentFilterStrip` and only their events showing.
   - **Files to modify:** `src/components/InsightsTab.jsx` (may already be done in Task 5 — if so, mark complete after verification)
