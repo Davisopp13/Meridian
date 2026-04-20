@@ -3317,3 +3317,22 @@ Learnings for future iterations:
   - Button inherits font via `font: 'inherit'` — important for matching surrounding text size
   - `onAgentClick` is already wired from OverviewTab via InsightsTab.handleAgentClick — no further changes needed
 ---
+
+## Iteration Insights-8 - Task 9 (Insights 3-Tab PRD): Create AgentFilterStrip.jsx
+
+- Created `src/components/insights/AgentFilterStrip.jsx`
+- Chip row: "All agents" chip + one chip per agent (first name + last initial, full name as tooltip)
+- Active chip: Hapag Orange background (#E8540A); inactive: translucent dark with orange hover
+- Chips wrap to second line when > ~8 agents (flexWrap)
+- Props: `{ agents, selectedAgentId, onChange }` — clicking fires `onChange(agentId)` or `onChange(null)`
+- `npm run build` passes — 2497 modules, 0 errors
+
+Files changed:
+  src/components/insights/AgentFilterStrip.jsx (created)
+  PRD.md (Task 9 marked [x])
+
+Learnings for future iterations:
+  - Use `onMouseEnter`/`onMouseLeave` + local `useState(false)` per Chip for hover effects (inline styles only)
+  - `chipLabel()` extracts first name + last initial: `parts[0] + ' ' + parts[last][0] + '.'`
+  - agents array shape: `{ id, full_name, email, team_id }` — guard against missing full_name with fallback to email
+---

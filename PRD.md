@@ -130,7 +130,7 @@ src/
 
 ### Phase 4: Activity Log tab
 
-- [ ] **Task 9: Create `AgentFilterStrip.jsx`**
+- [x] **Task 9: Create `AgentFilterStrip.jsx`**
   - **What to build:** A horizontal chip row above or at the top of the Activity Log body. First chip is "All agents" (active when `selectedAgentId === null`). Subsequent chips are each agent's first name + last initial (e.g., "Wanda K.") with the agent's full name as the `title` tooltip. Active chip uses Hapag Orange background; inactive chips match the existing dark-theme chip style in `ActivityLog.jsx`.
   - Props: `{ agents, selectedAgentId, onChange }`. `agents` is the array from `insights.agents`.
   - If there are more than ~8 agents, let the row wrap to a second line. Do not add a horizontal scroller in v1.
