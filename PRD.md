@@ -107,7 +107,7 @@ src/
 
 ### Phase 3: Overview enhancements
 
-- [ ] **Task 6: Create `OverviewTab.jsx` wrapping existing panels**
+- [x] **Task 6: Create `OverviewTab.jsx` wrapping existing panels**
   - **What to build:** Move the existing panel-render block from `InsightsTab.jsx` into `src/components/insights/OverviewTab.jsx`. Props: `{ insights, prevInsights, onAgentClick, selectedTeamId, onTeamChange }`.
   - At the top of the tab body, render a row with `<TeamFilterDropdown teams={insights.teams} selectedTeamId={selectedTeamId} onChange={onTeamChange} />` on the left.
   - Filter the agents passed to child panels: if `selectedTeamId` is set, filter `insights.agents` and `insights.perAgentStats` to that team before handing to panels. If `null` (All Teams), pass through unchanged.
@@ -116,7 +116,7 @@ src/
   - **Acceptance:** Overview tab renders the 4 panels exactly as before. Team filter dropdown appears at the top. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 7: Create `TeamFilterDropdown.jsx`**
+- [x] **Task 7: Create `TeamFilterDropdown.jsx`**
   - **What to build:** A `<select>` styled to match the period selector aesthetic. Props: `{ teams, selectedTeamId, onChange }`. First option is "All teams" with value `''` (empty). Subsequent options are each team's `name` with value `id`. Use inline styles matching the existing Admin filters (`SELECT_STYLE` pattern in `AdminTab.jsx`) adapted for the dark Insights background.
   - **Files to create:** `src/components/insights/TeamFilterDropdown.jsx`
   - **Acceptance:** Dropdown renders. Selecting a team fires `onChange(teamId)`. Selecting "All teams" fires `onChange(null)`. Build passes.

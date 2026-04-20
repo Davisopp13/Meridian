@@ -3271,3 +3271,32 @@ Learnings for future iterations:
   - Stubs for ActivityLogTab and ReportsTab accept the full prop interface so Task 10/12 can fill in without changing call sites
   - handleAgentClick wiring is already in InsightsTab — Task 11 just needs to verify end-to-end
 ---
+
+## Iteration Insights-6 - Task 6 (Insights 3-Tab PRD): Create OverviewTab.jsx wrapping existing panels
+
+- Updated `src/components/insights/OverviewTab.jsx` with full implementation:
+  - Added `TeamFilterDropdown` at top of tab body
+  - Added `computeTeamTotals(perAgentStats)` helper to re-aggregate totals from filtered agents
+  - Filters `agents` and `perAgentStats` by `selectedTeamId` when set; passes through unchanged when null
+  - Re-computes `teamTotals` from filtered stats when team filter is active
+  - Also filters `prevInsights.perAgentStats` for TrendComparisonPanel
+  - Passes `onAgentClick` to `AgentHandleTimePanel` (used by Task 8)
+- Created `src/components/insights/TeamFilterDropdown.jsx`:
+  - `<select>` with CSS vars for dark Insights theme
+  - Props: `{ teams, selectedTeamId, onChange }`
+  - "All teams" option fires `onChange(null)`; team options fire `onChange(teamId)`
+- Task 7 (TeamFilterDropdown) was created alongside Task 6 since it's a build dependency — marked both [x]
+- `npm run build` passes — 2497 modules, 0 errors
+
+Files changed:
+  src/components/insights/OverviewTab.jsx (full implementation replacing stub)
+  src/components/insights/TeamFilterDropdown.jsx (created)
+  PRD.md (Tasks 6 and 7 marked [x])
+
+Learnings for future iterations:
+  - agents have `team_id` field (from `fetchTeamAgents` which selects `id, email, full_name, team_id`)
+  - When filtering perAgentStats, use `new Set(filteredAgents.map(a => a.id))` for O(1) lookup
+  - teamTotals must be re-computed from filtered perAgentStats when team filter is active — use computeTeamTotals helper
+  - prevInsights?.perAgentStats can be null/undefined — always guard with `|| {}`
+  - Task 7 (TeamFilterDropdown) is a natural dependency of Task 6 — safe to combine in one iteration
+---
