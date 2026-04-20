@@ -154,7 +154,7 @@ supabase/
 
 ### Phase 5: Graceful-close flush + Recovery UI
 
-- [ ] **Task 8: `beforeunload` sendBeacon flush**
+- [x] **Task 8: `beforeunload` sendBeacon flush**
   - What: In `src/mpl/MplApp.jsx`, add a `useEffect` that attaches a `beforeunload` handler to the PiP window (and the main window as fallback). The handler:
     - Reads current `processes` from `processesRef.current`
     - For each active process, calls `navigator.sendBeacon(url, blob)` where the URL is the Supabase REST endpoint for `mpl_active_timers` and blob is a JSON payload upserting the current state

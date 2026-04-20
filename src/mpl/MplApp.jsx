@@ -20,7 +20,7 @@ const STAT_BUTTONS = ['processes', 'total']
 const SWIMLANE_H = 220   // px — tray height below the bar row
 
 export default function MplApp() {
-  const { isOpen, openPip, resizeAndPin, pipRootRef } = usePipWindow()
+  const { isOpen, openPip, resizeAndPin, pipRootRef, pipWindow } = usePipWindow()
 
   // ── Auth state ─────────────────────────────────────────────────────────
   const [user, setUser] = useState(null)
@@ -49,11 +49,71 @@ export default function MplApp() {
   const processesRef = useRef(processes)
   useEffect(() => { processesRef.current = processes }, [processes])
 
+  const userIdRef = useRef(null)
+  const accessTokenRef = useRef(null)
+  useEffect(() => { userIdRef.current = user?.id ?? null }, [user])
+  useEffect(() => {
+    if (!user) { accessTokenRef.current = null; return }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      accessTokenRef.current = session?.access_token ?? null
+    })
+  }, [user])
+
   // ── Snapshot processes to localStorage on every change ────────────────
   useEffect(() => {
     if (!user?.id) return
     saveSnapshot(user.id, processes)
   }, [user, processes])
+
+  // ── beforeunload sendBeacon flush ─────────────────────────────────────
+  const flushHandlerRef = useRef(null)
+  useEffect(() => {
+    function flushProcesses() {
+      const procs = processesRef.current
+      if (!procs.length) return
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+      const userId = userIdRef.current
+      const token = accessTokenRef.current
+      if (!supabaseUrl || !userId || !token) return
+      const url = `${supabaseUrl}/rest/v1/mpl_active_timers`
+      procs.forEach(proc => {
+        const payload = JSON.stringify([{
+          process_id: proc.id,
+          user_id: userId,
+          accumulated_seconds: proc.elapsed,
+          status: proc.paused ? 'paused' : 'running',
+          updated_at: new Date().toISOString(),
+        }])
+        const blob = new Blob([payload], { type: 'application/json' })
+        const sent = navigator.sendBeacon(`${url}?on_conflict=process_id`, blob)
+        if (!sent) {
+          fetch(`${url}?on_conflict=process_id`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': anonKey,
+              'Authorization': `Bearer ${token}`,
+              'Prefer': 'resolution=merge-duplicates,return=minimal',
+            },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {})
+        }
+      })
+    }
+    flushHandlerRef.current = flushProcesses
+    window.addEventListener('beforeunload', flushProcesses)
+    return () => window.removeEventListener('beforeunload', flushProcesses)
+  }, [])
+
+  useEffect(() => {
+    if (!pipWindow) return
+    const pw = pipWindow
+    const handler = () => flushHandlerRef.current?.()
+    pw.addEventListener('beforeunload', handler)
+    return () => pw.removeEventListener('beforeunload', handler)
+  }, [pipWindow])
 
   // ── Toast helper ──────────────────────────────────────────────────────
   function showToast(message) {
