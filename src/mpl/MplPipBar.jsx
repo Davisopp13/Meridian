@@ -50,6 +50,7 @@ export default function MplPipBar({
   quickLogOpen = false,
   onQuickLogConfirm,
   onQuickLogCancel,
+  onQuickLogStepChange,
   onMinimize,
   onRestore,
   isMinimized = false,
@@ -277,6 +278,7 @@ export default function MplPipBar({
           processElapsed={null}
           onConfirm={(catId, subId, minutes) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes)}
           onCancel={() => onQuickLogCancel && onQuickLogCancel()}
+          onStepChange={onQuickLogStepChange}
         />
       )}
 

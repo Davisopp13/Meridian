@@ -17,7 +17,7 @@ import { formatElapsed } from '../lib/constants.js';
  */
 const DURATION_VALUES = [5, 10, 15, 20, 30, 45, 60];
 
-export default function CategoryChipStrip({ categories = [], processElapsed = 0, onConfirm, onCancel }) {
+export default function CategoryChipStrip({ categories = [], processElapsed = 0, onConfirm, onCancel, onStepChange }) {
   const [step, setStep] = useState('category'); // 'category' | 'subcategory' | 'duration'
   const [activeCat, setActiveCat] = useState(null);
   const [activeSub, setActiveSub] = useState(null);
@@ -28,11 +28,16 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
 
   // ── Shared back handler — always returns to category step ──────────────
   function handleBack() {
-    setStep('category');
+    goToStep('category');
     setActiveCat(null);
     setActiveSub(null);
     setCustomInputActive(false);
     setCustomValue('');
+  }
+
+  function goToStep(nextStep) {
+    setStep(nextStep);
+    onStepChange && onStepChange(nextStep);
   }
 
   // ── Final selection: timed → confirm immediately, untimed → duration step
@@ -41,7 +46,7 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
       onConfirm && onConfirm(catId, subObj?.id ?? null, null);
     } else {
       setActiveSub(subObj ?? null);
-      setStep('duration');
+      goToStep('duration');
     }
   }
 
@@ -53,7 +58,7 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
       } else {
         setActiveCat(cat);
         setActiveSub(null);
-        setStep('duration');
+        goToStep('duration');
       }
     } else if (subs.length === 1) {
       if (!isUntimed) {
@@ -61,11 +66,11 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
       } else {
         setActiveCat(cat);
         setActiveSub(subs[0]);
-        setStep('duration');
+        goToStep('duration');
       }
     } else {
       setActiveCat(cat);
-      setStep('subcategory');
+      goToStep('subcategory');
     }
   }
 
@@ -74,7 +79,7 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
       onConfirm && onConfirm(activeCat.id, sub.id, null);
     } else {
       setActiveSub(sub);
-      setStep('duration');
+      goToStep('duration');
     }
   }
 

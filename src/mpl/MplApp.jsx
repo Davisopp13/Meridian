@@ -298,6 +298,16 @@ export default function MplApp() {
     else pin('idle')
   }
 
+  // Called by CategoryChipStrip when its internal step changes (category → subcategory → duration)
+  function handleQuickLogStepChange(step) {
+    if (!quickLogOpen) return
+    if (step === 'duration') {
+      pin('quickLogDuration')
+    } else {
+      pin('quickLog')
+    }
+  }
+
   function handleToggleSwimlane() {
     const next = !swimlaneOpen
     setSwimlaneOpen(next)
@@ -388,6 +398,7 @@ export default function MplApp() {
         onChipStripCancel={handleChipStripCancel}
         onQuickLogConfirm={handleQuickLogConfirm}
         onQuickLogCancel={handleQuickLogCancel}
+        onQuickLogStepChange={handleQuickLogStepChange}
         onMinimize={handleMinimize}
         onRestore={handleRestore}
         isMinimized={isMinimized}
