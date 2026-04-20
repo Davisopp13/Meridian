@@ -3246,3 +3246,28 @@ Learnings for future iterations:
   - Minimal change: just add `userIds` to signature and hook call — hook already handles normalization from Task 1
   - Single-user path `<ActivityLog userId={user.id} />` continues to work unchanged
 ---
+
+## Iteration Insights-5 - Task 5 (Insights 3-Tab PRD): Restructure InsightsTab.jsx to host tabs
+
+- Added `activeTab`, `selectedTeamId`, `activityAgentFilter` state to `InsightsTab`
+- Added `handleAgentClick(agentId)` handler: sets `activityAgentFilter` + switches `activeTab` to 'activity'
+- Renders `<InsightsTabs activeTab={activeTab} onTabChange={setActiveTab} />` directly under the period selector row
+- Conditionally renders one of three tab bodies based on `activeTab`
+- Created stub `src/components/insights/OverviewTab.jsx` — renders the 4 existing panels with correct props; accepts `onAgentClick` for wiring in Task 8
+- Created stub `src/components/insights/ActivityLogTab.jsx` — placeholder text, accepts full Activity Log props
+- Created stub `src/components/insights/ReportsTab.jsx` — placeholder text
+- `InsightsTab.jsx` no longer renders panels directly — all panel rendering is in `OverviewTab.jsx`
+- `npm run build` passes — 2496 modules, 0 errors
+
+Files changed:
+  src/components/InsightsTab.jsx (restructured)
+  src/components/insights/OverviewTab.jsx (created)
+  src/components/insights/ActivityLogTab.jsx (created — stub)
+  src/components/insights/ReportsTab.jsx (created — stub)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - OverviewTab needs `period` prop in addition to the PRD's listed props — TrendComparisonPanel requires it
+  - Stubs for ActivityLogTab and ReportsTab accept the full prop interface so Task 10/12 can fill in without changing call sites
+  - handleAgentClick wiring is already in InsightsTab — Task 11 just needs to verify end-to-end
+---

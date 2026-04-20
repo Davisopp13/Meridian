@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useTeamInsights } from '../hooks/useTeamInsights.js';
 import InsightsEmptyState from './insights/InsightsEmptyState.jsx';
-import TeamCaseVolumePanel from './insights/TeamCaseVolumePanel.jsx';
-import AgentHandleTimePanel from './insights/AgentHandleTimePanel.jsx';
-import MplByCategoryPanel from './insights/MplByCategoryPanel.jsx';
-import TrendComparisonPanel from './insights/TrendComparisonPanel.jsx';
+import InsightsTabs from './insights/InsightsTabs.jsx';
+import OverviewTab from './insights/OverviewTab.jsx';
+import ActivityLogTab from './insights/ActivityLogTab.jsx';
+import ReportsTab from './insights/ReportsTab.jsx';
 
 const PERIODS = [
   { key: 'this_week', label: 'This Week' },
@@ -26,6 +26,10 @@ const PREV_PERIOD = {
 export default function InsightsTab({ user, profile }) {
   const { theme } = useTheme();
   const [period, setPeriod] = useState('this_week');
+  const [activeTab, setActiveTab] = useState('overview');
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
+  const [activityAgentFilter, setActivityAgentFilter] = useState(null);
+
   const prevPeriod = PREV_PERIOD[period] ?? null;
 
   const isAuthorized = profile?.role === 'supervisor' || profile?.role === 'director' || profile?.role === 'admin';
@@ -39,6 +43,11 @@ export default function InsightsTab({ user, profile }) {
     supervisorId: isAuthorized && prevPeriod ? user?.id : null,
     period: prevPeriod,
   });
+
+  function handleAgentClick(agentId) {
+    setActivityAgentFilter(agentId);
+    setActiveTab('activity');
+  }
 
   function tabStyle(active) {
     return {
@@ -63,7 +72,7 @@ export default function InsightsTab({ user, profile }) {
     width: '100%',
   };
 
-  const tabsRow = (
+  const periodTabsRow = (
     <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
       {PERIODS.map(p => (
         <button key={p.key} style={tabStyle(period === p.key)} onClick={() => setPeriod(p.key)}>
@@ -84,7 +93,7 @@ export default function InsightsTab({ user, profile }) {
   if (insights.loading) {
     return (
       <div style={bodyStyle}>
-        {tabsRow}
+        {periodTabsRow}
         <style>{`@keyframes ins-spin { to { transform: rotate(360deg); } }`}</style>
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 60 }}>
           <div style={{
@@ -101,7 +110,7 @@ export default function InsightsTab({ user, profile }) {
   if (insights.error) {
     return (
       <div style={bodyStyle}>
-        {tabsRow}
+        {periodTabsRow}
         <div style={{ padding: 20, background: 'var(--dash-card)', border: '1px solid var(--dash-border)', borderRadius: 12, color: '#f87171', fontSize: 13 }}>
           Error loading insights: {insights.error.message || String(insights.error)}
         </div>
@@ -112,7 +121,7 @@ export default function InsightsTab({ user, profile }) {
   if (insights.teams.length === 0) {
     return (
       <div style={bodyStyle}>
-        {tabsRow}
+        {periodTabsRow}
         <InsightsEmptyState reason="no-teams" />
       </div>
     );
@@ -121,48 +130,34 @@ export default function InsightsTab({ user, profile }) {
   if (insights.agents.length === 0 || !insights.teamTotals) {
     return (
       <div style={bodyStyle}>
-        {tabsRow}
+        {periodTabsRow}
         <InsightsEmptyState />
       </div>
     );
   }
 
-  const gridStyle = {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 20,
-  };
-
-  const panelStyle = {
-    flex: '1 1 calc(50% - 10px)',
-    minWidth: 280,
-    boxSizing: 'border-box',
-  };
-
   return (
     <div style={bodyStyle}>
-      {tabsRow}
-      <div style={gridStyle}>
-        <div style={panelStyle}>
-          <TeamCaseVolumePanel
-            perAgentStats={insights.perAgentStats}
-            teamTotals={insights.teamTotals}
-          />
-        </div>
-        <div style={panelStyle}>
-          <AgentHandleTimePanel perAgentStats={insights.perAgentStats} />
-        </div>
-        <div style={panelStyle}>
-          <MplByCategoryPanel byCategory={insights.byCategory} categoryNames={insights.categoryNames} />
-        </div>
-        <div style={panelStyle}>
-          <TrendComparisonPanel
-            period={period}
-            perAgentStats={insights.perAgentStats}
-            previousPerAgentStats={prevPeriod ? prevInsights.perAgentStats : null}
-          />
-        </div>
-      </div>
+      {periodTabsRow}
+      <InsightsTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      {activeTab === 'overview' && (
+        <OverviewTab
+          insights={insights}
+          prevInsights={prevInsights}
+          period={period}
+          onAgentClick={handleAgentClick}
+          selectedTeamId={selectedTeamId}
+          onTeamChange={setSelectedTeamId}
+        />
+      )}
+      {activeTab === 'activity' && (
+        <ActivityLogTab
+          agents={insights.agents}
+          selectedAgentId={activityAgentFilter}
+          onAgentChange={setActivityAgentFilter}
+        />
+      )}
+      {activeTab === 'reports' && <ReportsTab />}
     </div>
   );
 }

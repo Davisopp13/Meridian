@@ -93,7 +93,7 @@ src/
   - **Acceptance:** Component renders. Clicking a tab fires `onTabChange` with the key. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 5: Restructure `InsightsTab.jsx` to host tabs**
+- [x] **Task 5: Restructure `InsightsTab.jsx` to host tabs**
   - **What to build:** Add `const [activeTab, setActiveTab] = useState('overview')` to `InsightsTab`. Render `<InsightsTabs activeTab={activeTab} onTabChange={setActiveTab} />` directly under the period selector row. Below the tabs, conditionally render one of three tab-body components based on `activeTab`:
     - `'overview'` → `<OverviewTab insights={insights} prevInsights={prevInsights} onAgentClick={handleAgentClick} selectedTeamId={selectedTeamId} onTeamChange={setSelectedTeamId} />`
     - `'activity'` → `<ActivityLogTab agents={insights.agents} selectedAgentId={activityAgentFilter} onAgentChange={setActivityAgentFilter} />`
