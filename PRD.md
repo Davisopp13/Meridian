@@ -113,7 +113,7 @@ supabase/
 
 ### Phase 3: Supabase sync layer
 
-- [ ] **Task 4: Add API wrappers**
+- [x] **Task 4: Add API wrappers**
   - What: In `src/lib/api.js`, add these three exports (place them next to the existing `logMplEntry`):
     - `upsertMplActiveTimer({ userId, processId, categoryId, subcategoryId, startedAt, accumulatedSeconds, status })` → `supabase.from('mpl_active_timers').upsert({...}, { onConflict: 'process_id' })`
     - `clearMplActiveTimer(processId)` → `supabase.from('mpl_active_timers').delete().eq('process_id', processId)`

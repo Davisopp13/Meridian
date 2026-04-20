@@ -207,3 +207,24 @@ export async function fetchTeamMplEntries({ userIds, from, to }) {
     .gte('created_at', from)
     .lte('created_at', to);
 }
+
+export async function upsertMplActiveTimer({ userId, processId, categoryId, subcategoryId, startedAt, accumulatedSeconds, status }) {
+  return supabase.from('mpl_active_timers').upsert({
+    user_id: userId,
+    process_id: processId,
+    category_id: categoryId ?? null,
+    subcategory_id: subcategoryId ?? null,
+    started_at: startedAt,
+    accumulated_seconds: accumulatedSeconds,
+    status,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'process_id' })
+}
+
+export async function clearMplActiveTimer(processId) {
+  return supabase.from('mpl_active_timers').delete().eq('process_id', processId)
+}
+
+export async function fetchMyActiveMplTimers(userId) {
+  return supabase.from('mpl_active_timers').select('*').eq('user_id', userId).order('started_at', { ascending: false })
+}

@@ -2947,3 +2947,21 @@ Learnings for future iterations:
   - processesRef.current is available in the unmount cleanup since it's a ref (not stale closure) — safe to read there
   - saveSnapshot is synchronous (localStorage) so no async handling needed in useEffect
 ---
+
+## Iteration CrashRecovery-4 - Task 4 (Crash Recovery PRD): Add API wrappers
+- Added upsertMplActiveTimer, clearMplActiveTimer, fetchMyActiveMplTimers to src/lib/api.js
+- upsertMplActiveTimer: upserts to mpl_active_timers with onConflict:'process_id', sets updated_at
+- clearMplActiveTimer: deletes by process_id
+- fetchMyActiveMplTimers: selects all rows for user, ordered by started_at desc
+- npx vite build passes — ✓ built in 1.32s, 0 errors
+- grep check: 3 matches ✓
+
+Files changed:
+  src/lib/api.js (3 functions appended)
+  PRD.md (Task 4 marked [x])
+
+Learnings for future iterations:
+  - updated_at must be set explicitly in the upsert payload (not via trigger) to ensure each sync refreshes the timestamp
+  - upsert onConflict:'process_id' requires the unique index added in migration 009 — already in place from Task 1
+  - All three functions return Supabase { data, error } shape directly (no wrapping)
+---
