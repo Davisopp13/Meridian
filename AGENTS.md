@@ -582,6 +582,36 @@ Pass `userSettings.pip_position` as the second argument to `resizeAndPin(mode, p
 
 ---
 
+## Insights Tab — Three-tab structure
+
+Insights (`src/components/InsightsTab.jsx`) renders three tabs: **Overview**, **Activity Log**, **Reports**.
+
+- **Overview** — answers "how's my team doing?". Wraps four existing panels plus a `TeamFilterDropdown`. Agent names in `AgentHandleTimePanel` are clickable.
+- **Activity Log** — answers "what has Wanda been working on?". Renders `ActivityLog` in multi-user, read-only mode.
+- **Reports** — scaffold only in this iteration. Renders a "Coming soon" empty state.
+
+### ActivityLog multi-user signature
+
+```js
+// Multi-user, read-only (Insights use)
+<ActivityLog userIds={['uuid-a', 'uuid-b']} allowMutations={false} />
+
+// Single-user, mutations enabled (Dashboard — unchanged)
+<ActivityLog userId={user.id} />
+```
+
+`useActivityData` accepts `{ userId }` (string) or `{ userIds }` (array); single-string form is normalized internally.
+
+### Click-from-Overview-to-Activity-Log
+
+In `InsightsTab.jsx`, `handleAgentClick(agentId)` sets `activityAgentFilter = agentId` and `activeTab = 'activity'`. This is wired through `OverviewTab` → `AgentHandleTimePanel` → `onAgentClick`. The `AgentFilterStrip` in `ActivityLogTab` reads `selectedAgentId` and highlights the matching chip.
+
+### Personal Activity Log is unchanged
+
+The Dashboard `<ActivityLog userId={user.id} />` call site is untouched. Any change to `ActivityLog.jsx` or `useActivityData.js` must preserve the single-user path.
+
+---
+
 ## File Structure
 
 ```

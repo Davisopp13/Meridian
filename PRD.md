@@ -170,7 +170,7 @@ src/
 
 ### Phase 6: Documentation
 
-- [ ] **Task 13: Update `AGENTS.md`**
+- [x] **Task 13: Update `AGENTS.md`**
   - **What to build:** Add a new subsection under "Insights Tab" titled "Three-tab structure" that documents:
     - The three tabs (Overview / Activity Log / Reports) and what each answers
     - The `ActivityLog` multi-user signature (`userIds` array + `allowMutations` prop)

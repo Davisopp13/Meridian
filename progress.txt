@@ -3387,3 +3387,18 @@ Learnings for future iterations:
   - Inline SVG with fill + opacity works well for icon-only empty states in inline-style-only codebase
   - Stub was already created in Task 5; only needed to replace the placeholder content
 ---
+
+## Iteration Insights-12 - Task 13 (Insights 3-Tab PRD): Update AGENTS.md
+
+- Added "Insights Tab — Three-tab structure" subsection to AGENTS.md
+- Documents: three tabs (Overview/Activity Log/Reports), ActivityLog multi-user signature, click-through pattern, personal Dashboard unchanged, Reports scaffold-only
+- Added 28 lines — within ≤30 limit
+- `npm run build` passes — 0 errors
+
+Files changed:
+  AGENTS.md
+  PRD.md (Task 13 marked [x])
+
+Learnings for future iterations:
+  - All 13 tasks in this PRD are now complete
+---
