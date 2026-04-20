@@ -156,12 +156,16 @@ export default function DashboardApp() {
   // ── MPL sizing helpers ──────────────────────────────────────────────────
   function pin(stateKey) {
     const { width, height } = getMplSizeForState(stateKey, STAT_BUTTONS)
-    resizeAndPinMpl({ width, height }, userSettingsRef.current.pip_position)
+    console.log('[MERIDIAN DIAG Dashboard] pin called', stateKey, { width, height })
+    console.trace('[MERIDIAN DIAG Dashboard] pin call stack for', stateKey)
+    resizeAndPinMpl({ width, height }, userSettingsRef.current.pip_position, stateKey)
   }
 
   function pinActive() {
     const width = getMplBarWidth('timerActive', STAT_BUTTONS)
-    resizeAndPinMpl({ width, height: 64 + SWIMLANE_H }, userSettingsRef.current.pip_position)
+    console.log('[MERIDIAN DIAG Dashboard] pinActive called', { width, height: 64 + SWIMLANE_H })
+    console.trace('[MERIDIAN DIAG Dashboard] pinActive call stack')
+    resizeAndPinMpl({ width, height: 64 + SWIMLANE_H }, userSettingsRef.current.pip_position, 'active')
   }
 
   // ── Process timer helpers ───────────────────────────────────────────────
@@ -270,16 +274,26 @@ export default function DashboardApp() {
     else pin('idle')
   }
 
-  async function handleQuickLog() {
-    if (chipStripProcessId) setChipStripProcessId(null)
-    if (!mplIsOpen) {
-      const size = getMplSizeForState('quickLog', STAT_BUTTONS)
-      const result = await openMplPip({ ...size, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
-      if (!result.ok) { showToast('Could not open widget — try again'); return }
-      mountMplPipWindow(result.window)
-    } else {
-      pin('quickLog')
+  // Quick Log — opens ManualEntryForm in PiP window at categoryPicker size
+  function handleQuickLog() {
+    // Fast path: widget is already open. Fully synchronous so resizeTo runs
+    // inside the click's user activation window.
+    if (mplIsOpen) {
+      if (chipStripProcessId) setChipStripProcessId(null)
+      setQuickLogOpen(true)
+      pin('categoryPicker')
+      return
     }
+    // Slow path: widget not yet open. Must await openMplPip.
+    handleQuickLogColdStart()
+  }
+
+  async function handleQuickLogColdStart() {
+    if (chipStripProcessId) setChipStripProcessId(null)
+    const size = getMplSizeForState('categoryPicker', STAT_BUTTONS)
+    const result = await openMplPip({ ...size, position: userSettingsRef.current.pip_position, theme: currentThemeRef.current })
+    if (!result.ok) { showToast('Could not open widget — try again'); return }
+    mountMplPipWindow(result.window)
     setQuickLogOpen(true)
   }
 
@@ -344,7 +358,7 @@ export default function DashboardApp() {
 
   function handleRestore() {
     setIsMinimized(false)
-    if (quickLogOpen) { pin('quickLog'); return }
+    if (quickLogOpen) { pin('categoryPicker'); return }
     if (chipStripProcessId) { pin('chipStrip'); return }
     if (showSwimlane && swimlaneOpen) { pinActive(); return }
     pin('idle')
