@@ -2965,3 +2965,42 @@ Learnings for future iterations:
   - upsert onConflict:'process_id' requires the unique index added in migration 009 — already in place from Task 1
   - All three functions return Supabase { data, error } shape directly (no wrapping)
 ---
+
+## Iteration MPL-CR-5 - Task 5 (MPL Crash Recovery PRD): useMplRecovery hook
+- Created src/hooks/useMplRecovery.js
+- Accepts (userId, processes) — syncs active processes to mpl_active_timers every 10s via setInterval
+- processesRef.current mirrors processes every render (stale-closure fix for interval callback)
+- syncedIdsRef tracks which process IDs have been synced; removals detected via processes comparison
+- On removal: clearMplActiveTimer(processId) called immediately (not waiting for next tick)
+- On upsert: upsertMplActiveTimer called for all current processes with accumulated_seconds=elapsed, status derived from paused field
+- Errors silenced to console.warn — never crash the widget
+- Returns { syncNow } for beforeunload flush (Task 8)
+- Cleanup: clearInterval on unmount
+- npx vite build passes — 0 errors
+
+Files changed:
+  src/hooks/useMplRecovery.js (created)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - Two useEffects: one for the interval (keyed on userId), one for immediate removal detection (keyed on processes)
+  - syncNow reads from processesRef.current — always gets fresh state even inside the async function
+  - status field: p.paused ? 'paused' : 'running' (binary; no 'idle' state in mpl_active_timers)
+  - startedAt: p.startedAt ?? new Date().toISOString() — fallback if process was created before crash recovery PRD
+---
+
+## Iteration CrashRecovery-6 - Task 6 (Crash Recovery PRD): Wire useMplRecovery into MplApp
+- Added import of useMplRecovery from ../hooks/useMplRecovery.js to MplApp.jsx
+- Called useMplRecovery(user?.id, processes) near usePendingTriggers (line ~191)
+- Destructured { syncNow } and stored in syncNowRef.current for Task 8 (beforeunload handler)
+- npx vite build passes — ✓ built in 1.48s, 0 errors
+
+Files changed:
+  src/mpl/MplApp.jsx (import + hook call + syncNowRef)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - syncNowRef pattern: declare useRef(null), then assign syncNowRef.current = syncNow after the hook call each render
+  - useMplRecovery is called unconditionally (hooks rules) but internally gates on userId before doing any work
+  - Hook placed before usePendingTriggers for logical ordering (persistence before trigger handling)
+---

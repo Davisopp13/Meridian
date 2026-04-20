@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import { usePipWindow } from '../hooks/usePipWindow.js'
 import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
+import useMplRecovery from '../hooks/useMplRecovery.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
 import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam } from '../lib/api.js'
@@ -187,6 +188,10 @@ export default function MplApp() {
   //      strands the original timer (Wanda bug, 4/17).
   //   2. Debounce repeated triggers within 2s. Covers double-clicks on the
   //      bookmarklet and Realtime+poll firing for the same row.
+  const syncNowRef = useRef(null)
+  const { syncNow } = useMplRecovery(user?.id, processes)
+  syncNowRef.current = syncNow
+
   const lastProcessStartRef = useRef(0)
   const uiStateRef = useRef({ chipStripProcessId: null, quickLogOpen: false })
   useEffect(() => {

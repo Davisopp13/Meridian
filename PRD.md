@@ -134,7 +134,7 @@ supabase/
   - Acceptance criteria: Hook exports a default function; uses `setInterval` with 10000ms; cleans up interval on unmount.
   - Test: `npx vite build 2>&1 | tail -5` passes.
 
-- [ ] **Task 6: Wire `useMplRecovery` into MplApp**
+- [x] **Task 6: Wire `useMplRecovery` into MplApp**
   - What: In `src/mpl/MplApp.jsx`, import `useMplRecovery` and call it with `(user?.id, processes)` near the other hook calls (around line 188, next to `usePendingTriggers`). Destructure `syncNow` from the return value and hold it in a ref for Task 8.
   - Files: Modify `src/mpl/MplApp.jsx`
   - Acceptance criteria: Hook is invoked; `syncNow` is available in a ref.
