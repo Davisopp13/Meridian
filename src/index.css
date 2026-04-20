@@ -34,6 +34,19 @@
   --shadow-glow: 0 0 16px rgba(0, 48, 135, 0.3);
 }
 
+[data-theme="light"] {
+  --bg-deep: #f1f5f9;
+  --bg-card: #ffffff;
+  --text-pri: rgba(15, 23, 42, 0.95);
+  --text-sec: rgba(15, 23, 42, 0.70);
+  --text-dim: rgba(15, 23, 42, 0.50);
+  --divider: rgba(15, 23, 42, 0.08);
+  --border: rgba(15, 23, 42, 0.12);
+  --card-bg-subtle: rgba(15, 23, 42, 0.04);
+  --shadow-subtle: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-glow: 0 0 16px rgba(0, 48, 135, 0.15);
+}
+
 body {
   margin: 0;
   font-family: var(--font-family);
