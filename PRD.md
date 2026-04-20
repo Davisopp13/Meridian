@@ -142,7 +142,7 @@ supabase/
 
 ### Phase 4: Heartbeat + stale-session detection
 
-- [ ] **Task 7: `useBarHeartbeat` hook**
+- [x] **Task 7: `useBarHeartbeat` hook**
   - What: Create `src/hooks/useBarHeartbeat.js`. It accepts `(userId, widgetMode)` and upserts a row to `bar_sessions` every 30 seconds with `{ user_id, widget_mode, last_seen_at: new Date().toISOString() }`. Use `onConflict: 'user_id,widget_mode'` so each user has one row per widget type.
   - On unmount, fire a final upsert with `last_seen_at = now` so a graceful close has a recent timestamp (this helps distinguish crash from graceful close on the next mount).
   - Export default function `useBarHeartbeat`.
