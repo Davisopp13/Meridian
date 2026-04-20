@@ -123,7 +123,7 @@ supabase/
   - Acceptance criteria: All three functions exported, use the existing `supabase` client import.
   - Test: `npx vite build 2>&1 | tail -5` passes. `grep -E "^export (async )?function (upsertMplActiveTimer|clearMplActiveTimer|fetchMyActiveMplTimers)" src/lib/api.js | wc -l` returns `3`.
 
-- [ ] **Task 5: `useMplRecovery` hook — debounced Supabase sync**
+- [x] **Task 5: `useMplRecovery` hook — debounced Supabase sync**
   - What: Create `src/hooks/useMplRecovery.js`. It accepts `(userId, processes)` and:
     - Uses a ref-based debouncer (10-second interval) that upserts every active process to `mpl_active_timers` via the new `upsertMplActiveTimer` API. Do not write every second; batch into 10s windows.
     - When a process is removed from the `processes` array (logged/discarded), call `clearMplActiveTimer(processId)`.
