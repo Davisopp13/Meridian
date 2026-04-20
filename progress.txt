@@ -2891,3 +2891,24 @@ Learnings for future iterations:
   - InsightsTab is lazy-loaded as its own chunk (15.33 kB) — no bundle size concern
   - RLS migration is the only remaining step for production data visibility
 ---
+
+## Iteration CrashRecovery-1 - Task 1 (Crash Recovery PRD): Verify + migrate mpl_active_timers schema
+- Created supabase/migrations/009_mpl_crash_recovery.sql
+- Added: process_id text + UNIQUE INDEX on mpl_active_timers(process_id) for upsert onConflict support
+- Added: subcategory_id uuid nullable, accumulated_seconds integer DEFAULT 0, updated_at timestamptz DEFAULT now()
+- Added: INDEX idx_mpl_active_timers_user ON mpl_active_timers(user_id, updated_at DESC)
+- Added: last_seen_at timestamptz DEFAULT now() and widget_mode text to bar_sessions
+- Added: UNIQUE INDEX idx_bar_sessions_user_mode ON bar_sessions(user_id, widget_mode) for heartbeat upsert
+- All statements use ADD COLUMN IF NOT EXISTS / CREATE INDEX IF NOT EXISTS — no destructive statements
+- npx vite build passes — ✓ built in 1.35s, 0 errors
+- grep for DROP|TRUNCATE|DELETE FROM returns empty ✓
+
+Files changed:
+  supabase/migrations/009_mpl_crash_recovery.sql (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - process_id needs a UNIQUE INDEX on mpl_active_timers so upsert with onConflict:'process_id' works — PRD mentions it implicitly via Task 4 API spec
+  - idx_bar_sessions_user_mode unique index is also required for Task 7 (useBarHeartbeat upsert onConflict:'user_id,widget_mode')
+  - Migration is write-only — Davis applies manually in Supabase SQL Editor
+---
