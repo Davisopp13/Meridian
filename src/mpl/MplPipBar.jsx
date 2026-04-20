@@ -1,7 +1,7 @@
 import { C } from '../lib/constants.js'
 import ProcessesLane from '../components/ProcessesLane.jsx'
 import ProcessPill from '../components/ProcessPill.jsx'
-import CategoryChipStrip from '../components/CategoryChipStrip.jsx'
+import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
 
 const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
@@ -11,7 +11,7 @@ const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: 
  *
  * Props:
  *   processes            — [{ id, elapsed, paused }]
- *   categories           — mpl_categories rows (for ProcessesLane / CategoryChipStrip)
+ *   categories           — mpl_categories rows (for ProcessesLane / ManualEntryForm)
  *   showSwimlane         — boolean — process-active mode (shows pills on bar)
  *   swimlaneOpen         — boolean — tray drawer is expanded
  *   chipStripProcessId   — string|null — process ID whose chip strip is showing
@@ -50,7 +50,6 @@ export default function MplPipBar({
   quickLogOpen = false,
   onQuickLogConfirm,
   onQuickLogCancel,
-  onQuickLogStepChange,
   onMinimize,
   onRestore,
   isMinimized = false,
@@ -271,14 +270,12 @@ export default function MplPipBar({
         />
       )}
 
-      {/* ── Category chip strip — UNTIMED (Quick Log) ─────────────── */}
+      {/* ── Quick Log — UNTIMED (2-col grid matching timed Log) ─────── */}
       {quickLogOpen && !chipStripProcessId && (
-        <CategoryChipStrip
+        <ManualEntryForm
           categories={categories}
-          processElapsed={null}
-          onConfirm={(catId, subId, minutes) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes)}
-          onCancel={() => onQuickLogCancel && onQuickLogCancel()}
-          onStepChange={onQuickLogStepChange}
+          onClose={() => onQuickLogCancel && onQuickLogCancel()}
+          onLog={(catId, subId, minutes) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes)}
         />
       )}
 

@@ -133,7 +133,7 @@ export const MPL_STATE_BASE_WIDTHS = {
   timerActive: 200,
   chipStrip: 200,           // same as timerActive
   quickLog: 200,
-  quickLogDuration: 520,
+  quickLogDuration: 200,
   categoryPicker: 200,
   manualEntry: 200,
 }

@@ -264,18 +264,18 @@ export default function MplApp() {
   async function handleQuickLog() {
     if (chipStripProcessId) setChipStripProcessId(null)  // mutual exclusivity
     if (!isOpen) {
-      const size = getMplSizeForState('quickLog', STAT_BUTTONS)
+      const size = getMplSizeForState('categoryPicker', STAT_BUTTONS)
       const result = await openPip({ ...size, position: 'bottom-right' })
       if (!result.ok) { showToast('Could not open widget — try again'); return }
       mountPipWindow(result.window)
       setTimeout(() => { try { window.close() } catch (e) {} }, 300)
     } else {
-      pin('quickLog')
+      pin('categoryPicker')
     }
     setQuickLogOpen(true)
   }
 
-  // Called from CategoryChipStrip (untimed) when category + duration are selected
+  // Called from ManualEntryForm (Quick Log) when category + duration are selected
   async function handleQuickLogConfirm(categoryId, subcategoryId, minutes) {
     if (!user || !minutes) return
     setQuickLogOpen(false)
@@ -296,16 +296,6 @@ export default function MplApp() {
     setQuickLogOpen(false)
     if (showSwimlane && swimlaneOpen) pinActive()
     else pin('idle')
-  }
-
-  // Called by CategoryChipStrip when its internal step changes (category → subcategory → duration)
-  function handleQuickLogStepChange(step) {
-    if (!quickLogOpen) return
-    if (step === 'duration') {
-      pin('quickLogDuration')
-    } else {
-      pin('quickLog')
-    }
   }
 
   function handleToggleSwimlane() {
@@ -349,7 +339,7 @@ export default function MplApp() {
 
   function handleRestore() {
     setIsMinimized(false)
-    if (quickLogOpen) { pin('quickLog'); return }
+    if (quickLogOpen) { pin('categoryPicker'); return }
     if (chipStripProcessId) { pin('chipStrip'); return }
     if (showSwimlane && swimlaneOpen) { pinActive(); return }
     pin('idle')
@@ -398,7 +388,6 @@ export default function MplApp() {
         onChipStripCancel={handleChipStripCancel}
         onQuickLogConfirm={handleQuickLogConfirm}
         onQuickLogCancel={handleQuickLogCancel}
-        onQuickLogStepChange={handleQuickLogStepChange}
         onMinimize={handleMinimize}
         onRestore={handleRestore}
         isMinimized={isMinimized}
