@@ -78,7 +78,7 @@ src/
   - **Acceptance:** `<ActivityLog userId={...} />` renders identically to today. `<ActivityLog userIds={[...]} allowMutations={false} />` renders rows without mutation UI. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 3: Accept `userIds` on `ActivityLog` and forward to hook**
+- [x] **Task 3: Accept `userIds` on `ActivityLog` and forward to hook**
   - **What to build:** Update `ActivityLog`'s signature from `({ userId })` to `({ userId, userIds, allowMutations = true })`. Forward both `userId` and `userIds` to `useActivityData`. The hook (from Task 1) already handles the normalization.
   - **Files to modify:** `src/components/ActivityLog.jsx`
   - **Acceptance:** `<ActivityLog userIds={['uuid-a', 'uuid-b']} allowMutations={false} />` compiles and renders events from both users merged chronologically.

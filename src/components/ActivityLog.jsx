@@ -733,7 +733,7 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
   );
 }
 
-export default function ActivityLog({ userId, allowMutations = true }) {
+export default function ActivityLog({ userId, userIds, allowMutations = true }) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const C = {
@@ -764,7 +764,7 @@ export default function ActivityLog({ userId, allowMutations = true }) {
   const [editingEntry, setEditingEntry] = useState(null);
 
   const rangeDays = RANGES.find(r => r.key === range)?.days ?? 0;
-  const { entries, loading, error, editEntry, deleteEntry } = useActivityData({ userId, rangeDays });
+  const { entries, loading, error, editEntry, deleteEntry } = useActivityData({ userId, userIds, rangeDays });
 
   async function handleSave(entry, updates) {
     const ok = await editEntry(entry, updates);

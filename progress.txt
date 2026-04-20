@@ -3214,3 +3214,18 @@ Learnings for future iterations:
   - Edit icon is hover-only (opacity 0→0.6), so `allowMutations={false}` removes it completely without layout shift (the 28px slot is also hidden)
   - `EditModal` guard also needed even though icon is hidden — defensive in case someone calls setEditingEntry from outside
 ---
+
+## Iteration Insights-3 - Task 3 (Insights 3-Tab PRD): Accept userIds on ActivityLog and forward to hook
+
+- Updated `ActivityLog` signature from `({ userId, allowMutations = true })` to `({ userId, userIds, allowMutations = true })`
+- Updated `useActivityData` call to pass both `userId` and `userIds` — hook normalizes internally
+- `npm run build` passes — 2492 modules, 0 errors
+
+Files changed:
+  src/components/ActivityLog.jsx
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - Minimal change: just add `userIds` to signature and hook call — hook already handles normalization from Task 1
+  - Single-user path `<ActivityLog userId={user.id} />` continues to work unchanged
+---
