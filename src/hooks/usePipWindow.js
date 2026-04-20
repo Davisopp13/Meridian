@@ -163,11 +163,19 @@ export function usePipWindow() {
       const resizeScript = pw.document.createElement('script');
       resizeScript.textContent = `
         window.addEventListener('__mResize', function(e) {
+          var d = e.detail;
+          console.log('[MERIDIAN DIAG] __mResize listener fired', d);
           try {
-            var d = e.detail;
             window.resizeTo(d.w, d.h);
+            console.log('[MERIDIAN DIAG] resizeTo succeeded', d.w, d.h, '-> actual:', window.innerWidth, window.innerHeight);
+          } catch(err) {
+            console.error('[MERIDIAN DIAG] resizeTo threw:', err.name, err.message);
+          }
+          try {
             window.moveTo(d.x, d.y);
-          } catch(err) {}
+          } catch(err) {
+            console.error('[MERIDIAN DIAG] moveTo threw:', err.name, err.message);
+          }
         });
       `;
       pw.document.head.appendChild(resizeScript);
@@ -255,10 +263,12 @@ export function usePipWindow() {
     // when the user clicks inside the PiP widget).  A direct pw.resizeTo()
     // call from the opener context fails silently because Chrome checks the
     // caller's browsing context for activation, not the target window's.
+    console.log('[MERIDIAN DIAG] resizeAndPin dispatching', { width, height, x, y, pwAlive: !pw.closed });
     try {
       pw.dispatchEvent(new pw.CustomEvent('__mResize', { detail: { w: width, h: height, x, y } }));
+      console.log('[MERIDIAN DIAG] dispatchEvent returned');
     } catch (e) {
-      console.warn('[Meridian] PiP resize dispatch failed:', size, e);
+      console.error('[MERIDIAN DIAG] dispatchEvent threw:', e.name, e.message);
     }
   }, []);
 

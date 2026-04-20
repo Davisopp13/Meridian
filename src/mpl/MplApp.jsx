@@ -71,6 +71,7 @@ export default function MplApp() {
   // ── Sizing helpers ────────────────────────────────────────────────────
   function pin(stateKey) {
     const { width, height } = getMplSizeForState(stateKey, STAT_BUTTONS)
+    console.log('[MERIDIAN DIAG] pin called', stateKey, { width, height })
     resizeAndPin({ width, height }, 'bottom-right')
   }
 
