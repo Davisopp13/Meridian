@@ -5,6 +5,7 @@ import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
 import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam } from '../lib/api.js'
+import { saveSnapshot, clearSnapshot } from '../lib/mplRecoveryStorage.js'
 import MplPipBar from './MplPipBar.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
@@ -46,6 +47,12 @@ export default function MplApp() {
   const widgetInitRef = useRef(false)
   const processesRef = useRef(processes)
   useEffect(() => { processesRef.current = processes }, [processes])
+
+  // ── Snapshot processes to localStorage on every change ────────────────
+  useEffect(() => {
+    if (!user?.id) return
+    saveSnapshot(user.id, processes)
+  }, [user, processes])
 
   // ── Toast helper ──────────────────────────────────────────────────────
   function showToast(message) {
@@ -97,6 +104,7 @@ export default function MplApp() {
     return () => {
       Object.values(processTimers.current).forEach(clearInterval)
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+      if (processesRef.current.length === 0) clearSnapshot()
     }
   }, [])
 

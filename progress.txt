@@ -2931,3 +2931,19 @@ Learnings for future iterations:
   - STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000 (24 hours in ms)
   - loadSnapshot returns null on invalid JSON, wrong userId, or stale data — safe to call on mount without guards
 ---
+
+## Iteration CrashRecovery-3 - Task 3 (Crash Recovery PRD): Write snapshot on every MPL tick
+- Added import for saveSnapshot, clearSnapshot from ../lib/mplRecoveryStorage.js in MplApp.jsx
+- Added useEffect after processesRef effect: calls saveSnapshot(user.id, processes) whenever processes changes, gated on if (!user?.id) return
+- Modified unmount cleanup useEffect: added clearSnapshot() call when processesRef.current.length === 0 at unmount
+- npx vite build passes — ✓ built in 1.49s, 0 errors
+
+Files changed:
+  src/mpl/MplApp.jsx (import added, snapshot effect added, unmount cleanup updated)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - Snapshot effect dependencies: [user, processes] — both needed since user.id is used in saveSnapshot
+  - processesRef.current is available in the unmount cleanup since it's a ref (not stale closure) — safe to read there
+  - saveSnapshot is synchronous (localStorage) so no async handling needed in useEffect
+---

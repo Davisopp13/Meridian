@@ -101,7 +101,7 @@ supabase/
   - Acceptance criteria: File exports all four symbols; all functions are synchronous; all use try/catch around localStorage access.
   - Test: `npx vite build 2>&1 | tail -5` — no errors. `grep -c "try" src/lib/mplRecoveryStorage.js` returns ≥ 3.
 
-- [ ] **Task 3: Write snapshot on every MPL tick**
+- [x] **Task 3: Write snapshot on every MPL tick**
   - What: In `src/mpl/MplApp.jsx`, after the existing `processes` state and the `processesRef` effect (around line 48), add a new `useEffect` that calls `saveSnapshot(user.id, processes)` whenever `processes` changes. This fires on start, every second (because the tick updates `processes`), on pause/resume, and on stop.
   - Import `saveSnapshot` from `../lib/mplRecoveryStorage.js`.
   - Gate on `if (!user?.id) return;` — don't write before auth resolves.
