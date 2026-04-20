@@ -165,7 +165,7 @@ supabase/
   - Acceptance criteria: `window.addEventListener('beforeunload', ...)` fires during PiP close; `sendBeacon` is called.
   - Test: `npx vite build 2>&1 | tail -5` passes. In dev: start a timer, close PiP window, check `mpl_active_timers` row has `updated_at` within 2 seconds of close.
 
-- [ ] **Task 9: `RecoveryPrompt` component**
+- [x] **Task 9: `RecoveryPrompt` component**
   - What: Create `src/mpl/RecoveryPrompt.jsx` — a bar-width overlay that takes `{ recoveredProcesses, onResume, onLogNow, onDiscard, categories }` and renders:
     - Message: "Meridian closed unexpectedly. You had {N} active {process|processes}."
     - List: each process as `• {category name || 'Uncategorized'} — {formatted elapsed time}`

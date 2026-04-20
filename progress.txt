@@ -3004,3 +3004,68 @@ Learnings for future iterations:
   - useMplRecovery is called unconditionally (hooks rules) but internally gates on userId before doing any work
   - Hook placed before usePendingTriggers for logical ordering (persistence before trigger handling)
 ---
+
+## Iteration CrashRecovery-7 - Task 7 (Crash Recovery PRD): useBarHeartbeat hook
+- Created src/hooks/useBarHeartbeat.js
+- Accepts (userId, widgetMode) — upserts bar_sessions row every 30s with last_seen_at
+- onConflict: 'user_id,widget_mode' — one row per user per widget type
+- Fires immediately on mount, then every 30s via setInterval
+- Fires a final upsert on unmount cleanup for graceful-close timestamp
+- Errors silenced to console.warn only
+- npx vite build passes — ✓ built in 1.48s, 0 errors
+
+Files changed:
+  src/hooks/useBarHeartbeat.js (created)
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - pingBarSession is a module-level async function (not inside hook) to keep the hook body clean
+  - Call pingBarSession immediately on mount (before first interval fires at 30s) to register presence fast
+  - idx_bar_sessions_user_mode unique index (from migration 009) is required for onConflict to work
+---
+
+## Iteration CrashRecovery-8 - Task 8 (Crash Recovery PRD): beforeunload sendBeacon flush
+- Added pipWindow to usePipWindow destructure in MplApp.jsx
+- Added userIdRef and accessTokenRef to track user ID and JWT access token in refs (safe for closures)
+- Added effect to sync userIdRef from user state on every user change
+- Added effect to fetch and store JWT access_token when user changes (via getSession)
+- Added flushHandlerRef and main-window beforeunload useEffect:
+  - flushProcesses reads processesRef.current, userIdRef.current, accessTokenRef.current
+  - For each active process: tries navigator.sendBeacon with JSON blob (fire-and-forget)
+  - Falls back to fetch with keepalive:true and auth headers if sendBeacon returns false
+  - Payload: process_id, user_id, accumulated_seconds (elapsed), status, updated_at
+  - URL: VITE_SUPABASE_URL/rest/v1/mpl_active_timers?on_conflict=process_id
+- Added PiP window beforeunload useEffect keyed on pipWindow:
+  - Wraps flushHandlerRef.current?.() so PiP close also fires the flush
+  - Cleans up listener when pipWindow changes/closes
+- npx vite build passes — ✓ built in 1.34s, 0 errors
+
+Files changed:
+  src/mpl/MplApp.jsx (pipWindow added to destructure, refs + two beforeunload effects)
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - sendBeacon does NOT support custom headers — only Content-Type from the Blob is sent; RLS will likely block it
+  - fetch with keepalive:true is the real mechanism for beforeunload flushes (supports auth headers)
+  - userIdRef + accessTokenRef pattern: keep user context in refs so the closure-based beforeunload handler always reads fresh values
+  - flushHandlerRef pattern: store the handler in a ref so a second effect (pip window) can call the same function without re-defining it
+  - PiP window beforeunload fires when the PiP is closed (e.g. user clicks the X); main window beforeunload fires on tab/window close
+---
+
+## Iteration N - Task 9: RecoveryPrompt component
+- Created src/mpl/RecoveryPrompt.jsx
+- Pure presentational overlay: message, process list with category names and elapsed time, three action buttons
+- Uses Hapag Blue (#003087), Orange (#E8540A), dark bg (#0f1117), Segoe UI — matches existing MPL overlay visual language
+- Accepts: recoveredProcesses, onResume, onLogNow, onDiscard, categories props
+- formatElapsed() imported from constants.js for elapsed display
+- npx vite build passes — ✓ built in 1.32s, 0 errors
+
+Files changed:
+  src/mpl/RecoveryPrompt.jsx (created)
+  PRD.md (Task 9 marked [x])
+
+Learnings for future iterations:
+  - RecoveryPrompt uses position:absolute inset:0 so it overlays the entire PiP bar
+  - elapsed field may come from localStorage snapshot (p.elapsed) or Supabase row (p.accumulated_seconds) — handle both with ?? fallback
+  - getCategoryName() looks up category by id from the categories prop array
+---
