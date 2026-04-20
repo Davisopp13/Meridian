@@ -2912,3 +2912,22 @@ Learnings for future iterations:
   - idx_bar_sessions_user_mode unique index is also required for Task 7 (useBarHeartbeat upsert onConflict:'user_id,widget_mode')
   - Migration is write-only — Davis applies manually in Supabase SQL Editor
 ---
+
+## Iteration CrashRecovery-2 - Task 2 (Crash Recovery PRD): localStorage read/write helpers
+- Created src/lib/mplRecoveryStorage.js
+- Exports: STORAGE_KEY, STALE_THRESHOLD_MS, saveSnapshot, loadSnapshot, clearSnapshot
+- saveSnapshot(userId, processes): serializes { userId, savedAt, processes[] } with try/catch
+- loadSnapshot(userId): parses, null-checks userId match and staleness (>24h), try/catch
+- clearSnapshot(): removes key, try/catch
+- npx vite build passes — ✓ built in 1.33s, 0 errors
+- grep -c "try" returns 3 ✓
+
+Files changed:
+  src/lib/mplRecoveryStorage.js (created)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - All three exported functions are synchronous (no async/await) per PRD spec
+  - STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000 (24 hours in ms)
+  - loadSnapshot returns null on invalid JSON, wrong userId, or stale data — safe to call on mount without guards
+---

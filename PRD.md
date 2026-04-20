@@ -90,7 +90,7 @@ supabase/
 
 ### Phase 2: localStorage layer (biggest resilience win, smallest code change)
 
-- [ ] **Task 2: localStorage read/write helpers**
+- [x] **Task 2: localStorage read/write helpers**
   - What: Create `src/lib/mplRecoveryStorage.js` with these exports:
     - `STORAGE_KEY = 'meridian.mpl.active.v1'`
     - `saveSnapshot(userId, processes)` — serializes `{ userId, savedAt: Date.now(), processes }` to localStorage. `processes` is `[{ id, elapsed, paused, categoryId, subcategoryId, startedAt }]`. Wraps in try/catch (localStorage can throw in incognito / quota exceeded) and logs on failure without crashing.
