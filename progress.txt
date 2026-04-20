@@ -3336,3 +3336,20 @@ Learnings for future iterations:
   - `chipLabel()` extracts first name + last initial: `parts[0] + ' ' + parts[last][0] + '.'`
   - agents array shape: `{ id, full_name, email, team_id }` — guard against missing full_name with fallback to email
 ---
+
+## Iteration Insights-9 - Task 10 (Insights 3-Tab PRD): Create ActivityLogTab.jsx
+
+- Replaced placeholder ActivityLogTab.jsx with full implementation
+- Renders AgentFilterStrip above ActivityLog (allowMutations=false)
+- userIdsForLog: if selectedAgentId set → [selectedAgentId], else all agent IDs from agents array
+- Empty state: "No agents on your teams yet. Add team members via Admin." when agents array is empty
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/insights/ActivityLogTab.jsx (implemented)
+  PRD.md (Task 10 marked [x])
+
+Learnings for future iterations:
+  - ActivityLog accepts { userIds, allowMutations } — forward both from ActivityLogTab
+  - Empty-state guard on agents array length before rendering log
+---

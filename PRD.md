@@ -138,7 +138,7 @@ src/
   - **Acceptance:** Strip renders with one chip per agent plus "All agents". Clicking a chip fires `onChange(agentId)`. Clicking "All agents" fires `onChange(null)`. Active state highlights correctly. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 10: Create `ActivityLogTab.jsx`**
+- [x] **Task 10: Create `ActivityLogTab.jsx`**
   - **What to build:** Tab body for the Activity Log. Props: `{ agents, selectedAgentId, onAgentChange }`.
   - Renders, top to bottom:
     1. `<AgentFilterStrip agents={agents} selectedAgentId={selectedAgentId} onChange={onAgentChange} />`
