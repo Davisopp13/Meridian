@@ -3600,3 +3600,28 @@ Learnings for future iterations:
   - updateRole/updateTeam/updateName all return null on success and the error object on failure (not a bool)
   - useCallback deps include `users` so the closure always sees the current list when capturing `prev`
 ---
+
+## Iteration Admin-11 - Task 11 (Admin Panel PRD): Build UsersPanel.jsx — full implementation
+- Replaced stub src/components/admin/UsersPanel.jsx with full implementation
+- Uses useAdminUsers() hook for data, loading, error states
+- Loading: centered CSS spinner (border + borderTopColor animation)
+- Error: red-tinted message with Retry button wired to refetch
+- Header: user count + inline search box with 200ms debounce using useRef (not useState) for timer
+- Search: case-insensitive includes() on full_name and email via useMemo
+- User rows rendered inline (UserRow.jsx is Task 12 — rows are inline here)
+- Admin-guard at top: returns "Not authorized" if role !== 'admin'
+- Self-row: role dropdown disabled + title tooltip "You cannot change your own role."
+- onboarding_complete === false shows "pending onboarding" badge in orange
+- Teams for dropdown derived from users' teams LEFT JOIN data (unique teams extracted via Map)
+- Role/team onChange wired to updateRole/updateTeam from hook (writes through optimistically)
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/UsersPanel.jsx (full implementation)
+  PRD.md (Task 11 marked [x])
+
+Learnings for future iterations:
+  - useRef for debounce timer (not useState) — useState causes re-renders; useRef does not
+  - Teams for the dropdown can be derived from users' LEFT JOIN data using a Map; Task 15 will properly filter active teams
+  - Inline row rendering here; Task 12 will extract UserRow.jsx and add confirm dialogs + inline name edit + error toasts
+---

@@ -196,7 +196,7 @@ supabase/
   - **Acceptance:** Hook exists. Has the returned signature. Uses `api.js` wrappers only. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 11: Build `UsersPanel.jsx` — full implementation**
+- [x] **Task 11: Build `UsersPanel.jsx` — full implementation**
   - **What to build:** Replace the stub `src/components/admin/UsersPanel.jsx` with the real implementation:
     - Uses `useAdminUsers()` for data.
     - Loading state: centered spinner matching the Insights spinner.
