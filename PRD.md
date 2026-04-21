@@ -165,7 +165,7 @@ supabase/
   - **Acceptance:** File compiles on its own. The file is essentially `AdminTab.jsx`'s current logic, minus the outer `<h2>`, exported as `SuggestionsPanel`.
   - **Test:** `npm run build`.
 
-- [ ] **Task 9: Restructure `AdminTab.jsx` to host the tabbed shell**
+- [x] **Task 9: Restructure `AdminTab.jsx` to host the tabbed shell**
   - **What to build:** Rewrite `src/components/AdminTab.jsx` to be the tabbed shell. Structure:
     - `if (profile?.role !== 'admin') return <NotAuthorized />` block (reuse the existing "Not authorized. Admin access only." markup — move to a small inline helper or keep as literal JSX).
     - `const [activeTab, setActiveTab] = useState('users')` — default landing tab is Users.

@@ -3559,3 +3559,25 @@ Learnings for future iterations:
   - The existing AdminTab.jsx remains unchanged for Task 8; Task 9 rewrites it as the tabbed shell
   - `selected` variable is computed but not used as a prop (SuggestionDetailPanel receives suggestion from the map) — kept as original
 ---
+
+## Iteration Admin-9 - Task 9 (Admin Panel PRD): Restructure AdminTab.jsx as tabbed shell
+- Rewrote src/components/AdminTab.jsx as the tabbed shell
+- Imports AdminTabs, SuggestionsPanel, UsersPanel, TeamsPanel, CategoriesPanel
+- State: const [activeTab, setActiveTab] = useState('users') — default landing tab is Users
+- Admin guard at top: profile?.role !== 'admin' returns "Not authorized" block
+- Renders <h2>Admin</h2> heading, <AdminTabs>, and the conditional panel
+- Created stub files for UsersPanel.jsx, TeamsPanel.jsx, CategoriesPanel.jsx in src/components/admin/
+- Each stub renders "Coming in Task N" text with var(--text-sec) color
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/AdminTab.jsx (rewritten as tabbed shell)
+  src/components/admin/UsersPanel.jsx (stub created)
+  src/components/admin/TeamsPanel.jsx (stub created)
+  src/components/admin/CategoriesPanel.jsx (stub created)
+  PRD.md (Task 9 marked [x])
+
+Learnings for future iterations:
+  - Conditional rendering with {activeTab === 'x' && <Panel />} pattern keeps each panel fully unmounted when not active — clean state reset on tab switch
+  - All stub panel files are in place for Tasks 10–19 to fill in
+---
