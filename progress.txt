@@ -3402,3 +3402,23 @@ Files changed:
 Learnings for future iterations:
   - All 13 tasks in this PRD are now complete
 ---
+
+## Iteration Admin-1 - Task 1 (Admin Panel PRD): Create migration 010 reconciling role CHECK constraint
+- Created `supabase/migrations/010_reconcile_role_constraint.sql`
+- Migration drops `platform_users_role_check` and re-adds with canonical set ('agent','supervisor','admin')
+- Step 1: DO block warns (RAISE NOTICE) if any rows have roles outside canonical set — no-op in production
+- Step 2: UPDATE director → supervisor before swapping constraint (idempotency for fresh-DB scenario)
+- Step 3: DROP CONSTRAINT IF EXISTS (via DO block checking pg_constraint), then ADD CONSTRAINT with canonical list
+- Step 4: SELECT summary — role counts + pg_get_constraintdef output
+- 'director' only appears in comments + the UPDATE WHERE clause — not in any canonical role list
+- `npm run build` passes — SQL file only, no JS changes
+
+Files changed:
+  supabase/migrations/010_reconcile_role_constraint.sql (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - Migration constraint name from 003 is `platform_users_role_check` (PostgreSQL auto-name for inline CHECK)
+  - DROP CONSTRAINT inside a DO block (checking pg_constraint) is cleaner than bare ALTER which errors if constraint missing
+  - Davis must apply this migration manually via Supabase SQL Editor before any admin UI tasks depend on role = 'admin'
+---
