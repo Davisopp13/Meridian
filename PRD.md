@@ -268,7 +268,7 @@ supabase/
 
 ### Phase 7: Categories panel
 
-- [ ] **Task 17: Build `useAdminCategories` hook**
+- [x] **Task 17: Build `useAdminCategories` hook**
   - **What to build:** Hook at `src/hooks/useAdminCategories.js`:
     - Calls `fetchAllCategoriesForAdmin()` on mount.
     - Returns `{ categories, loading, error, refetch, createCat, updateCat, deleteCat, createSub, updateSub, deleteSub }`.
