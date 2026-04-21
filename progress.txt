@@ -3499,3 +3499,25 @@ Learnings for future iterations:
   - `updateTeam` supports both name rename and active toggle in one call, or either separately
   - All new wrappers include a one-line RLS comment noting migration 011 required
 ---
+
+## Iteration Admin-6 - Task 6: Add admin category/subcategory wrappers to api.js
+- Added 7 wrappers to src/lib/api.js continuing the Admin Panel section
+- `fetchAllCategoriesForAdmin()` — all mpl_categories (active + inactive) with nested mpl_subcategories, ordered by team then display_order (no is_active filter)
+- `createCategory({ name, team, displayOrder })` — insert + return new row
+- `updateCategory({ id, name, isActive, displayOrder })` — partial update
+- `deleteCategory({ id })` — subcategories should cascade; noted to verify FK in 001_initial_schema
+- `createSubcategory({ name, categoryId, displayOrder })` — insert + return new row
+- `updateSubcategory({ id, name, isActive, displayOrder })` — partial update
+- `deleteSubcategory({ id })` — deletes single subcategory row
+- `npm run build` passes — 2498 modules, 0 errors
+
+Files changed:
+  src/lib/api.js (7 wrappers added at bottom)
+  PRD.md (Task 6 marked [x])
+
+Learnings for future iterations:
+  - fetchAllCategoriesForAdmin omits is_active filter (admin sees everything, unlike fetchCategoriesForTeam)
+  - Nested select for subcategories: `mpl_subcategories(id, name, is_active, display_order)` inside the categories select
+  - Partial update pattern is consistent across category and subcategory wrappers (same as updateTeam)
+  - RLS on these tables requires migration 011 to be applied by Davis before writes succeed
+---

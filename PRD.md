@@ -132,7 +132,7 @@ supabase/
   - **Acceptance:** All wrappers exist, exported, documented with a one-line comment describing the RLS implications where relevant. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 6: Add admin category/subcategory wrappers to `api.js`**
+- [x] **Task 6: Add admin category/subcategory wrappers to `api.js`**
   - **What to build:** Add:
     - `fetchAllCategoriesForAdmin()` — returns every row in `mpl_categories` (both CH and MH, both active and inactive) with their `mpl_subcategories` nested. Ordered by `team` then `display_order`. Unlike `fetchCategoriesForTeam`, this does NOT filter by `is_active` — admins need to see deactivated ones too.
     - `createCategory({ name, team, displayOrder })` — inserts. `team` must be `'CH'` or `'MH'`. Default `displayOrder` to the next integer after the max existing one for that team.

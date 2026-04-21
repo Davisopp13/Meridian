@@ -294,3 +294,57 @@ export async function updateTeam({ id, name, active }) {
 export async function deleteTeam({ id }) {
   return supabase.from('teams').delete().eq('id', id)
 }
+
+// RLS: admins only (migration 011 required). Returns all categories (active + inactive) for admin editing.
+export async function fetchAllCategoriesForAdmin() {
+  return supabase
+    .from('mpl_categories')
+    .select('id, name, team, is_active, display_order, mpl_subcategories(id, name, is_active, display_order)')
+    .order('team')
+    .order('display_order')
+}
+
+// RLS: admins only (migration 011 required)
+export async function createCategory({ name, team, displayOrder }) {
+  return supabase
+    .from('mpl_categories')
+    .insert({ name, team, display_order: displayOrder })
+    .select()
+    .single()
+}
+
+// Partial update: pass only the fields to change
+export async function updateCategory({ id, name, isActive, displayOrder }) {
+  const patch = {}
+  if (name !== undefined) patch.name = name
+  if (isActive !== undefined) patch.is_active = isActive
+  if (displayOrder !== undefined) patch.display_order = displayOrder
+  return supabase.from('mpl_categories').update(patch).eq('id', id).select().single()
+}
+
+// Subcategories FK should cascade on delete — see 001_initial_schema.sql
+export async function deleteCategory({ id }) {
+  return supabase.from('mpl_categories').delete().eq('id', id)
+}
+
+// RLS: admins only (migration 011 required)
+export async function createSubcategory({ name, categoryId, displayOrder }) {
+  return supabase
+    .from('mpl_subcategories')
+    .insert({ name, category_id: categoryId, display_order: displayOrder })
+    .select()
+    .single()
+}
+
+// Partial update: pass only the fields to change
+export async function updateSubcategory({ id, name, isActive, displayOrder }) {
+  const patch = {}
+  if (name !== undefined) patch.name = name
+  if (isActive !== undefined) patch.is_active = isActive
+  if (displayOrder !== undefined) patch.display_order = displayOrder
+  return supabase.from('mpl_subcategories').update(patch).eq('id', id).select().single()
+}
+
+export async function deleteSubcategory({ id }) {
+  return supabase.from('mpl_subcategories').delete().eq('id', id)
+}
