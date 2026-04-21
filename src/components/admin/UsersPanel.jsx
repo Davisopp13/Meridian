@@ -43,8 +43,8 @@ export default function UsersPanel({ user, profile }) {
   const allTeams = useMemo(() => {
     const map = new Map();
     users.forEach(u => {
-      if (u.teams && u.teams.id) {
-        map.set(u.teams.id, { id: u.teams.id, name: u.teams.name, active: u.teams.active });
+      if (u.team && u.team.id) {
+        map.set(u.team.id, { id: u.team.id, name: u.team.name, active: u.team.active });
       }
     });
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
