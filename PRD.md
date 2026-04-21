@@ -304,7 +304,7 @@ supabase/
 
 ### Phase 8: Polish & verification
 
-- [ ] **Task 20: Verify the Suggestions tab is unchanged functionally**
+- [x] **Task 20: Verify the Suggestions tab is unchanged functionally**
   - **What to build:** A verification pass. Run `npm run dev`, sign in as admin, navigate to Admin → Suggestions, confirm: the filters dropdown works, the list populates, clicking a row opens the detail panel, the "Copy all for Claude" button copies text to clipboard, status changes write successfully.
   - If anything is broken, fix it now. The most likely bug is a missed import path after the move.
   - **Files to modify:** As needed.
