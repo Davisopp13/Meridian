@@ -293,7 +293,7 @@ supabase/
   - **Acceptance:** Categories tab shows both MH and CH trees. Can rename a category, reorder, toggle active, delete. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 19: Build `SubcategoryRow.jsx`, `AddCategoryForm.jsx`, `AddSubcategoryForm.jsx`**
+- [x] **Task 19: Build `SubcategoryRow.jsx`, `AddCategoryForm.jsx`, `AddSubcategoryForm.jsx`**
   - **What to build:**
     - `SubcategoryRow.jsx` — one subcategory with inline-editable name, `display_order` input, `is_active` toggle, delete button. Delete confirm: `"Delete subcategory 'X'? MPL entries historically logged against this subcategory will retain their foreign-key reference and continue to appear in reports."` (Only true if the FK is `ON DELETE SET NULL` or similar — check the actual FK in 001_initial_schema before finalizing the confirm message. If the FK is `ON DELETE CASCADE`, change the message to reflect that.)
     - `AddCategoryForm.jsx` — props `{ team, onCreated }`. Form: `name` input, "Add category" button. `display_order` auto-assigned (max + 1) by the hook.

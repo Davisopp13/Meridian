@@ -3785,3 +3785,36 @@ Learnings for future iterations:
   - categories from useAdminCategories is already grouped: { mh: [], ch: [] } — no grouping needed in the panel
   - CategoryGroup destructures mpl_subcategories from category (not subcategories) — matches the Supabase nested select key
   - Task 19 stub files are needed for Task 18 to build — create them before running npm run build
+
+## Iteration AdminPanel-19 - Task 19: Build SubcategoryRow.jsx, AddCategoryForm.jsx, AddSubcategoryForm.jsx
+- Replaced SubcategoryRow.jsx stub with full implementation:
+  - Inline-editable name (click to edit, Enter/Escape)
+  - display_order numeric input with onBlur save
+  - is_active toggle button (green Active / red Inactive pill)
+  - Delete button with TrashIcon and window.confirm
+  - Inactive rows rendered at opacity 0.55 with "Inactive" badge
+  - Delete confirm message assumes ON DELETE SET NULL for mpl_entries.subcategory_id (FK behavior not confirmed — 001_initial_schema.sql is STALE; Davis should verify)
+- Replaced AddCategoryForm.jsx stub with full implementation:
+  - Props: { team, onCreated }
+  - name input + "Add category" button, length > 2 validation
+  - Passes { name, team } to onCreated (display_order not passed — DB default)
+  - RLS-aware error handling; resets on success
+- Replaced AddSubcategoryForm.jsx stub with full implementation:
+  - Props: { categoryId, onCreated }
+  - name input + "Add subcategory" button, length > 2 validation
+  - Passes { name, categoryId } to onCreated
+  - Slightly smaller font (12px) to match sub-row aesthetic inside CategoryGroup
+- `npm run build` passes — 2515 modules, 0 errors
+
+Files changed:
+  src/components/admin/SubcategoryRow.jsx (full implementation)
+  src/components/admin/AddCategoryForm.jsx (full implementation)
+  src/components/admin/AddSubcategoryForm.jsx (full implementation)
+  PRD.md (Task 19 marked [x])
+
+Learnings for future iterations:
+  - SubcategoryRow follows CategoryGroup header pattern exactly — same toggle style, same inline edit, same trash icon
+  - FK behavior for mpl_entries.subcategory_id is unconfirmed (001 schema is STALE); used SET NULL assumption in delete confirm
+  - display_order is NOT passed from add forms — passing undefined lets Supabase use DB default (avoids needing to compute max+1 client-side)
+  - AddCategoryForm and AddSubcategoryForm are simpler than AddTeamForm (no radio buttons) — just name + button
+---
