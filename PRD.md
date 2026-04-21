@@ -92,7 +92,7 @@ supabase/
 
 ### Phase 2: RLS migration for admin writes
 
-- [ ] **Task 3: Create migration 011 adding admin write RLS policies**
+- [x] **Task 3: Create migration 011 adding admin write RLS policies**
   - **What to build:** A new file `supabase/migrations/011_admin_panel_rls.sql` that adds INSERT / UPDATE / DELETE policies for admins on the following tables. The policies must `USING` and `WITH CHECK` that the caller's row in `platform_users` has `role = 'admin'`, matching the pattern already used in migration `006_suggestion_box.sql` (`EXISTS (SELECT 1 FROM platform_users pu WHERE pu.id = auth.uid() AND pu.role = 'admin')`).
   - Tables and required policies:
     - `platform_users` — UPDATE (for changing role, team_id, full_name). No INSERT (users are created via auth trigger) and no DELETE. Name the policy `"admins update platform_users"`.

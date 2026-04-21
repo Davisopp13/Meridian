@@ -3439,3 +3439,25 @@ Learnings for future iterations:
   - Both 'director' occurrences were in the same pattern: `|| profile?.role === 'director'` sandwiched between supervisor and admin checks — just delete that clause
   - No other src/ files had 'director'; comments in migration files are fine to keep
 ---
+---
+
+## Iteration Admin-3 - Task 3 (Admin Panel PRD): Create migration 011 admin panel RLS policies
+- Created supabase/migrations/011_admin_panel_rls.sql
+- Added admin UPDATE policy on platform_users (no INSERT/DELETE — users created by auth trigger)
+- Added admin INSERT/UPDATE/DELETE policies on: teams, departments, mpl_categories, mpl_subcategories
+- Added admin INSERT/DELETE policies on supervisor_teams (no UPDATE — junction rows replaced by DELETE+INSERT)
+- All policies use the established pattern: EXISTS (SELECT 1 FROM platform_users pu WHERE pu.id = auth.uid() AND pu.role = 'admin')
+- All policies wrapped in DROP POLICY IF EXISTS + CREATE POLICY for idempotency
+- GRANT INSERT/UPDATE/DELETE on each table to authenticated (RLS gates on top of grant)
+- File ends with SELECT from pg_policies listing all policies on the 6 affected tables
+- `npm run build` passes — 0 errors (SQL-only task, no JS changes)
+
+Files changed:
+  supabase/migrations/011_admin_panel_rls.sql (created)
+  PRD.md (Task 3 marked [x])
+
+Learnings for future iterations:
+  - Davis must apply 011_admin_panel_rls.sql manually via Supabase SQL Editor before admin writes can work end-to-end
+  - For UPDATE policies need both USING and WITH CHECK; INSERT needs only WITH CHECK; DELETE needs only USING
+  - supervisor_teams has no UPDATE policy because the junction row is replaced via DELETE + INSERT
+  - The GRANT on platform_users is UPDATE only — INSERT remains service-role so the auth trigger still owns user creation
