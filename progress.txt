@@ -3649,3 +3649,20 @@ Learnings for future iterations:
   - Role confirm only on admin transitions (to admin OR from admin); other role changes (agent ↔ supervisor) are silent
   - friendlyErr helper: check for 'row-level security' in message, fall through to raw message, default to 'Unknown error.'
 ---
+
+## Iteration 43 - Task 13: Build useAdminTeams hook
+- Created src/hooks/useAdminTeams.js
+- Calls fetchAllDepartmentsWithTeams() on mount via tick-based refetch pattern
+- Returns { departments, loading, error, refetch, createDept, updateDept, deleteDept, createTeam, updateTeam, deleteTeam }
+- All mutators call corresponding api.js wrapper and call refetch() on success (no optimistic updates — nested structure makes refetch simpler)
+- Cancellation guard (cancelled flag) on the async fetch to prevent state updates after unmount
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useAdminTeams.js (created)
+
+Learnings for future iterations:
+  - No optimistic updates for teams hook — refetch is simpler for nested department/team structure
+  - Named exports for createTeam/updateTeam/deleteTeam locally to avoid shadowing the api.js imports
+  - Tick-based refetch pattern (setTick(t => t+1) in refetch, tick in useEffect dep array) works cleanly here same as useAdminUsers
+---

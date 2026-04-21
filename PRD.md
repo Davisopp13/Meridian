@@ -223,7 +223,7 @@ supabase/
 
 ### Phase 6: Teams panel
 
-- [ ] **Task 13: Build `useAdminTeams` hook**
+- [x] **Task 13: Build `useAdminTeams` hook**
   - **What to build:** Hook at `src/hooks/useAdminTeams.js`:
     - Calls `fetchAllDepartmentsWithTeams()` on mount.
     - Returns `{ departments, loading, error, refetch, createDept, updateDept, deleteDept, createTeam, updateTeam, deleteTeam }`.
