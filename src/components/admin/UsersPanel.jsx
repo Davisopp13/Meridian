@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from 'react';
 import { useAdminUsers } from '../../hooks/useAdminUsers';
-
-const ROLE_OPTIONS = ['agent', 'supervisor', 'admin'];
+import UserRow from './UserRow';
 
 function Spinner() {
   return (
@@ -20,7 +19,7 @@ function Spinner() {
 }
 
 export default function UsersPanel({ user, profile }) {
-  const { users, loading, error, refetch, updateRole, updateTeam } = useAdminUsers();
+  const { users, loading, error, refetch, updateRole, updateTeam, updateName } = useAdminUsers();
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const debounceRef = useRef(null);
@@ -132,34 +131,6 @@ export default function UsersPanel({ user, profile }) {
     borderBottom: '1px solid var(--border)',
   };
 
-  const tdStyle = {
-    padding: '10px',
-    borderBottom: '1px solid var(--border)',
-    color: 'var(--text-pri)',
-    verticalAlign: 'middle',
-  };
-
-  const selectStyle = {
-    padding: '4px 8px',
-    background: 'var(--bg-card)',
-    border: '1px solid var(--border)',
-    borderRadius: 4,
-    color: 'var(--text-pri)',
-    fontSize: 12,
-    cursor: 'pointer',
-  };
-
-  const badgeStyle = {
-    display: 'inline-block',
-    padding: '2px 8px',
-    background: 'rgba(232,84,10,0.15)',
-    color: '#E8540A',
-    borderRadius: 10,
-    fontSize: 11,
-    fontWeight: 600,
-    marginLeft: 6,
-  };
-
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
@@ -191,53 +162,17 @@ export default function UsersPanel({ user, profile }) {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(u => {
-              const isSelf = u.id === user?.id;
-              const currentTeamId = u.team_id || '';
-
-              return (
-                <tr key={u.id}>
-                  <td style={tdStyle}>
-                    <span style={{ color: 'var(--text-pri)', fontWeight: 500 }}>
-                      {u.full_name || <span style={{ color: 'var(--text-dim)' }}>—</span>}
-                    </span>
-                    {u.onboarding_complete === false && (
-                      <span style={badgeStyle}>pending onboarding</span>
-                    )}
-                  </td>
-                  <td style={{ ...tdStyle, color: 'var(--text-sec)' }}>{u.email}</td>
-                  <td style={tdStyle}>
-                    <select
-                      value={u.role}
-                      disabled={isSelf}
-                      title={isSelf ? 'You cannot change your own role.' : undefined}
-                      style={{
-                        ...selectStyle,
-                        opacity: isSelf ? 0.5 : 1,
-                        cursor: isSelf ? 'not-allowed' : 'pointer',
-                      }}
-                      onChange={e => updateRole(u.id, e.target.value)}
-                    >
-                      {ROLE_OPTIONS.map(r => (
-                        <option key={r} value={r}>{r}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td style={tdStyle}>
-                    <select
-                      value={currentTeamId}
-                      style={selectStyle}
-                      onChange={e => updateTeam(u.id, e.target.value || null)}
-                    >
-                      <option value="">Unassigned</option>
-                      {allTeams.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              );
-            })}
+            {filtered.map(u => (
+              <UserRow
+                key={u.id}
+                user={u}
+                teams={allTeams}
+                isSelf={u.id === user?.id}
+                onUpdateRole={updateRole}
+                onUpdateTeam={updateTeam}
+                onUpdateName={updateName}
+              />
+            ))}
           </tbody>
         </table>
       )}

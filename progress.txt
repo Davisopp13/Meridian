@@ -3625,3 +3625,27 @@ Learnings for future iterations:
   - Teams for the dropdown can be derived from users' LEFT JOIN data using a Map; Task 15 will properly filter active teams
   - Inline row rendering here; Task 12 will extract UserRow.jsx and add confirm dialogs + inline name edit + error toasts
 ---
+
+## Iteration - Task 12: Build UserRow.jsx with inline role/team edit
+- Created src/components/admin/UserRow.jsx
+- Props: { user, teams, isSelf, onUpdateRole, onUpdateTeam, onUpdateName }
+- Inline name edit: click full_name → input; Enter to commit, Escape to cancel, onBlur also commits
+- Role dropdown: admin-toggle (to or from admin) prompts window.confirm with explicit consequence text
+- Team dropdown: no confirm, silent update via onUpdateTeam callback
+- Error toast: failed writes show a red-tinted row above the data row for 3 seconds (separate <tr> with colSpan=4)
+- isSelf: role dropdown disabled + title tooltip; all other cells remain editable
+- Updated UsersPanel.jsx: replaced inline <tr> with <UserRow> components; now destructures updateName from hook
+- Removed unused tdStyle/selectStyle/badgeStyle constants from UsersPanel.jsx (now live in UserRow.jsx)
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/UserRow.jsx (created)
+  src/components/admin/UsersPanel.jsx (updated to use UserRow, wire updateName)
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - Toast in a table: use a separate <tr colSpan=4> above the data row — overlay/absolute inside <tr> is unreliable cross-browser
+  - React fragment (<>) inside <tbody> is valid — UserRow returns both the toast row and data row wrapped in <>
+  - Role confirm only on admin transitions (to admin OR from admin); other role changes (agent ↔ supervisor) are silent
+  - friendlyErr helper: check for 'row-level security' in message, fall through to raw message, default to 'Unknown error.'
+---

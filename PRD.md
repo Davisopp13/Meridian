@@ -209,7 +209,7 @@ supabase/
   - **Acceptance:** Admin → Users renders every user. Search works. Role and team dropdowns render (changes don't have to fully write yet — that's Task 12). Self-row role dropdown is disabled. Build passes.
   - **Test:** `npm run build` + manual smoke via `npm run dev`.
 
-- [ ] **Task 12: Build `UserRow.jsx` with inline role/team edit**
+- [x] **Task 12: Build `UserRow.jsx` with inline role/team edit**
   - **What to build:** `src/components/admin/UserRow.jsx`. Props: `{ user, teams, isSelf, onUpdateRole, onUpdateTeam, onUpdateName }`.
   - Renders a row with `full_name` (clickable to edit inline), `email` (read-only), role `<select>` (values: `agent`, `supervisor`, `admin`), team `<select>` (populated from the `teams` prop — options are "Unassigned" + each team's name, value is team id or empty string for unassigned).
   - Changes write through via the `onUpdate*` callbacks from the parent, which are wired to the hook's mutators.
