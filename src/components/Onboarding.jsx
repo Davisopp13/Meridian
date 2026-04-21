@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { C } from '../lib/constants'
 import Step1Profile from './onboarding/Step1Profile'
@@ -6,17 +6,10 @@ import Step2Team from './onboarding/Step2Team'
 import Step3Bookmarklet from './onboarding/Step3Bookmarklet'
 
 export default function Onboarding({ user, onComplete }) {
-  const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState({})
-  const [defaultMhTeamId, setDefaultMhTeamId] = useState(null)
-
-  useEffect(() => {
-    supabase.from('teams')
-      .select('id')
-      .eq('name', 'Export Rail: Southeast Gulf Pacific')
-      .single()
-      .then(({ data }) => setDefaultMhTeamId(data?.id ?? null))
-  }, [])
+  const [step, setStep]             = useState(1)
+  const [formData, setFormData]     = useState({})
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
 
   function handleNext(data) {
     setFormData(prev => ({ ...prev, ...data }))
@@ -27,25 +20,74 @@ export default function Onboarding({ user, onComplete }) {
     setStep(s => s - 1)
   }
 
+  // Resolve a default team_id for the chosen haulage_type.
+  // Picks the lowest-id active team matching haulage_type so both CH and MH
+  // users land on a valid team even if none was explicitly selected.
+  async function resolveDefaultTeamId(haulageType) {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('haulage_type', haulageType)
+      .order('id', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    if (error) {
+      console.warn('[Onboarding] resolveDefaultTeamId error:', error)
+      return null
+    }
+    return data?.id ?? null
+  }
+
   async function handleComplete() {
+    if (submitting) return
+    setSubmitting(true)
+    setSubmitError(null)
+
     try {
-      const { data: updatedProfile } = await supabase
+      const haulageType = formData.team // 'CH' | 'MH'
+      const teamId      = await resolveDefaultTeamId(haulageType)
+
+      const payload = {
+        full_name:           formData.full_name,
+        team:                haulageType,
+        team_id:             teamId,
+        onboarding_complete: true,
+        updated_at:          new Date().toISOString(),
+      }
+
+      // 1) Try UPDATE first — row usually exists via the auth.users trigger.
+      let { data: updated, error: updateErr } = await supabase
         .from('platform_users')
-        .update({
-          full_name:           formData.full_name,
-          team:                formData.team,
-          team_id:             formData.team === 'MH' ? defaultMhTeamId : null,
-          onboarding_complete: true,
-          updated_at:          new Date().toISOString(),
-        })
+        .update(payload)
         .eq('id', user.id)
         .select('*')
-        .single()
+        .maybeSingle()
 
-      onComplete(updatedProfile)
+      if (updateErr) throw updateErr
+
+      // 2) If no row matched, INSERT (trigger may not have fired / row missing).
+      if (!updated) {
+        const { data: inserted, error: insertErr } = await supabase
+          .from('platform_users')
+          .insert({ id: user.id, email: user.email, ...payload })
+          .select('*')
+          .single()
+        if (insertErr) throw insertErr
+        updated = inserted
+      }
+
+      if (!updated) {
+        throw new Error('Profile write returned no row.')
+      }
+
+      onComplete(updated)
     } catch (err) {
-      console.error('Onboarding complete error:', err)
+      console.error('[Onboarding] handleComplete error:', err)
+      setSubmitError(err?.message || 'Something went wrong. Please try again.')
+      setSubmitting(false)
     }
+    // On success we leave submitting=true so the button stays disabled while
+    // the parent swaps the onboarding view out for the dashboard.
   }
 
   return (
@@ -83,7 +125,12 @@ export default function Onboarding({ user, onComplete }) {
         <Step2Team onNext={handleNext} onBack={handleBack} />
       )}
       {step === 3 && (
-        <Step3Bookmarklet onComplete={handleComplete} onBack={handleBack} />
+        <Step3Bookmarklet
+          onComplete={handleComplete}
+          onBack={handleBack}
+          submitting={submitting}
+          submitError={submitError}
+        />
       )}
     </>
   )

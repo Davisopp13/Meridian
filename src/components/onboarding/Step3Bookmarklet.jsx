@@ -18,7 +18,7 @@ export function buildCtBmHref(userId) {
   return `javascript:(function(){var NS_HOST='https://meridian-hlag.vercel.app';var RELAY_ID='meridian-relay-iframe';var USER_ID='${userId}';var isSF=window.location.hostname.includes('force.com')||window.location.hostname.includes('salesforce.com')||window.location.hostname.includes('lightning.com');var cN='';try{var m=document.title.match(/\\d{8,}/);if(m&&m[0])cN=m[0].trim()}catch(e){}var aN='',typeVal='',subtypeVal='';try{function w(n,d){if(d>50)return;if(!typeVal&&n.classList?.contains('slds-p-around_small')){var tt=n.textContent?.trim()||'';if(tt.startsWith('Type / Sub-Type')){var v=tt.replace('Type / Sub-Type','').trim(),p=v.split(' / ');typeVal=p[0]||'';subtypeVal=p[1]||''}}if(!aN&&n.tagName==='A'){var href=n.getAttribute('href');if(href&&href.startsWith('/lightning/r/Account/001')){var ai=href.match(/001[a-zA-Z0-9]{12,15}/);if(ai&&ai[0])aN=ai[0]}}if(n.shadowRoot)for(var sc of n.shadowRoot.children)w(sc,d+1);for(var nc of n.children)w(nc,d+1)}w(document.body,0)}catch(e){}if(isSF){var ex=document.getElementById(RELAY_ID);if(ex)ex.remove();var rf=document.createElement('iframe');rf.id=RELAY_ID;rf.src=NS_HOST+'/meridian-relay.html?load=trigger&t='+Date.now();rf.style.cssText='display:none;position:fixed;width:0;height:0;border:none;z-index:-1';document.body.appendChild(rf);window.addEventListener('message',function h(e){if(e.data&&e.data.meridianTriggerCode){window.removeEventListener('message',h);try{(new Function('MERIDIAN_PAYLOAD',e.data.meridianTriggerCode))({userId:USER_ID,relayFrame:rf.contentWindow})}catch(err){console.error('[Meridian] trigger exec error:',err);rf.remove()}}if(e.data&&e.data.meridianTriggerError){window.removeEventListener('message',h);rf.remove();console.error('[Meridian] relay error:',e.data.meridianTriggerError)}})}try{var et=document.getElementById('meridian-toast');if(et)et.remove();var t=document.createElement('div');t.id='meridian-toast';t.textContent=isSF?(cN?'\\u2713 Meridian \\u2014 Case '+cN:'\\u2713 Meridian \\u2014 Logging case...'):'Meridian: Open a Salesforce case page to use Case Tracker';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#003087;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:"Segoe UI",sans-serif;z-index:2147483647;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3);border-left:3px solid #E8540A;transition:opacity 300ms';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0'},2200);setTimeout(function(){t.remove()},2500)}catch(e){}})();`;
 }
 
-export default function Step3Bookmarklet({ onComplete, onBack }) {
+export default function Step3Bookmarklet({ onComplete, onBack, submitting = false, submitError = null }) {
   const [userId, setUserId] = useState(null);
 
   useEffect(() => {
@@ -103,16 +103,33 @@ export default function Step3Bookmarklet({ onComplete, onBack }) {
           </p>
         </div>
 
+        {/* Error banner */}
+        {submitError && (
+          <div style={{
+            background: 'rgba(232, 84, 10, 0.12)',
+            border: '1px solid rgba(232, 84, 10, 0.45)',
+            borderRadius: 10,
+            padding: '12px 14px',
+            marginBottom: 14,
+          }}>
+            <p style={{ color: '#ffb28a', fontSize: 13, margin: 0, lineHeight: '1.5' }}>
+              {submitError}
+            </p>
+          </div>
+        )}
+
         {/* Complete button */}
         <button
           onClick={onComplete}
+          disabled={submitting}
           style={{
             width: '100%', height: 48, background: C.mBtn, color: '#fff',
             fontSize: 15, fontWeight: 700, borderRadius: 10, border: 'none',
-            cursor: 'pointer',
+            cursor: submitting ? 'not-allowed' : 'pointer',
+            opacity: submitting ? 0.65 : 1,
           }}
         >
-          All done — Launch Meridian →
+          {submitting ? 'Setting up…' : 'All done — Launch Meridian →'}
         </button>
 
         {/* Back link */}
