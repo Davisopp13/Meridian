@@ -233,7 +233,7 @@ supabase/
   - **Acceptance:** Hook exists with the returned signature. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 14: Build `TeamsPanel.jsx` + `DepartmentCard.jsx`**
+- [x] **Task 14: Build `TeamsPanel.jsx` + `DepartmentCard.jsx`**
   - **What to build:**
     - Replace stub `src/components/admin/TeamsPanel.jsx` with real implementation.
     - Renders a vertical list of `<DepartmentCard>` components, one per department.

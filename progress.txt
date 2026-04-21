@@ -3666,3 +3666,26 @@ Learnings for future iterations:
   - Named exports for createTeam/updateTeam/deleteTeam locally to avoid shadowing the api.js imports
   - Tick-based refetch pattern (setTick(t => t+1) in refetch, tick in useEffect dep array) works cleanly here same as useAdminUsers
 ---
+
+## Iteration 44 - Task 14: Build TeamsPanel.jsx + DepartmentCard.jsx
+- Replaced stub TeamsPanel.jsx with full implementation using useAdminTeams hook
+- TeamsPanel: loading spinner, error state with Retry, empty state, list of DepartmentCard, AddDepartmentForm at bottom
+- Created DepartmentCard.jsx: inline-editable department name (click to edit, Enter/Escape/blur), team count badge, TrashIcon delete button
+- DepartmentCard delete: window.confirm with consequence text; friendly FK violation error shown as 5-second inline banner
+- DepartmentCard body: maps dept.teams to TeamRow stubs; empty state "No teams yet"; AddTeamForm stub in footer
+- Created stubs: TeamRow.jsx, AddTeamForm.jsx, AddDepartmentForm.jsx (all coming in Tasks 15/16)
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/TeamsPanel.jsx (full implementation replacing stub)
+  src/components/admin/DepartmentCard.jsx (created)
+  src/components/admin/TeamRow.jsx (stub created for Task 15)
+  src/components/admin/AddTeamForm.jsx (stub created for Task 15)
+  src/components/admin/AddDepartmentForm.jsx (stub created for Task 16)
+
+Learnings for future iterations:
+  - DepartmentCard delete error: FK violation shows "Cannot delete 'X' — remove all teams first" rather than raw DB error
+  - TrashIcon as inline SVG component avoids needing lucide-react in this file (no new npm packages rule)
+  - dept.teams comes from Supabase nested select as array; guard with `|| []` in case of null
+  - AddDepartmentForm receives onCreate (which is createDept from hook); createDept already calls refetch internally on success
+---
