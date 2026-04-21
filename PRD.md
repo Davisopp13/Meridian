@@ -147,7 +147,7 @@ supabase/
 
 ### Phase 4: Tab shell on AdminTab
 
-- [ ] **Task 7: Create `AdminTabs.jsx` — the 4-tab strip**
+- [x] **Task 7: Create `AdminTabs.jsx` — the 4-tab strip**
   - **What to build:** A stateless presentational component that renders four pill tabs — "Users", "Teams", "Suggestions", "Categories" — matching the `tabStyle()` pattern from `src/components/InsightsTab.jsx`. Props: `{ activeTab, onTabChange }` where `activeTab` is `'users' | 'teams' | 'suggestions' | 'categories'`.
   - Active pill uses `var(--color-mmark)` (Hapag Orange). Inactive uses the muted background from the Insights tabs.
   - Count badges are optional for now. Do not add them.

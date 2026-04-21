@@ -3521,3 +3521,21 @@ Learnings for future iterations:
   - Partial update pattern is consistent across category and subcategory wrappers (same as updateTeam)
   - RLS on these tables requires migration 011 to be applied by Davis before writes succeed
 ---
+
+## Iteration Admin-7 - Task 7 (Admin Panel PRD): Create AdminTabs.jsx — 4-tab strip
+- Created src/components/admin/AdminTabs.jsx
+- Stateless presentational component: four pill tabs — "Users", "Teams", "Suggestions", "Categories"
+- tabStyle() pattern matches InsightsTab.jsx: active pill uses var(--color-mmark), inactive uses rgba(255,255,255,0.06) / rgba(255,255,255,0.55)
+- Props: { activeTab, onTabChange } — clicking fires onTabChange(key)
+- Created src/components/admin/ directory
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/AdminTabs.jsx (created)
+  PRD.md (Task 7 marked [x])
+
+Learnings for future iterations:
+  - src/components/admin/ directory must be created manually before writing files (Write tool doesn't auto-create dirs)
+  - AdminTabs does NOT import useTheme — it hardcodes dark-mode values (admin panel is admin-only host-page feature but uses fixed dark tokens matching existing AdminTab.jsx)
+  - Tab keys are 'users', 'teams', 'suggestions', 'categories'
+---
