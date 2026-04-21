@@ -260,7 +260,7 @@ supabase/
   - **Acceptance:** Can add, rename, deactivate, and delete teams via UI. Users panel correctly filters inactive teams. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 16: Build `AddDepartmentForm.jsx`**
+- [x] **Task 16: Build `AddDepartmentForm.jsx`**
   - **What to build:** `src/components/admin/AddDepartmentForm.jsx`. Small inline form with a `name` text input + "Add department" button. Validates length > 2. On success, fires `onCreated` from parent (which calls `refetch`).
   - **Files to create:** `src/components/admin/AddDepartmentForm.jsx`
   - **Acceptance:** Can add a new department. Appears immediately in the list. Build passes.
