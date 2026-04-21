@@ -109,7 +109,7 @@ supabase/
 
 ### Phase 3: API wrappers
 
-- [ ] **Task 4: Add admin user-management wrappers to `api.js`**
+- [x] **Task 4: Add admin user-management wrappers to `api.js`**
   - **What to build:** Add these async wrappers, all returning the Supabase `{ data, error }` shape. Each goes at the bottom of `src/lib/api.js` in a section commented `// ===== Admin Panel: users, teams, departments, categories =====`.
     - `fetchAllPlatformUsers()` — selects `id, email, full_name, role, team_id, department_id, onboarding_complete, created_at` from `platform_users` ordered by `full_name asc nulls last`. Also LEFT JOINs to get `teams!left(id, name)` so the UI can show the team name inline without a second fetch.
     - `updatePlatformUserRole({ userId, role })` — asserts `role in ['agent', 'supervisor', 'admin']` client-side (throws if not) and `UPDATE`s that row. The RLS policy from Task 3 gates the write.

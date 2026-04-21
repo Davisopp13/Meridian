@@ -3461,3 +3461,20 @@ Learnings for future iterations:
   - For UPDATE policies need both USING and WITH CHECK; INSERT needs only WITH CHECK; DELETE needs only USING
   - supervisor_teams has no UPDATE policy because the junction row is replaced via DELETE + INSERT
   - The GRANT on platform_users is UPDATE only — INSERT remains service-role so the auth trigger still owns user creation
+
+## Iteration [current] - Task 4: Add admin user-management wrappers to api.js
+- Added four wrappers to src/lib/api.js under the `// ===== Admin Panel: users, teams, departments, categories =====` section
+- `fetchAllPlatformUsers()` — selects all platform_users with LEFT JOIN to teams, ordered by full_name asc nulls last
+- `updatePlatformUserRole({ userId, role })` — client-side validates role in ['agent','supervisor','admin'], then UPDATE
+- `updatePlatformUserTeam({ userId, teamId })` — UPDATE team_id (null allowed for unassigned)
+- `updatePlatformUserName({ userId, fullName })` — UPDATE full_name
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/lib/api.js (4 wrappers added at bottom)
+
+Learnings for future iterations:
+  - Supabase JS LEFT JOIN syntax: `teams!left(id, name)` in the select string
+  - Client-side role validation throws (not returns error) — callers should try/catch or rely on the canonical role set
+  - nullsFirst: false on order() puts null full_name rows at the end
+---

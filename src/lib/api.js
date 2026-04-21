@@ -228,3 +228,27 @@ export async function clearMplActiveTimer(processId) {
 export async function fetchMyActiveMplTimers(userId) {
   return supabase.from('mpl_active_timers').select('*').eq('user_id', userId).order('started_at', { ascending: false })
 }
+
+// ===== Admin Panel: users, teams, departments, categories =====
+
+export async function fetchAllPlatformUsers() {
+  return supabase
+    .from('platform_users')
+    .select('id, email, full_name, role, team_id, department_id, onboarding_complete, created_at, teams!left(id, name)')
+    .order('full_name', { ascending: true, nullsFirst: false })
+}
+
+export async function updatePlatformUserRole({ userId, role }) {
+  if (!['agent', 'supervisor', 'admin'].includes(role)) {
+    throw new Error(`Invalid role: ${role}`)
+  }
+  return supabase.from('platform_users').update({ role }).eq('id', userId)
+}
+
+export async function updatePlatformUserTeam({ userId, teamId }) {
+  return supabase.from('platform_users').update({ team_id: teamId ?? null }).eq('id', userId)
+}
+
+export async function updatePlatformUserName({ userId, fullName }) {
+  return supabase.from('platform_users').update({ full_name: fullName }).eq('id', userId)
+}
