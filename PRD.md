@@ -249,7 +249,7 @@ supabase/
   - **Acceptance:** Teams tab shows IDT and Customer Service with their teams nested. Delete and rename controls render. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 15: Build `TeamRow.jsx` and `AddTeamForm.jsx`**
+- [x] **Task 15: Build `TeamRow.jsx` and `AddTeamForm.jsx`**
   - **What to build:**
     - `TeamRow.jsx` at `src/components/admin/TeamRow.jsx`. Shows team `name`, `haulage_type` (CH/MH), `active` toggle, delete button. Inline-editable name. Haulage type is read-only after creation (changing would scramble category fetch logic — defer to a future PRD). `active` toggle flips `active` on the team; inactive teams still exist but shouldn't be selectable in the Users panel's team dropdown (UsersPanel must filter `teams.active === true` for its dropdown, minus any team the user is currently on — edit UsersPanel to do this filter).
     - Delete: `window.confirm("Delete team 'X'? Any users currently on this team will become unassigned.")`.

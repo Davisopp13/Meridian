@@ -3689,3 +3689,25 @@ Learnings for future iterations:
   - dept.teams comes from Supabase nested select as array; guard with `|| []` in case of null
   - AddDepartmentForm receives onCreate (which is createDept from hook); createDept already calls refetch internally on success
 ---
+
+## Iteration [N] - Task 15: Build TeamRow.jsx and AddTeamForm.jsx
+- Replaced stub TeamRow.jsx with full implementation: inline-editable name, haulage_type badge (read-only), active toggle checkbox, delete button with confirm dialog
+- Replaced stub AddTeamForm.jsx: name text input + CH/MH radio buttons + "Add team" button with length > 2 validation
+- Updated fetchAllPlatformUsers in api.js to include `active` in teams!left select
+- Updated UsersPanel.jsx allTeams to include `active` field in the mapped objects
+- Updated UserRow.jsx to filter dropdown: shows active teams + user's current team if inactive (labeled "(inactive)")
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/TeamRow.jsx (implemented)
+  src/components/admin/AddTeamForm.jsx (implemented)
+  src/lib/api.js (added `active` to teams join in fetchAllPlatformUsers)
+  src/components/admin/UsersPanel.jsx (allTeams now includes active flag)
+  src/components/admin/UserRow.jsx (team dropdown filters inactive, keeps current team)
+
+Learnings for future iterations:
+  - radio name attr should be unique per department to avoid radio groups conflicting across multiple AddTeamForm instances: use `name={`haulage-${departmentId}`}`
+  - Inactive team label: show "(inactive)" suffix in option text so admin can see state without extra column
+  - TeamRow active toggle: `team.active !== false` rather than `team.active === true` to handle null/undefined as active (safe default)
+  - UsersPanel allTeams was building `{ id, name }` pairs — changed to spread full team object including `active`
+---

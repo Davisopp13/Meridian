@@ -39,16 +39,15 @@ export default function UsersPanel({ user, profile }) {
     debounceRef.current = setTimeout(() => setSearch(val), 200);
   }
 
-  // Derive all unique teams from users for the dropdown
+  // Derive all unique teams from users for the dropdown (includes active flag for filtering)
   const allTeams = useMemo(() => {
     const map = new Map();
     users.forEach(u => {
       if (u.teams && u.teams.id) {
-        map.set(u.teams.id, u.teams.name);
+        map.set(u.teams.id, { id: u.teams.id, name: u.teams.name, active: u.teams.active });
       }
     });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [users]);
 
   const filtered = useMemo(() => {

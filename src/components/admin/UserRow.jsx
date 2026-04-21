@@ -102,6 +102,9 @@ export default function UserRow({ user, teams, isSelf, onUpdateRole, onUpdateTea
 
   const currentTeamId = user.team_id || '';
 
+  // Show active teams, plus the user's current team even if it's inactive (so they can be reassigned off it)
+  const visibleTeams = teams.filter(t => t.active !== false || t.id === currentTeamId);
+
   return (
     <>
       {toast && (
@@ -169,8 +172,10 @@ export default function UserRow({ user, teams, isSelf, onUpdateRole, onUpdateTea
             onChange={handleTeamChange}
           >
             <option value="">Unassigned</option>
-            {teams.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            {visibleTeams.map(t => (
+              <option key={t.id} value={t.id}>
+                {t.name}{t.active === false ? ' (inactive)' : ''}
+              </option>
             ))}
           </select>
         </td>

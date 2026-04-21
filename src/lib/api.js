@@ -234,7 +234,7 @@ export async function fetchMyActiveMplTimers(userId) {
 export async function fetchAllPlatformUsers() {
   return supabase
     .from('platform_users')
-    .select('id, email, full_name, role, team_id, department_id, onboarding_complete, created_at, teams!left(id, name)')
+    .select('id, email, full_name, role, team_id, department_id, onboarding_complete, created_at, teams!left(id, name, active)')
     .order('full_name', { ascending: true, nullsFirst: false })
 }
 
