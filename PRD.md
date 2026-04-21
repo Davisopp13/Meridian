@@ -311,7 +311,7 @@ supabase/
   - **Acceptance:** Manual smoke test passes.
   - **Test:** `npm run build` + `npm run dev` manual verification logged in `progress.txt`.
 
-- [ ] **Task 21: Add progress.txt entries documenting manual-apply migrations**
+- [x] **Task 21: Add progress.txt entries documenting manual-apply migrations**
   - **What to build:** Append to `progress.txt`:
     ```
     Admin Panel Phase 1 — manual steps for Davis after Ralph completes:

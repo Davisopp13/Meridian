@@ -3841,3 +3841,34 @@ Learnings for future iterations:
   - Verification tasks: run build, check import paths exist, read the file to confirm logic is intact — three checks are sufficient when dev server is unavailable
   - All imports in SuggestionsPanel.jsx from admin/ subdir use ../../ prefix correctly
 ---
+
+## Iteration Admin-21 - Task 21 (Admin Panel PRD): Add manual migration steps
+Admin Panel Phase 1 — manual steps for Davis after Ralph completes:
+
+1. Apply migration 010_reconcile_role_constraint.sql in Supabase SQL Editor.
+   Expected: no-op in production (constraint already matches), summary shows
+   role counts (agent, supervisor, admin).
+
+2. Apply migration 011_admin_panel_rls.sql in Supabase SQL Editor.
+   Expected: policies created on platform_users, teams, departments,
+   mpl_categories, mpl_subcategories, supervisor_teams. Summary lists them.
+
+3. Smoke test: sign in as Davis (admin), open Admin panel. Confirm:
+   - Users tab lists all ~16 alpha users.
+   - Teams tab shows IDT and Customer Service with Export Rail SGP + NEM
+     under IDT.
+   - Categories tab shows MH categories (CH currently empty — expected).
+   - Suggestions tab works identically to before.
+
+4. Smoke test: sign in as Wanda or Carlos (non-admin). Confirm the Admin
+   button is NOT visible in the navbar.
+
+Known limitation: no audit log of admin writes. Added to backlog.
+
+Files changed:
+  progress.txt (this entry)
+  PRD.md (Task 21 marked [x])
+
+Learnings for future iterations:
+  - This task was purely a documentation task — no code changes required
+---
