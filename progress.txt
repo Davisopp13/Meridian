@@ -3539,3 +3539,23 @@ Learnings for future iterations:
   - AdminTabs does NOT import useTheme — it hardcodes dark-mode values (admin panel is admin-only host-page feature but uses fixed dark tokens matching existing AdminTab.jsx)
   - Tab keys are 'users', 'teams', 'suggestions', 'categories'
 ---
+
+## Iteration Admin-8 - Task 8 (Admin Panel PRD): Create SuggestionsPanel.jsx
+- Created src/components/admin/SuggestionsPanel.jsx
+- Moved the entire body of AdminTab.jsx into the new file, props: { user, profile }
+- Dropped the <h2>Admin</h2> heading (tab shell will provide it in Task 9)
+- Updated all import paths (relative depth changed from ../hooks/ to ../../hooks/ etc.)
+- Kept admin guard (profile?.role !== 'admin'), all state, useAllSuggestions calls, useMemo counts, all handlers
+- SuggestionList, SuggestionDetailPanel, useAllSuggestions, formatSuggestionListForClaude all re-imported
+- AdminTab.jsx is NOT yet modified — that happens in Task 9
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/SuggestionsPanel.jsx (created)
+  PRD.md (Task 8 marked [x])
+
+Learnings for future iterations:
+  - Import path depth changes when moving files: ../hooks/ → ../../hooks/, ../feedback/ → ../feedback/ stays relative but from admin/ subdir needs ../feedback/
+  - The existing AdminTab.jsx remains unchanged for Task 8; Task 9 rewrites it as the tabbed shell
+  - `selected` variable is computed but not used as a prop (SuggestionDetailPanel receives suggestion from the map) — kept as original
+---

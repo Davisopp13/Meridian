@@ -155,7 +155,7 @@ supabase/
   - **Acceptance:** Component renders. Clicking a tab fires `onTabChange` with the key. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 8: Create `SuggestionsPanel.jsx` by relocating existing AdminTab body**
+- [x] **Task 8: Create `SuggestionsPanel.jsx` by relocating existing AdminTab body**
   - **What to build:** Create `src/components/admin/SuggestionsPanel.jsx`. Move the entire current body of `src/components/AdminTab.jsx` — the filters, counts summary, suggestion list rendering, "Copy all for Claude" button, and all associated state — into this new file.
   - Props: `{ user, profile }`.
   - Drop the top `<h2>Admin</h2>` heading — the tab shell will provide a panel heading.
