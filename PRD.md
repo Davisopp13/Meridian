@@ -80,7 +80,7 @@ supabase/
   - **Acceptance:** File exists. SQL parses (no obvious syntax errors). Starts with `-- 010_reconcile_role_constraint.sql` comment header. Is idempotent (safe to run multiple times). Does not reference `'director'` anywhere except in the idempotency cleanup section (see next sentence). If the constraint currently includes `'director'`, the migration migrates any `role = 'director'` rows to `role = 'supervisor'` before swapping the constraint, then drops and re-adds. This handles both the production case (no director rows) and a hypothetical fresh-DB case (the drift has never been applied).
   - **Test:** `npm run build` (no-op — this is SQL). Manually inspect the file for the checklist in Acceptance.
 
-- [ ] **Task 2: Purge `'director'` references from the codebase**
+- [x] **Task 2: Purge `'director'` references from the codebase**
   - **What to build:** Remove every mention of the `'director'` role from JSX and hooks. Specifically:
     - `src/components/InsightsTab.jsx` line ~35: `profile?.role === 'supervisor' || profile?.role === 'director' || profile?.role === 'admin'` → `profile?.role === 'supervisor' || profile?.role === 'admin'`.
     - `src/components/Navbar.jsx` line ~271: same substitution.

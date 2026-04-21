@@ -32,7 +32,7 @@ export default function InsightsTab({ user, profile }) {
 
   const prevPeriod = PREV_PERIOD[period] ?? null;
 
-  const isAuthorized = profile?.role === 'supervisor' || profile?.role === 'director' || profile?.role === 'admin';
+  const isAuthorized = profile?.role === 'supervisor' || profile?.role === 'admin';
 
   const insights = useTeamInsights({
     supervisorId: isAuthorized ? user?.id : null,

@@ -3422,3 +3422,20 @@ Learnings for future iterations:
   - DROP CONSTRAINT inside a DO block (checking pg_constraint) is cleaner than bare ALTER which errors if constraint missing
   - Davis must apply this migration manually via Supabase SQL Editor before any admin UI tasks depend on role = 'admin'
 ---
+
+## Iteration Admin-2 - Task 2 (Admin Panel PRD): Purge 'director' references from codebase
+- Removed `profile?.role === 'director'` from two role-check expressions:
+  - `src/components/InsightsTab.jsx` line 35: `isAuthorized` check
+  - `src/components/Navbar.jsx` line 271: Insights button visibility check
+- `grep -rn "'director'" src/ | wc -l` returns 0
+- `npm run build` passes — 2498 modules, 0 errors
+
+Files changed:
+  src/components/InsightsTab.jsx (removed 'director' from isAuthorized)
+  src/components/Navbar.jsx (removed 'director' from supervisor/admin gate)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - Both 'director' occurrences were in the same pattern: `|| profile?.role === 'director'` sandwiched between supervisor and admin checks — just delete that clause
+  - No other src/ files had 'director'; comments in migration files are fine to keep
+---

@@ -268,7 +268,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                     </button>
                 )}
 
-                {(profile?.role === 'supervisor' || profile?.role === 'director' || profile?.role === 'admin') && (
+                {(profile?.role === 'supervisor' || profile?.role === 'admin') && (
                     <button
                         onClick={onInsights}
                         style={{
