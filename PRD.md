@@ -278,7 +278,7 @@ supabase/
   - **Acceptance:** Hook exists. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 18: Build `CategoriesPanel.jsx` + `CategoryGroup.jsx`**
+- [x] **Task 18: Build `CategoriesPanel.jsx` + `CategoryGroup.jsx`**
   - **What to build:**
     - Replace stub `src/components/admin/CategoriesPanel.jsx` with real implementation.
     - Two sections side-by-side on wide viewports (stacked on narrow): "Merchant Haulage (MH)" and "Carrier Haulage (CH)".

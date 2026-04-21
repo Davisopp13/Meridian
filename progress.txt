@@ -3711,3 +3711,77 @@ Learnings for future iterations:
   - TeamRow active toggle: `team.active !== false` rather than `team.active === true` to handle null/undefined as active (safe default)
   - UsersPanel allTeams was building `{ id, name }` pairs — changed to spread full team object including `active`
 ---
+
+## Iteration 45 - Task 16: Build AddDepartmentForm.jsx
+- Replaced stub AddDepartmentForm.jsx with full implementation
+- Props: { onCreate } — calls onCreate({ name }) on submit, fires refetch via TeamsPanel/DepartmentCard
+- Name input with length > 2 validation, disabled button when invalid or saving
+- Error handling: RLS rejection shows friendly message; clears on next input change
+- Resets name field on successful creation
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/components/admin/AddDepartmentForm.jsx (full implementation replacing stub)
+  PRD.md (Task 16 marked [x])
+
+Learnings for future iterations:
+  - AddDepartmentForm is simpler than AddTeamForm (no haulage_type radio) — just name + button
+  - onCreate callback should return the error (or null) so the form can display inline feedback
+  - DepartmentCard wires onCreate={createDept} from useAdminTeams; createDept already calls refetch on success
+---
+
+## Iteration AdminPanel-17 - Task 17: Build useAdminCategories hook
+- Created src/hooks/useAdminCategories.js
+- Calls fetchAllCategoriesForAdmin() on mount via tick-triggered useEffect
+- Groups flat category list into { mh: [], ch: [] } via groupByTeam() helper
+- Returns { categories, loading, error, refetch, createCat, updateCat, deleteCat, createSub, updateSub, deleteSub }
+- All mutators call the corresponding api.js wrapper and refetch on success
+- Pattern mirrors useAdminTeams.js exactly (tick + refetch + useCallback for each mutator)
+- `npm run build` passes — 2510 modules, 0 errors
+
+Files changed:
+  src/hooks/useAdminCategories.js (created)
+  PRD.md (Task 17 marked [x])
+
+Learnings for future iterations:
+  - groupByTeam() is a pure helper outside the hook — keeps hook body clean
+  - categories state initialized as { mh: [], ch: [] } (not []) — matches the return shape from the start
+  - Same tick/refetch/cancelled pattern as useAdminTeams — copy that hook as the template for future admin hooks
+---
+---
+
+## Iteration AdminPanel-18 - Task 18: Build CategoriesPanel.jsx + CategoryGroup.jsx
+- Created src/components/admin/CategoriesPanel.jsx — full implementation
+  - Uses useAdminCategories() hook for data
+  - Admin guard (profile?.role !== 'admin')
+  - Spinner / error+retry states matching TeamsPanel pattern
+  - Two flex columns: Merchant Haulage (MH) and Carrier Haulage (CH), side-by-side on wide viewports, stacked on narrow (minWidth: 280)
+  - Each column renders list of CategoryGroup + AddCategoryForm (Task 19 stub)
+  - Empty state message when no categories exist for a team
+- Created src/components/admin/CategoryGroup.jsx
+  - Inline-editable category name (click to edit, Enter to save, Escape to cancel)
+  - display_order numeric input with onBlur save
+  - is_active toggle button (green "Active" / red "Inactive")
+  - Delete button with window.confirm including subcategory cascade warning
+  - Inactive categories render at opacity 0.55 with an "Inactive" badge in the header
+  - Body: SubcategoryRow list + AddSubcategoryForm (Task 19 stubs)
+  - Delete error surfaced inline for 5 seconds
+- Created stubs for Task 19 components:
+  - src/components/admin/SubcategoryRow.jsx — shows name + "coming in Task 19" note
+  - src/components/admin/AddCategoryForm.jsx — minimal placeholder
+  - src/components/admin/AddSubcategoryForm.jsx — minimal placeholder
+- `npm run build` passes — 2515 modules, 0 errors
+
+Files changed:
+  src/components/admin/CategoriesPanel.jsx (full implementation replacing stub)
+  src/components/admin/CategoryGroup.jsx (created)
+  src/components/admin/SubcategoryRow.jsx (stub created for Task 19)
+  src/components/admin/AddCategoryForm.jsx (stub created for Task 19)
+  src/components/admin/AddSubcategoryForm.jsx (stub created for Task 19)
+  PRD.md (Task 18 marked [x])
+
+Learnings for future iterations:
+  - CategoriesPanel follows exact same pattern as TeamsPanel (Spinner, error+retry, admin guard)
+  - categories from useAdminCategories is already grouped: { mh: [], ch: [] } — no grouping needed in the panel
+  - CategoryGroup destructures mpl_subcategories from category (not subcategories) — matches the Supabase nested select key
+  - Task 19 stub files are needed for Task 18 to build — create them before running npm run build
