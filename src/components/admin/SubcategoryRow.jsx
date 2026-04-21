@@ -146,14 +146,24 @@ export default function SubcategoryRow({ subcategory, onUpdateSub, onDeleteSub }
 
   async function handleDelete() {
     const confirmed = window.confirm(
-      `Delete subcategory '${subcategory.name}'? MPL entries logged against this subcategory will have their subcategory reference cleared.`
+      `Delete subcategory "${subcategory.name}"?\n\n` +
+      `This will only succeed if no MPL entries reference it. ` +
+      `If any agent has ever logged time against this subcategory, ` +
+      `the delete will be rejected by the database.\n\n` +
+      `To retire a subcategory with historical entries, toggle it inactive instead.`
     );
     if (!confirmed) return;
     const err = await onDeleteSub({ id: subcategory.id });
     if (err) {
-      const msg = err.message?.includes('row-level security')
-        ? 'You do not have permission to delete this subcategory.'
-        : err.message || 'Delete failed.';
+      const raw = err.message || '';
+      let msg;
+      if (raw.includes('foreign key') || raw.includes('still referenced') || raw.includes('violates')) {
+        msg = 'Cannot delete — subcategory has historical time entries. Toggle inactive instead.';
+      } else if (raw.includes('row-level security')) {
+        msg = 'You do not have permission to delete this subcategory.';
+      } else {
+        msg = raw || 'Delete failed.';
+      }
       showDeleteError(msg);
     }
   }

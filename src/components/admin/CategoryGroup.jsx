@@ -158,14 +158,24 @@ export default function CategoryGroup({ category, onUpdateCat, onDeleteCat, onCr
 
   async function handleDelete() {
     const confirmed = window.confirm(
-      `Delete category '${category.name}'? All subcategories under it will also be deleted.`
+      `Delete category "${category.name}"?\n\n` +
+      `All subcategories under it will also be deleted (cascade). ` +
+      `This will only succeed if no MPL entries reference any of those subcategories. ` +
+      `If any agent has ever logged time against this category, the delete will be rejected.\n\n` +
+      `To retire a category with historical data, toggle it inactive instead.`
     );
     if (!confirmed) return;
     const err = await onDeleteCat({ id: category.id });
     if (err) {
-      const msg = err.message?.includes('row-level security')
-        ? 'You do not have permission to delete this category.'
-        : err.message || 'Delete failed.';
+      const raw = err.message || '';
+      let msg;
+      if (raw.includes('foreign key') || raw.includes('still referenced') || raw.includes('violates')) {
+        msg = 'Cannot delete — category or its subcategories have historical time entries. Toggle inactive instead.';
+      } else if (raw.includes('row-level security')) {
+        msg = 'You do not have permission to delete this category.';
+      } else {
+        msg = raw || 'Delete failed.';
+      }
       showDeleteError(msg);
     }
   }
