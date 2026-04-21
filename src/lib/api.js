@@ -252,3 +252,45 @@ export async function updatePlatformUserTeam({ userId, teamId }) {
 export async function updatePlatformUserName({ userId, fullName }) {
   return supabase.from('platform_users').update({ full_name: fullName }).eq('id', userId)
 }
+
+// RLS: admins only (migration 011 required)
+export async function fetchAllDepartmentsWithTeams() {
+  return supabase
+    .from('departments')
+    .select('id, name, teams(id, name, haulage_type, active)')
+    .order('name')
+}
+
+export async function createDepartment({ name }) {
+  return supabase.from('departments').insert({ name }).select().single()
+}
+
+export async function updateDepartment({ id, name }) {
+  return supabase.from('departments').update({ name }).eq('id', id).select().single()
+}
+
+// FK on teams.department_id is ON DELETE RESTRICT — DB rejects if teams exist
+export async function deleteDepartment({ id }) {
+  return supabase.from('departments').delete().eq('id', id)
+}
+
+export async function createTeam({ name, departmentId, haulageType }) {
+  return supabase
+    .from('teams')
+    .insert({ name, department_id: departmentId, haulage_type: haulageType })
+    .select()
+    .single()
+}
+
+// Partial update: pass only the fields to change
+export async function updateTeam({ id, name, active }) {
+  const patch = {}
+  if (name !== undefined) patch.name = name
+  if (active !== undefined) patch.active = active
+  return supabase.from('teams').update(patch).eq('id', id).select().single()
+}
+
+// FK on platform_users.team_id is ON DELETE SET NULL — users become unassigned
+export async function deleteTeam({ id }) {
+  return supabase.from('teams').delete().eq('id', id)
+}

@@ -3478,3 +3478,24 @@ Learnings for future iterations:
   - Client-side role validation throws (not returns error) — callers should try/catch or rely on the canonical role set
   - nullsFirst: false on order() puts null full_name rows at the end
 ---
+
+## Iteration [current] - Task 5: Add admin team/department wrappers to api.js
+- Added 7 wrappers to src/lib/api.js continuing the Admin Panel section
+- `fetchAllDepartmentsWithTeams()` — departments with nested teams(id, name, haulage_type, active)
+- `createDepartment({ name })` — insert + return new row
+- `updateDepartment({ id, name })` — rename, returns updated row
+- `deleteDepartment({ id })` — DB rejects if teams reference it (ON DELETE RESTRICT FK)
+- `createTeam({ name, departmentId, haulageType })` — insert + return new row
+- `updateTeam({ id, name, active })` — partial update (only sends fields that are not undefined)
+- `deleteTeam({ id })` — FK on platform_users.team_id is ON DELETE SET NULL so users become unassigned
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/lib/api.js (7 wrappers added)
+  PRD.md (Task 5 marked [x])
+
+Learnings for future iterations:
+  - Partial update pattern: build a `patch` object only including defined keys, avoids overwriting fields
+  - `updateTeam` supports both name rename and active toggle in one call, or either separately
+  - All new wrappers include a one-line RLS comment noting migration 011 required
+---

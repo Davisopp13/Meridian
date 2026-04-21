@@ -119,7 +119,7 @@ supabase/
   - **Acceptance:** All four wrappers exist, exported. Build passes.
   - **Test:** `npm run build`.
 
-- [ ] **Task 5: Add admin team/department wrappers to `api.js`**
+- [x] **Task 5: Add admin team/department wrappers to `api.js`**
   - **What to build:** Add:
     - `fetchAllDepartmentsWithTeams()` — returns departments with their teams nested: `departments.select('id, name, teams(id, name, haulage_type, active)').order('name')`. The UI will render this hierarchically.
     - `createDepartment({ name })` — inserts a department, returns the new row.
