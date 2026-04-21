@@ -232,9 +232,11 @@ export async function fetchMyActiveMplTimers(userId) {
 // ===== Admin Panel: users, teams, departments, categories =====
 
 export async function fetchAllPlatformUsers() {
+  // Note: platform_users has no department_id column. Department is reachable
+  // via user.team.department_id through the embedded team relationship if needed.
   return supabase
     .from('platform_users')
-    .select('id, email, full_name, role, team_id, department_id, onboarding_complete, created_at, team:team_id(id, name, active)')
+    .select('id, email, full_name, role, team_id, onboarding_complete, created_at, team:team_id(id, name, active)')
     .order('full_name', { ascending: true, nullsFirst: false })
 }
 
