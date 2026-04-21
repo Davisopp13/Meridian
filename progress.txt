@@ -3581,3 +3581,22 @@ Learnings for future iterations:
   - Conditional rendering with {activeTab === 'x' && <Panel />} pattern keeps each panel fully unmounted when not active — clean state reset on tab switch
   - All stub panel files are in place for Tasks 10–19 to fill in
 ---
+
+## Iteration Admin-10 - Task 10 (Admin Panel PRD): Build useAdminUsers hook
+- Created src/hooks/useAdminUsers.js
+- Returns { users, loading, error, refetch, updateRole, updateTeam, updateName }
+- Fetches fetchAllPlatformUsers() on mount via tick-based refetch pattern
+- updateRole/updateTeam/updateName: optimistic local state update, revert on Supabase error, return error object to caller
+- Cancellation guard (cancelled flag in useEffect cleanup) prevents state updates after unmount
+- No realtime subscription — admin is sole writer, local state + refetch is sufficient
+- `npm run build` passes — 0 errors
+
+Files changed:
+  src/hooks/useAdminUsers.js (created)
+  PRD.md (Task 10 marked [x])
+
+Learnings for future iterations:
+  - Optimistic update pattern: find prev row by id, apply change, revert on error — use functional setState (us => us.map(...)) to avoid stale closures
+  - updateRole/updateTeam/updateName all return null on success and the error object on failure (not a bool)
+  - useCallback deps include `users` so the closure always sees the current list when capturing `prev`
+---

@@ -184,7 +184,7 @@ supabase/
 
 ### Phase 5: Users panel
 
-- [ ] **Task 10: Build `useAdminUsers` hook**
+- [x] **Task 10: Build `useAdminUsers` hook**
   - **What to build:** A hook `useAdminUsers()` at `src/hooks/useAdminUsers.js` that:
     - Calls `fetchAllPlatformUsers()` on mount.
     - Returns `{ users, loading, error, refetch, updateRole, updateTeam, updateName }`.
