@@ -340,7 +340,7 @@ supabase/
   - **Acceptance:** Entries present at end of file.
   - **Test:** `cat progress.txt | tail -30`.
 
-- [ ] **Task 22: Final build + commit summary**
+- [x] **Task 22: Final build + commit summary**
   - **What to build:** Run `npm run build`. Ensure zero errors. Append a final section to `progress.txt` listing every file created/modified with a one-line summary of what changed.
   - **Acceptance:** `npm run build` clean. Summary present.
   - **Test:** `npm run build`.

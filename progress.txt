@@ -3872,3 +3872,50 @@ Files changed:
 Learnings for future iterations:
   - This task was purely a documentation task — no code changes required
 ---
+
+## Iteration Admin-22 - Task 22 (Admin Panel PRD): Final build + commit summary
+- `npm run build` ✓ — 2515 modules, 0 errors, 0 warnings, built in 1.35s
+
+Files created/modified across Admin Panel Phase 1:
+
+### Migrations (SQL only — Davis must apply manually)
+- supabase/migrations/010_reconcile_role_constraint.sql — drops/re-adds role CHECK constraint to canonical (agent, supervisor, admin); migrates any 'director' rows to 'supervisor' first; idempotent
+- supabase/migrations/011_admin_panel_rls.sql — INSERT/UPDATE/DELETE policies for admins on platform_users, teams, departments, mpl_categories, mpl_subcategories, supervisor_teams; idempotent
+
+### Library / API
+- src/lib/api.js — added admin wrappers: fetchAllPlatformUsers, updatePlatformUserRole, updatePlatformUserTeam, updatePlatformUserName, fetchAllDepartmentsWithTeams, createDepartment, updateDepartment, deleteDepartment, createTeam, updateTeam, deleteTeam, fetchAllCategoriesForAdmin, createCategory, updateCategory, deleteCategory, createSubcategory, updateSubcategory, deleteSubcategory
+
+### Hooks
+- src/hooks/useAdminUsers.js — fetch + optimistic mutate for platform_users
+- src/hooks/useAdminTeams.js — fetch + refetch-based mutate for departments/teams
+- src/hooks/useAdminCategories.js — fetch + refetch-based mutate for categories/subcategories, groups by CH/MH
+
+### Components
+- src/components/AdminTab.jsx — rewritten as 4-tab shell; owns activeTab state
+- src/components/admin/AdminTabs.jsx — pill tab strip (Users/Teams/Suggestions/Categories)
+- src/components/admin/SuggestionsPanel.jsx — relocated from AdminTab.jsx; fully preserved
+- src/components/admin/UsersPanel.jsx — user list with search, spinner, role/team dropdowns
+- src/components/admin/UserRow.jsx — inline role/team/name edit; admin-promo confirm; self-lock
+- src/components/admin/TeamsPanel.jsx — department list with AddDepartmentForm
+- src/components/admin/DepartmentCard.jsx — inline name edit, delete, team list + AddTeamForm
+- src/components/admin/TeamRow.jsx — inline name edit, active toggle, delete
+- src/components/admin/AddTeamForm.jsx — name + haulage_type radio, validates length > 2
+- src/components/admin/AddDepartmentForm.jsx — name input, validates length > 2
+- src/components/admin/CategoriesPanel.jsx — MH/CH two-column layout
+- src/components/admin/CategoryGroup.jsx — name edit, display_order, is_active toggle, delete
+- src/components/admin/SubcategoryRow.jsx — same controls scoped to subcategory
+- src/components/admin/AddCategoryForm.jsx — name input + team prop
+- src/components/admin/AddSubcategoryForm.jsx — name input + categoryId prop
+
+### Role cleanup
+- src/components/InsightsTab.jsx — removed 'director' from role checks
+- src/components/Navbar.jsx — removed 'director' from role checks
+
+Files changed:
+  progress.txt (this entry)
+  PRD.md (Task 22 marked [x])
+
+Learnings for future iterations:
+  - Final build check is a clean `npm run build` — 0 errors is the only criterion
+  - All 22 Admin Panel tasks completed; the panel is feature-complete pending Davis applying migrations 010 and 011
+---
