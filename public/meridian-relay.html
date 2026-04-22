@@ -78,7 +78,7 @@
             'apikey': SUPABASE_ANON_KEY,
             'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
             'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
+            'Prefer': 'return=minimal'
           },
           body: JSON.stringify(payload.body)
         });
@@ -87,8 +87,7 @@
           var errText = await resp.text();
           throw new Error(resp.status + ': ' + errText);
         }
-        // return=representation gives 201 with the inserted row(s) as a JSON array
-        result = await resp.json();
+        result = { success: true };
       }
 
       else if (action === 'SUPABASE_GET') {
