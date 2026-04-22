@@ -3982,3 +3982,21 @@ Learnings for future iterations:
   - handleResolved and handleReclass each have two inserts (ct_cases + case_events) — both need sf_case_id
   - handleCall only inserts into case_events (not ct_cases) — sf_case_id on case_events only
 ---
+
+## Iteration SF-4 - Task 2.1 (SF Direct Link PRD): Add src/lib/salesforce.js
+- Created src/lib/salesforce.js with two exported functions: caseUrl(sfCaseId) and accountUrl(sfAccountId)
+- caseUrl: validates ^500[a-zA-Z0-9]{12,15}$ regex, returns full Lightning URL or null
+- accountUrl: validates ^001[a-zA-Z0-9]{12,15}$ regex (infrastructure for future track, not exercised in this PRD)
+- SF_HOST hardcoded once at module level — only place in codebase
+- `grep -c "^export function" src/lib/salesforce.js` returns 2 ✓
+- `npx vite build` passes — 0 errors ✓
+
+Files changed:
+  src/lib/salesforce.js (created)
+  PRD.md (Task 2.1 marked [x])
+
+Learnings for future iterations:
+  - salesforce.js is the single source of SF URL truth — all SF link construction routes through caseUrl()
+  - caseUrl and accountUrl both return null for falsy or malformed IDs — callers skip the link affordance on null
+  - SF_HOST constant is defined here and nowhere else — update this one line for sandbox/org changes
+---

@@ -209,7 +209,7 @@ Things the codebase already has that this PRD builds on:
 
 ### Phase 2 — Render
 
-- [ ] **Task 2.1: Add `src/lib/salesforce.js` — single source of SF URL truth**
+- [x] **Task 2.1: Add `src/lib/salesforce.js` — single source of SF URL truth**
 
   Create `src/lib/salesforce.js`:
 
