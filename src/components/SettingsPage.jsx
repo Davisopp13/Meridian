@@ -90,7 +90,7 @@ function CheckRow({ label, checked, onChange, disabled }) {
         onChange={onChange}
         style={{ display: 'none' }}
       />
-      <span style={{ fontSize: 13, color: C.textPri, fontFamily: 'Segoe UI, sans-serif' }}>{label}</span>
+      <span style={{ fontSize: 13, color: C.textPri }}>{label}</span>
     </label>
   )
 }
@@ -128,7 +128,7 @@ function RadioRow({ label, checked, onChange, disabled, badge }) {
         onChange={onChange}
         style={{ display: 'none' }}
       />
-      <span style={{ fontSize: 13, color: C.textPri, fontFamily: 'Segoe UI, sans-serif' }}>{label}</span>
+      <span style={{ fontSize: 13, color: C.textPri }}>{label}</span>
       {badge && (
         <span style={{
           fontSize: 10,
@@ -320,7 +320,6 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
   const pageStyle = {
     minHeight: '100vh',
     background: C.bg,
-    fontFamily: 'Segoe UI, sans-serif',
   }
 
   const containerStyle = {
@@ -356,7 +355,6 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
     fontWeight: 700,
     cursor: saving ? 'not-allowed' : 'pointer',
     transition: 'all 0.2s ease',
-    fontFamily: 'Segoe UI, sans-serif',
   }
 
   return (
@@ -375,7 +373,6 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              fontFamily: 'Segoe UI, sans-serif',
             }}
           >
             ← Dashboard
@@ -477,13 +474,13 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
                     background: previewBg,
                     border: previewBorder,
                   }} />
-                  <span style={{ fontSize: 12, color: C.textPri, fontFamily: 'Segoe UI, sans-serif' }}>{label}</span>
+                  <span style={{ fontSize: 12, color: C.textPri }}>{label}</span>
                 </div>
               )
             })}
           </div>
           {themeToast && (
-            <div style={{ fontSize: 11, color: '#22c55e', marginTop: 8, fontFamily: 'Segoe UI, sans-serif' }}>
+            <div style={{ fontSize: 11, color: '#22c55e', marginTop: 8 }}>
               ✓ Saved
             </div>
           )}
@@ -497,14 +494,14 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 13, color: C.textPri, fontFamily: 'Segoe UI, sans-serif' }}>Show confirmation toast after logging</div>
+                <div style={{ fontSize: 13, color: C.textPri }}>Show confirmation toast after logging</div>
                 <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Brief overlay confirms when a case or process is logged</div>
               </div>
               <Toggle checked={toastOnLog} onChange={() => setToastOnLog(v => !v)} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 13, color: C.textPri, fontFamily: 'Segoe UI, sans-serif' }}>Play sound on bookmarklet trigger</div>
+                <div style={{ fontSize: 13, color: C.textPri }}>Play sound on bookmarklet trigger</div>
                 <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Audio cue when a new case or process starts</div>
               </div>
               <Toggle checked={sound} onChange={() => setSound(v => !v)} />
@@ -532,7 +529,6 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
             borderRadius: 8,
             boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
             zIndex: 999,
-            fontFamily: 'Segoe UI, sans-serif',
           }}>
             {toast === 'success' ? '✓ Settings saved' : '✗ Failed to save — try again'}
           </div>

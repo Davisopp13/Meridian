@@ -14,14 +14,12 @@ export default function ProcessesLane({
     letterSpacing: '0.06em',
     color: C.textSec,
     textTransform: 'uppercase',
-    fontFamily: '"Segoe UI", sans-serif',
     padding: '0 8px 6px',
   }
 
   const emptyStyle = {
     fontSize: 10,
     color: C.textSec,
-    fontFamily: '"Segoe UI", sans-serif',
     padding: '12px 8px',
     textAlign: 'center',
   }
@@ -40,7 +38,6 @@ export default function ProcessesLane({
     color: C.process,
     fontSize: 10,
     fontWeight: 700,
-    fontFamily: '"Segoe UI", sans-serif',
     cursor: 'pointer',
     textAlign: 'center',
     marginTop: 4,

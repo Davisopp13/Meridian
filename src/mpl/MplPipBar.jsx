@@ -80,7 +80,7 @@ export default function MplPipBar({
           height: 32,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8,
-          cursor: 'pointer', fontFamily: '"Inter", system-ui, sans-serif',
+          cursor: 'pointer',
           fontSize: 10, fontWeight: 600, color: 'var(--text-sec)', userSelect: 'none',
         }}
       >
@@ -114,8 +114,7 @@ export default function MplPipBar({
       {/* ── Bar row ──────────────────────────────────────────────── */}
       <div style={{
         minHeight: 64, display: 'flex', alignItems: 'center',
-        padding: '0 12px', gap: 8, flexShrink: 0,
-        fontFamily: '"Inter", system-ui, sans-serif', position: 'relative',
+        padding: '0 12px', gap: 8, flexShrink: 0, position: 'relative',
       }}>
         {/* M° logo */}
         <img
@@ -137,8 +136,7 @@ export default function MplPipBar({
                 style={{
                   height: 28, padding: '0 14px', borderRadius: 14,
                   background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.3)',
-                  color: '#60a5fa', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0, whiteSpace: 'nowrap',
+                  color: '#60a5fa', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
                 ▶ Open
@@ -148,8 +146,7 @@ export default function MplPipBar({
                 style={{
                   height: 28, padding: '0 14px', borderRadius: 14,
                   background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0, whiteSpace: 'nowrap',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
                 Quick Log
@@ -179,7 +176,6 @@ export default function MplPipBar({
                   <span style={{
                     fontSize: 11, fontWeight: 600,
                     color: runningCount > 0 ? '#60a5fa' : 'var(--text-sec)',
-                    fontFamily: '"Inter", system-ui, sans-serif',
                   }}>
                     +{processes.length - 2}
                   </span>
@@ -193,7 +189,6 @@ export default function MplPipBar({
                   width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-sec)', fontSize: 10, flexShrink: 0, borderRadius: 4,
-                  fontFamily: '"Inter", system-ui, sans-serif',
                 }}
               >
                 {swimlaneOpen ? '▲' : '▼'}
@@ -204,8 +199,7 @@ export default function MplPipBar({
                 style={{
                   height: 26, padding: '0 10px', borderRadius: 13,
                   background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  fontFamily: '"Inter", system-ui, sans-serif', flexShrink: 0, whiteSpace: 'nowrap',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
                 Quick Log
@@ -223,14 +217,13 @@ export default function MplPipBar({
         }}>
           <span style={{
             fontSize: 14, fontWeight: 700, color: '#60a5fa',
-            lineHeight: 1, fontFamily: '"Inter", system-ui, sans-serif',
+            lineHeight: 1,
           }}>
             {processCount}
           </span>
           <span style={{
             fontSize: 9, fontWeight: 600, color: 'var(--text-dim)',
             textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 1,
-            fontFamily: '"Inter", system-ui, sans-serif',
           }}>
             Done
           </span>
@@ -246,7 +239,7 @@ export default function MplPipBar({
             width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'var(--text-sec)', fontSize: 12, fontWeight: 600,
-            flexShrink: 0, borderRadius: 4, fontFamily: '"Inter", system-ui, sans-serif',
+            flexShrink: 0, borderRadius: 4,
           }}
           title="Minimize"
         >
@@ -259,8 +252,7 @@ export default function MplPipBar({
         <div style={{
           padding: '6px 12px', fontSize: 10, fontWeight: 600,
           color: '#60a5fa', background: 'rgba(96,165,250,0.08)',
-          borderTop: '1px solid rgba(96,165,250,0.15)',
-          fontFamily: '"Inter", system-ui, sans-serif', textAlign: 'center',
+          borderTop: '1px solid rgba(96,165,250,0.15)', textAlign: 'center',
         }}>
           {pipToast}
         </div>

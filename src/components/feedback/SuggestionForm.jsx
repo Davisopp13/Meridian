@@ -43,7 +43,6 @@ const inputStyle = {
   fontSize: 14,
   boxSizing: 'border-box',
   outline: 'none',
-  fontFamily: 'inherit',
 };
 
 const labelStyle = {

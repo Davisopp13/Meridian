@@ -157,7 +157,7 @@ Things Ralph should know before starting:
   - `grep -rn "var(--text-pri)\|var(--text-sec)" src/components/insights/` returns ≥ 10 matches.
   - `npx vite build` passes.
 
-- [ ] **Task 1.2: Remove the `Inter` font reference**
+- [x] **Task 1.2: Remove the `Inter` font reference**
 
   `src/index.css` declares `--font-family: 'Inter', system-ui, sans-serif` but Inter is never loaded. Meanwhile every component hardcodes Segoe UI inline. Task 0.1 already updated the token to Segoe UI — now strip the inline restatements so components inherit.
 

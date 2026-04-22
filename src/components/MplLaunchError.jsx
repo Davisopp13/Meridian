@@ -28,7 +28,6 @@ export default function MplLaunchError({ reason, onRetry }) {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontFamily: '"Inter", system-ui, sans-serif',
       padding: 24,
     }}>
       <div style={{ maxWidth: 380, textAlign: 'center' }}>
@@ -67,7 +66,6 @@ export default function MplLaunchError({ reason, onRetry }) {
               fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
-              fontFamily: 'inherit',
             }}
           >
             Try again

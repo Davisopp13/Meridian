@@ -159,7 +159,6 @@ export default function CtPipBar({
           padding: '0 12px',
           gap: 8,
           flexShrink: 0,
-          fontFamily: '"Inter", system-ui, sans-serif',
         }}
       >
         {/* M° button */}
@@ -197,7 +196,7 @@ export default function CtPipBar({
                 style={{
                   width: 80, height: 24, padding: '0 6px', borderRadius: 6,
                   border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)',
-                  color: '#fff', fontSize: 11, fontFamily: 'monospace', outline: 'none',
+                  color: '#fff', fontSize: 11, outline: 'none',
                 }}
               />
               <button
@@ -328,7 +327,6 @@ export default function CtPipBar({
           textAlign: 'center',
           zIndex: 9999,
           pointerEvents: 'none',
-          fontFamily: '"Inter", system-ui, sans-serif',
         }}>
           {pipToast}
         </div>

@@ -41,7 +41,6 @@ export default function CasePillPopover({ onAwaiting, onNotACase, onClose }) {
         gap: 6,
         zIndex: 1000,
         whiteSpace: 'nowrap',
-        fontFamily: '"Inter", system-ui, sans-serif',
       }}
     >
       <button
@@ -59,7 +58,6 @@ export default function CasePillPopover({ onAwaiting, onNotACase, onClose }) {
           display: 'flex',
           alignItems: 'center',
           gap: 4,
-          fontFamily: '"Inter", system-ui, sans-serif',
         }}
       >
         <span>⏸</span>
@@ -80,7 +78,6 @@ export default function CasePillPopover({ onAwaiting, onNotACase, onClose }) {
           display: 'flex',
           alignItems: 'center',
           gap: 4,
-          fontFamily: '"Inter", system-ui, sans-serif',
         }}
       >
         <span>⊘</span>

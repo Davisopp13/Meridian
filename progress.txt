@@ -4131,3 +4131,26 @@ Learnings for future iterations:
   - New tokens appended at bottom of :root block after existing tokens, per PRD "keep existing tokens untouched" instruction
   - body { font-variant-numeric: tabular-nums; } is a second body rule after the first — valid CSS, adds the numeric variant without touching existing body styles
 ---
+
+## Iteration Token-1.1 - Task 1.1 (Token Consolidation PRD): Fix Insights token typo
+- Replaced `var(--text-primary)` → `var(--text-pri)` and `var(--text-secondary)` → `var(--text-sec)` in 6 files
+- Files affected: AgentRow.jsx, MplByCategoryPanel.jsx, TeamCaseVolumePanel.jsx, TeamFilterDropdown.jsx, AgentHandleTimePanel.jsx, TrendComparisonPanel.jsx
+- Acceptance checks:
+  - `grep -rn "var(--text-primary)|var(--text-secondary)" src/` → 0 matches ✓
+  - `grep -rn "var(--text-pri)|var(--text-sec)" src/components/insights/` → 32 matches (≥10 ✓)
+  - npx vite build → ✓ built in 1.28s, 0 errors
+
+Files changed:
+  src/components/insights/AgentRow.jsx
+  src/components/insights/MplByCategoryPanel.jsx
+  src/components/insights/TeamCaseVolumePanel.jsx
+  src/components/insights/TeamFilterDropdown.jsx
+  src/components/insights/AgentHandleTimePanel.jsx
+  src/components/insights/TrendComparisonPanel.jsx
+  PRD.md (Task 1.1 marked [x])
+
+Learnings for future iterations:
+  - replace_all is the cleanest tool for this mechanical rename — one call per pattern per file
+  - The broken tokens were in 6 files (not just the 5 listed in PRD) — MplByCategoryPanel and TeamFilterDropdown also had them
+  - Always grep `src/` (not just `src/components/insights/`) to catch the full scope of a token typo
+---

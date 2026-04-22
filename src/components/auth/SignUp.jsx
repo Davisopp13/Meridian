@@ -63,7 +63,6 @@ export default function SignUp({ onSwitchToSignIn }) {
     <div style={{
       minHeight: '100vh', background: '#0f0f1e',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: '"Segoe UI", system-ui, sans-serif',
     }}>
       <div style={{
         width: '100%', maxWidth: 440,

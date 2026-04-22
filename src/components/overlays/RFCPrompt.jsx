@@ -18,7 +18,6 @@ export default function RFCPrompt({ caseNumber, onYes, onNo }) {
       height: 48,
       background: 'rgba(217,119,6,0.08)',
       borderTop: '1px solid rgba(217,119,6,0.2)',
-      fontFamily: '"Segoe UI", sans-serif',
       flexShrink: 0,
     }}>
       <span style={{ fontSize: 14, color: '#f59e0b', flexShrink: 0 }}>⚠</span>
@@ -40,7 +39,7 @@ export default function RFCPrompt({ caseNumber, onYes, onNo }) {
           border: '1px solid rgba(217,119,6,0.5)',
           background: 'rgba(217,119,6,0.15)',
           color: '#f59e0b', fontSize: 11, fontWeight: 700,
-          cursor: 'pointer', fontFamily: '"Segoe UI", sans-serif',
+          cursor: 'pointer',
           whiteSpace: 'nowrap', flexShrink: 0,
         }}
       >Yes — RFC</button>
@@ -51,7 +50,7 @@ export default function RFCPrompt({ caseNumber, onYes, onNo }) {
           border: `1px solid ${C.border}`,
           background: 'transparent',
           color: C.textSec, fontSize: 11, fontWeight: 700,
-          cursor: 'pointer', fontFamily: '"Segoe UI", sans-serif',
+          cursor: 'pointer',
           whiteSpace: 'nowrap', flexShrink: 0,
         }}
       >No</button>

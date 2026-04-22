@@ -359,7 +359,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                   <span style={{ color: MC.textPrimary, fontSize: 14, fontWeight: 600 }}>Edit Activity</span>
                   {entry.case_number && (
                     <>
-                      <span style={{ color: MC.textMuted, fontSize: 12, fontFamily: 'monospace' }}>
+                      <span style={{ color: MC.textMuted, fontSize: 12 }}>
                         #{entry.case_number}
                       </span>
                       <CaseLink sfCaseId={entry.sf_case_id} showOnHover={false} />
@@ -428,7 +428,6 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                           width: '100%',
                           height: 36,
                           fontSize: 13,
-                          fontFamily: 'monospace',
                           padding: '0 10px',
                           boxSizing: 'border-box',
                         }}
@@ -447,7 +446,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                             min={0}
                             value={durMinutes}
                             onChange={e => setDurMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                            style={{ ...inputStyle, width: 64, height: 36, fontSize: 14, fontFamily: 'monospace', textAlign: 'center', padding: 0 }}
+                            style={{ ...inputStyle, width: 64, height: 36, fontSize: 14, textAlign: 'center', padding: 0 }}
                             onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
                             onBlur={e => { e.target.style.borderColor = MC.border; }}
                           />
@@ -461,7 +460,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                             max={59}
                             value={durSeconds}
                             onChange={e => setDurSeconds(Math.min(59, Math.max(0, parseInt(e.target.value, 10) || 0)))}
-                            style={{ ...inputStyle, width: 64, height: 36, fontSize: 14, fontFamily: 'monospace', textAlign: 'center', padding: 0 }}
+                            style={{ ...inputStyle, width: 64, height: 36, fontSize: 14, textAlign: 'center', padding: 0 }}
                             onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
                             onBlur={e => { e.target.style.borderColor = MC.border; }}
                           />
@@ -537,7 +536,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                         min={1}
                         value={minutes}
                         onChange={e => setMinutes(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                        style={{ ...inputStyle, width: 80, height: 36, fontSize: 14, fontFamily: 'monospace', textAlign: 'center', padding: 0 }}
+                        style={{ ...inputStyle, width: 80, height: 36, fontSize: 14, textAlign: 'center', padding: 0 }}
                         onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
                         onBlur={e => { e.target.style.borderColor = MC.border; }}
                       />
@@ -679,7 +678,6 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
           style={{
             color: C.textSecondary,
             fontSize: 12,
-            fontFamily: 'monospace',
             whiteSpace: 'nowrap',
           }}
         >
@@ -714,7 +712,7 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
 
       {/* Time — 68px monospace right-aligned */}
       <div style={{ width: 68, flexShrink: 0, textAlign: 'right', paddingRight: 8 }}>
-        <span style={{ color: C.textMuted, fontSize: 11, fontFamily: 'monospace' }}>
+        <span style={{ color: C.textMuted, fontSize: 11 }}>
           {formatTime(entry.ts)}
         </span>
       </div>

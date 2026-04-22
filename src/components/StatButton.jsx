@@ -22,7 +22,6 @@ export default function StatButton({ icon, label, color, onClick, disabled = fal
     border: 'none',
     fontSize: 12,
     fontWeight: 600,
-    fontFamily: '"Inter", system-ui, sans-serif',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

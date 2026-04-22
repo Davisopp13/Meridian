@@ -14,7 +14,6 @@ export default function CasePill({
         background: 'rgba(245,158,11,0.12)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(245,158,11,0.3)', cursor: 'pointer',
         fontSize: 12, fontWeight: 600, color: '#fff',
-        fontFamily: '"Inter", system-ui, sans-serif',
         flexShrink: 0,
       }}>
         <span>⏸</span>
@@ -43,7 +42,6 @@ export default function CasePill({
           background: 'rgba(232,84,10,0.12)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
           border: '1px solid rgba(232,84,10,0.3)',
           fontSize: 12, fontWeight: 600, color: C.textPri,
-          fontFamily: '"Inter", system-ui, sans-serif',
           flexShrink: 0, cursor: 'pointer',
         }}
       >
@@ -90,7 +88,6 @@ export default function CasePill({
         padding: '0 10px', height: 32, borderRadius: 8,
         background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid var(--border)',
         fontSize: 12, fontWeight: 500, color: C.textSec,
-        fontFamily: '"Inter", system-ui, sans-serif',
         cursor: 'pointer', flexShrink: 0,
         transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}

@@ -14,7 +14,6 @@ function actionBtn(color, muted = false) {
     fontWeight: 700,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    fontFamily: '"Segoe UI", sans-serif',
   }
 }
 
@@ -69,7 +68,6 @@ export default function ProcessLaneRow({
   const labelStyle = {
     fontSize: 10,
     fontWeight: 700,
-    fontFamily: '"Segoe UI", sans-serif',
   }
 
   // ── Idle row ──────────────────────────────────────────────────────────────
@@ -127,7 +125,7 @@ export default function ProcessLaneRow({
               key={cat.id}
               style={{
                 padding: '5px 8px', borderRadius: 6, fontSize: 10, fontWeight: selectedCategory?.id === cat.id ? 700 : 500,
-                cursor: 'pointer', textAlign: 'left', fontFamily: '"Segoe UI", sans-serif', transition: 'all 100ms',
+                cursor: 'pointer', textAlign: 'left', transition: 'all 100ms',
                 border: `1px solid ${selectedCategory?.id === cat.id ? tint.border : 'rgba(255,255,255,0.1)'}`,
                 background: selectedCategory?.id === cat.id ? tint.bg : 'rgba(255,255,255,0.04)',
                 color: selectedCategory?.id === cat.id ? tint.color : C.textSec,
@@ -152,7 +150,7 @@ export default function ProcessLaneRow({
               key={sub.id}
               style={{
                 padding: '4px 7px', borderRadius: 6, fontSize: 10, fontWeight: 500,
-                cursor: 'pointer', textAlign: 'left', fontFamily: '"Segoe UI", sans-serif', transition: 'all 100ms',
+                cursor: 'pointer', textAlign: 'left', transition: 'all 100ms',
                 border: '1px solid rgba(255,255,255,0.08)',
                 background: 'rgba(255,255,255,0.02)',
                 color: C.textSec,

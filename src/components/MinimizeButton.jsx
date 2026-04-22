@@ -27,7 +27,6 @@ export default function MinimizeButton({ onClick }) {
     color: hovered ? C.textPri : C.textSec,
     fontSize: 14,
     fontWeight: 700,
-    fontFamily: '"Inter", system-ui, sans-serif',
     borderRadius: 8,
     transform: pressed ? 'scale(0.9)' : hovered ? 'scale(1.1)' : 'scale(1)',
     transition: 'all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',

@@ -215,7 +215,7 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
               width: '100%', boxSizing: 'border-box',
               background: C.input, border: `1px solid ${C.border}`,
               borderRadius: 6, color: C.textPri, fontSize: 14,
-              padding: '8px 10px', resize: 'vertical', fontFamily: 'inherit',
+              padding: '8px 10px', resize: 'vertical',
             }}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>

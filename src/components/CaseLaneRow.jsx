@@ -14,7 +14,6 @@ function actionBtn(color, muted = false) {
     fontWeight: 700,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    fontFamily: '"Segoe UI", sans-serif',
     display: 'flex',
     alignItems: 'center',
     gap: 4,
@@ -75,7 +74,6 @@ export default function CaseLaneRow({
   const labelStyle = {
     fontSize: 10,
     fontWeight: 700,
-    fontFamily: '"Segoe UI", sans-serif',
   }
 
   // ── Awaiting state ──────────────────────────────────────────────────────────

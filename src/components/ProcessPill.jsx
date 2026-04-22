@@ -8,7 +8,6 @@ export default function ProcessPill({ elapsed, onLog, onClose }) {
       background: 'rgba(96,165,250,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
       border: '1px solid rgba(96,165,250,0.3)',
       fontSize: 12, fontWeight: 600, color: C.process,
-      fontFamily: '"Inter", system-ui, sans-serif',
       boxShadow: '0 4px 12px rgba(96,165,250,0.1)',
       flexShrink: 0,
     }}>

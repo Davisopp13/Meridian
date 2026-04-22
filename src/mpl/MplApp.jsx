@@ -620,8 +620,7 @@ export default function MplApp() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: '100vh', background: '#0f0f1e',
-        color: 'rgba(255,255,255,0.5)',
-        fontFamily: '"Inter", system-ui, sans-serif', fontSize: 12,
+        color: 'rgba(255,255,255,0.5)', fontSize: 12,
       }}>
         Loading…
       </div>
@@ -635,8 +634,7 @@ export default function MplApp() {
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         height: '100vh', background: '#0f0f1e',
-        color: 'rgba(255,255,255,0.5)',
-        fontFamily: '"Inter", system-ui, sans-serif', fontSize: 12,
+        color: 'rgba(255,255,255,0.5)', fontSize: 12,
         textAlign: 'center', padding: 24,
       }}>
         Please complete onboarding in the main Meridian dashboard first.
@@ -652,7 +650,6 @@ export default function MplApp() {
     <div style={{
       minHeight: '100vh', background: '#0f1117',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: '"Inter", system-ui, sans-serif',
     }}>
       <div style={{ textAlign: 'center' }}>
         <img src="/meridian-mark-192.png" width={48} height={48}

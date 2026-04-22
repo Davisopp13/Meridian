@@ -125,7 +125,6 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
-    fontFamily: '"Inter", system-ui, sans-serif',
     lineHeight: 1,
   };
 
@@ -189,7 +188,6 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
           color: labelColor,
           whiteSpace: 'nowrap',
           flexShrink: 0,
-          fontFamily: '"Inter", system-ui, sans-serif',
         }}>
           {selectionLabel}
         </span>
@@ -234,7 +232,6 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
                 textAlign: 'center',
                 outline: 'none',
                 flexShrink: 0,
-                fontFamily: '"Inter", system-ui, sans-serif',
               }}
             />
             {customValValid && (
@@ -284,7 +281,6 @@ export default function CategoryChipStrip({ categories = [], processElapsed = 0,
           color: 'var(--text-dim)',
           whiteSpace: 'nowrap',
           flexShrink: 0,
-          fontFamily: '"Inter", system-ui, sans-serif',
         }}>
           Log · {formatElapsed(processElapsed)}
         </span>

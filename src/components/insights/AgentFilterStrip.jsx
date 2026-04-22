@@ -14,7 +14,6 @@ function Chip({ label, title, active, onClick }) {
     padding: '4px 12px',
     borderRadius: 16,
     fontSize: 13,
-    fontFamily: 'inherit',
     cursor: 'pointer',
     border: 'none',
     transition: 'background 0.15s, color 0.15s',

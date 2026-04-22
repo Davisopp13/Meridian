@@ -233,7 +233,6 @@ export default function MinimizedStrip({
         overflow: 'hidden',
         cursor: 'pointer',
         userSelect: 'none',
-        fontFamily: '"Inter", system-ui, sans-serif',
         boxSizing: 'border-box',
       }}
     >

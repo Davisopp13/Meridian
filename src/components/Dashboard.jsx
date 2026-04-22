@@ -100,7 +100,7 @@ export default function Dashboard({ user, profile, onLaunchPip, onLaunchMpl, onR
   }
 
   return (
-    <div style={{ background: 'var(--dash-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
+    <div style={{ background: 'var(--dash-bg)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar user={user} profile={profile} onLaunchPip={onLaunchPip} onLaunchCt={handleLaunchCt} onLaunchMpl={onLaunchMpl} setShowBookmarkletModal={setShowBookmarkletModal} onSettings={() => setView('settings')} onFeedback={() => setView('feedback')} onAdmin={() => setView('admin')} onInsights={() => setView('insights')} onHome={() => setView('dashboard')} activeView={view} />
 
 

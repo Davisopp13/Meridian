@@ -26,7 +26,6 @@ export class PipErrorBoundary extends Component {
             alignItems: 'center',
             gap: 10,
             padding: '0 16px',
-            fontFamily: '"Inter", system-ui, sans-serif',
           }}
         >
           <img

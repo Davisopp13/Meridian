@@ -15,7 +15,6 @@ export default function RecoveryPrompt({ recoveredProcesses = [], onResume, onLo
       position: 'absolute', inset: 0,
       background: '#0f1117',
       display: 'flex', flexDirection: 'column',
-      fontFamily: '"Segoe UI", system-ui, sans-serif',
       zIndex: 100,
       overflow: 'hidden',
     }}>
@@ -65,7 +64,6 @@ export default function RecoveryPrompt({ recoveredProcesses = [], onResume, onLo
             flex: 1, height: 28, borderRadius: 14,
             background: '#003087', border: '1px solid rgba(0,80,200,0.5)',
             color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-            fontFamily: '"Segoe UI", system-ui, sans-serif',
           }}
         >
           Resume
@@ -76,7 +74,6 @@ export default function RecoveryPrompt({ recoveredProcesses = [], onResume, onLo
             flex: 1, height: 28, borderRadius: 14,
             background: 'rgba(232,84,10,0.15)', border: '1px solid rgba(232,84,10,0.4)',
             color: '#E8540A', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-            fontFamily: '"Segoe UI", system-ui, sans-serif',
           }}
         >
           Log now
@@ -87,7 +84,6 @@ export default function RecoveryPrompt({ recoveredProcesses = [], onResume, onLo
             flex: 1, height: 28, borderRadius: 14,
             background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
             color: 'rgba(255,255,255,0.45)', fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            fontFamily: '"Segoe UI", system-ui, sans-serif',
           }}
         >
           Discard

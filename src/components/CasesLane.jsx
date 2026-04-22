@@ -21,14 +21,12 @@ export default function CasesLane({
     letterSpacing: '0.06em',
     color: C.textSec,
     textTransform: 'uppercase',
-    fontFamily: '"Segoe UI", sans-serif',
     padding: '0 8px 6px',
   }
 
   const emptyStyle = {
     fontSize: 10,
     color: C.textSec,
-    fontFamily: '"Segoe UI", sans-serif',
     padding: '12px 8px',
     textAlign: 'center',
   }

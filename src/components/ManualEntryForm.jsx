@@ -70,7 +70,6 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
       flex: 1,
       minHeight: 0,
       boxSizing: 'border-box',
-      fontFamily: '"Inter", system-ui, sans-serif',
     }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

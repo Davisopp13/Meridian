@@ -961,7 +961,6 @@ export default function CtApp() {
         height: '100vh',
         background: '#0f1117',
         overflow: 'hidden',
-        fontFamily: '"Inter", system-ui, sans-serif',
       }}>
         <PipErrorBoundary>
           {buildPipBar()}

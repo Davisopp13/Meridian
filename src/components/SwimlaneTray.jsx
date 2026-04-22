@@ -30,7 +30,6 @@ export default function SwimlaneTray({
     height: 214,
     overflow: 'hidden',
     borderTop: `1px solid ${C.divider}`,
-    fontFamily: '"Segoe UI", sans-serif',
   }
 
   const casesColStyle = {
