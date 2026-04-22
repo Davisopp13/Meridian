@@ -413,7 +413,7 @@ Things the codebase already has that this PRD builds on:
   - `grep -n "sf_case_id\|select(" src/hooks/useActivityData.js` shows `sf_case_id` is either explicitly selected or the query is `select('*')`.
   - `npx vite build` passes.
 
-- [ ] **Task 3.2: Final grep + build sweep**
+- [x] **Task 3.2: Final grep + build sweep**
 
   ```bash
   # CaseLink is imported from the lib, not reinvented elsewhere

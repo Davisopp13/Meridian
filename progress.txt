@@ -4092,3 +4092,20 @@ Learnings for future iterations:
   - sf_case_id is explicitly listed in the select (not select('*')) — using two columns: on case_events directly AND nested in ct_cases sub-select
   - normalizeCaseEvent prefers case_events.sf_case_id with fallback to ct_cases.sf_case_id
 ---
+
+## Iteration SF-10 - Task 3.2 (SF Direct Link PRD): Final grep + build sweep
+- All three verification checks passed:
+  1. `grep -rn "lightning/r/Case/500|lightning/r/Case/\${" src/ ... | grep -v salesforce.js` → 1 match (Step3Bookmarklet.jsx line 18, a relative-path detection string in the bookmarklet, not a URL constructor — expected and acceptable)
+  2. `grep -rn "hlag.lightning.force.com" src/ ... | grep -v salesforce.js` → 0 matches ✓
+  3. `grep -rn "<CaseLink " src/components/ | wc -l` → 2 (ActivityLog row + modal header) ✓
+  4. `npx vite build` → ✓ built in 1.40s, 0 errors, 0 warnings
+- The bookmarklet match in check 1 is the shadow-DOM walker's relative-path detection string (`hrefC.startsWith('/lightning/r/Case/500')`) — not a URL builder. URL construction lives only in salesforce.js. This is expected behavior from Task 1.1.
+
+Files changed:
+  PRD.md (Task 3.2 marked [x])
+
+Learnings for future iterations:
+  - The final grep check will always produce 1 match in the bookmarklet (Task 1.1 detection string) — this is not a violation; the rule is about URL construction, not about matching existing SF page hrefs
+  - All SF Direct Link PRD tasks (0.1 through 3.2) are now complete
+  - sf_case_id flows from SF DOM scrape → bookmarklet payload → widget state → Supabase writes → useActivityData select → CaseLink render
+---
