@@ -240,6 +240,7 @@
     var caseNum = state.caseNumber;
     var now = new Date();
     relayPost('ct_cases', {
+      id:          state.sessionId,
       user_id:     state.userId,
       case_number: caseNum || null,
       case_type:   state.caseType    || null,
@@ -250,7 +251,6 @@
       is_rfc:      false,
       source:      'pip',
       sf_case_id:  state.sfCaseId || null,
-      session_id:  state.sessionId || null,
       entry_date:  getTodayNY(),
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
@@ -285,6 +285,7 @@
     var caseNum = state.caseNumber;
     var now = new Date();
     relayPost('ct_cases', {
+      id:          state.sessionId,
       user_id:     state.userId,
       case_number: caseNum || null,
       case_type:   state.caseType    || null,
@@ -295,7 +296,6 @@
       is_rfc:      false,
       source:      'pip',
       sf_case_id:  state.sfCaseId || null,
-      session_id:  state.sessionId || null,
       entry_date:  getTodayNY(),
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
