@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useTheme } from '../context/ThemeContext.jsx';
 import { useTeamInsights } from '../hooks/useTeamInsights.js';
 import InsightsEmptyState from './insights/InsightsEmptyState.jsx';
 import InsightsTabs from './insights/InsightsTabs.jsx';
@@ -24,7 +23,6 @@ const PREV_PERIOD = {
 };
 
 export default function InsightsTab({ user, profile }) {
-  const { theme } = useTheme();
   const [period, setPeriod] = useState('this_week');
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedTeamId, setSelectedTeamId] = useState(null);
@@ -58,8 +56,8 @@ export default function InsightsTab({ user, profile }) {
       cursor: 'pointer',
       fontSize: 13,
       fontWeight: active ? 700 : 500,
-      background: active ? 'var(--color-mmark)' : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'),
-      color: active ? '#fff' : (theme === 'light' ? '#475569' : 'rgba(255,255,255,0.55)'),
+      background: active ? 'var(--tab-active-bg)' : 'var(--hover-surface)',
+      color: active ? 'var(--tab-active-fg)' : 'var(--text-dim)',
       transition: 'background 150ms, color 150ms',
     };
   }

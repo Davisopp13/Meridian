@@ -4281,3 +4281,23 @@ Learnings for future iterations:
   - --tab-active-bg resolves to var(--color-mbtn) = navy; --tab-active-fg = #ffffff — active tab is now navy not orange
   - Transition using var(--motion-fast) inside a comma-separated transition shorthand works correctly
 ---
+
+## Iteration Token-2.6 - Task 2.6 (Token Consolidation PRD): InsightsTab.jsx tabStyle migration
+- Same pattern as Dashboard.jsx (Iteration Token-2.5)
+- Removed `import { useTheme }` and `const { theme } = useTheme()` — unused after migration
+- Updated tabStyle(): background `active ? 'var(--color-mmark)' : theme ternary` → `active ? 'var(--tab-active-bg)' : 'var(--hover-surface)'`
+- Updated tabStyle(): color `active ? '#fff' : theme ternary` → `active ? 'var(--tab-active-fg)' : 'var(--text-dim)'`
+- Active tab is now navy (--tab-active-bg) instead of orange
+- Acceptance checks:
+  - `grep -n "theme === 'light'" src/components/InsightsTab.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.31s, 0 errors
+
+Files changed:
+  src/components/InsightsTab.jsx (useTheme removed, tabStyle updated)
+  PRD.md (Task 2.6 marked [x])
+
+Learnings for future iterations:
+  - Same useTheme cleanup pattern as Dashboard — when the only use of `theme` is in tabStyle ternaries, the whole import chain can be dropped
+  - Inactive tab color `rgba(0,0,0,0.05)` (light) / `rgba(255,255,255,0.06)` (dark) → `var(--hover-surface)` — correct mapping confirmed
+  - Inactive tab text `#475569` (light) / `rgba(255,255,255,0.55)` (dark) → `var(--text-dim)` — correct mapping confirmed
+---

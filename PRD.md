@@ -206,7 +206,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Also update active-tab background from `C.mMark` (orange) to `var(--tab-active-bg)` (navy) — orange should be reserved for brand moments, not active tabs. (See audit finding F-05.)
   - **Acceptance:** `grep -n "theme === 'light'" src/components/Dashboard.jsx` = 0. Build passes.
 
-- [ ] **Task 2.6: `src/components/InsightsTab.jsx`**
+- [x] **Task 2.6: `src/components/InsightsTab.jsx`**
   - Same treatment as Dashboard: replace `theme === 'light'` ternary with `var(--hover-surface)`.
   - Replace active-tab orange with `var(--tab-active-bg)`.
   - **Acceptance:** `grep -n "theme === 'light'" src/components/InsightsTab.jsx` = 0. Build passes.
