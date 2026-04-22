@@ -372,17 +372,63 @@
   }
 
   function handleStartCase() {
+    // Case number still comes from document.title (matches bookmarklet behavior).
     var m = document.title.match(/(\d{8,})/);
-    if (m) {
-      state.caseNumber = m[1];
-      state.sessionId  = newSessionId();
-      state.elapsed    = 0;
-      state.isAwaiting = false;
-      startTimer();
-      render();
-    } else {
+    if (!m) {
       showWidgetToast('No case detected on this page');
+      return;
     }
+
+    // Scrape type / subtype / account / sf_case_id from the SF page DOM.
+    // Mirrors the bookmarklet's w(n,d) pattern exactly.
+    var typeVal = '', subtypeVal = '', accountId = '', sfCaseId = '';
+    function scrape(n, d) {
+      if (d > 50) return;
+
+      if (!typeVal && n.classList && n.classList.contains('slds-p-around_small')) {
+        var tt = (n.textContent || '').trim();
+        if (tt.indexOf('Type / Sub-Type') === 0) {
+          var v = tt.replace('Type / Sub-Type', '').trim();
+          var p = v.split(' / ');
+          typeVal = p[0] || '';
+          subtypeVal = p[1] || '';
+        }
+      }
+
+      if (n.tagName === 'A') {
+        var href = n.getAttribute && n.getAttribute('href');
+        if (href) {
+          if (!accountId && href.indexOf('/lightning/r/Account/001') === 0) {
+            var ai = href.match(/001[a-zA-Z0-9]{12,15}/);
+            if (ai && ai[0]) accountId = ai[0];
+          }
+          if (!sfCaseId && href.indexOf('/lightning/r/Case/500') === 0) {
+            var ci = href.match(/500[a-zA-Z0-9]{12,15}/);
+            if (ci && ci[0]) sfCaseId = ci[0];
+          }
+        }
+      }
+
+      if (n.shadowRoot) {
+        var sroots = n.shadowRoot.children || [];
+        for (var i = 0; i < sroots.length; i++) scrape(sroots[i], d + 1);
+      }
+      var kids = n.children || [];
+      for (var j = 0; j < kids.length; j++) scrape(kids[j], d + 1);
+    }
+    try { scrape(document.body, 0); } catch (e) { /* non-fatal */ }
+
+    // Hydrate state from scrape. Case number from title, others from DOM.
+    state.caseNumber  = m[1];
+    state.caseType    = typeVal || '';
+    state.caseSubtype = subtypeVal || '';
+    state.accountId   = accountId || '';
+    state.sfCaseId    = sfCaseId || '';
+    state.sessionId   = newSessionId();
+    state.elapsed     = 0;
+    state.isAwaiting  = false;
+    startTimer();
+    render();
   }
 
   function handleDismissCase() {
