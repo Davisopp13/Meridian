@@ -4488,3 +4488,13 @@ Learnings for future iterations:
   - The `--card-bg-subtle` token covers subtle alternating row backgrounds (rgba(255,255,255,0.04))
   - Always check index.css with grep before assuming a `var(--...)` reference is valid
 ---
+
+## Iteration 15 - Task 2.14: CaseLink.jsx review
+- No changes needed — file already uses CSS vars throughout
+- Files changed: PRD.md only (task marked complete)
+- Grep result: `grep -nE "#[0-9a-fA-F]{3,6}" src/components/CaseLink.jsx` → 0 matches (exit 1)
+- All style values: var(--text-dim), var(--color-mmark), var(--hover-surface), var(--motion-fast)
+- Learnings for future iterations:
+  - CaseLink.jsx was added after the token system was established, so it was already compliant
+  - No gotchas; pure no-op verification task
+---

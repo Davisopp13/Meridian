@@ -247,7 +247,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Two smaller files with `const C`. Migrate both in this task.
   - **Acceptance:** no local hex in `const C` blocks. Build passes.
 
-- [ ] **Task 2.14: `src/components/CaseLink.jsx` — review only, no migration expected**
+- [x] **Task 2.14: `src/components/CaseLink.jsx` — review only, no migration expected**
   - This file was added in the SF Direct Link PRD. It already uses CSS vars (`var(--text-dim)`, `var(--color-mmark)`, `var(--hover-surface)`, `var(--motion-fast)`) correctly.
   - Task: verify that all color/motion values in `CaseLink.jsx` reference tokens, not hex literals. If any do, migrate them. Otherwise mark complete as a no-op and note in `progress.txt`.
   - **DO NOT** change the `onClick={(e) => e.stopPropagation()}`, the `target`/`rel` attributes, the `caseUrl()` import, or the `showOnHover` prop logic — all functional.
