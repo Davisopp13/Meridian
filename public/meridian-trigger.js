@@ -103,23 +103,28 @@
   // ── collectSelectedCases ─────────────────────────────────────────────────
   function collectSelectedCases() {
     var cases = [];
-    walkShadow(document.documentElement, function(node) {
+    walkShadow(document.documentElement, function (node) {
       if (!node.getAttribute) return;
       var kv = node.getAttribute('data-row-key-value');
-      if (!kv || !kv.startsWith('500')) return;
-      var checkbox = node.querySelector('input[type="checkbox"]');
+      if (!kv || kv.indexOf('500') !== 0) return;
+      var checkbox = node.querySelector && node.querySelector('input[type="checkbox"]');
       if (!checkbox || !checkbox.checked) return;
+
+      // The Case Number <th> is in the row's light DOM, but the <span title="...">
+      // inside it lives in a nested shadow root on <lightning-primitive-custom-cell>.
+      // Scope a deep walk to just that <th> so we don't pick up numeric titles
+      // from other columns (account id, order id, etc.).
       var caseNumber = null;
-      var primary = node.querySelector('th[data-label="Case Number"] span[title]');
-      if (primary) {
-        caseNumber = primary.getAttribute('title');
-      } else {
-        var spans = node.querySelectorAll('span[title]');
-        for (var si = 0; si < spans.length; si++) {
-          var t = spans[si].getAttribute('title');
-          if (t && /^\d{8,}$/.test(t)) { caseNumber = t; break; }
-        }
+      var caseCell = node.querySelector('th[data-label="Case Number"]');
+      if (caseCell) {
+        walkShadow(caseCell, function (inner) {
+          if (caseNumber) return;
+          if (!inner.getAttribute) return;
+          var t = inner.getAttribute('title');
+          if (t && /^\d{8,}$/.test(t)) caseNumber = t;
+        });
       }
+
       if (caseNumber) cases.push({ case_number: caseNumber, sf_case_id: kv });
     });
     return cases;
