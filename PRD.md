@@ -235,7 +235,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - `FeedbackTab.jsx` also has one.
   - **Acceptance:** `grep -rn "const C = {" src/components/feedback/ src/components/FeedbackTab.jsx` = 0. Build passes.
 
-- [ ] **Task 2.11: Modal components — `BookmarkletModal.jsx`**
+- [x] **Task 2.11: Modal components — `BookmarkletModal.jsx`**
   - Migrate the `const C`.
   - **Acceptance:** no hex in `const C`. Build passes.
 
