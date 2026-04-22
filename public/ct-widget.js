@@ -67,14 +67,33 @@
   var host = document.createElement('div');
   host.id = 'meridian-ct-widget';
 
-  // Restore saved position (left/bottom) if available
+  // Restore saved position (left/bottom) if available, with viewport sanity check.
+  // If the saved position is outside the current viewport (e.g. user changed
+  // monitors, resolution, or zoom between sessions), fall back to default.
   var savedPos = null;
   try { savedPos = JSON.parse(localStorage.getItem('meridian-ct-pos')); } catch (e) {}
 
-  if (savedPos && typeof savedPos.left !== 'undefined') {
+  // Viewport sanity: the widget is ~60px tall and anywhere from 320px (minimized)
+  // to ~700px wide. Require at least 100px of the widget's footprint to be in view
+  // on each axis, or fall back. Generous margins account for different widget states.
+  function positionIsVisible(pos) {
+    if (!pos || typeof pos.left === 'undefined' || typeof pos.bottom === 'undefined') return false;
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var horizontallyVisible = pos.left >= -200 && pos.left <= vw - 100;
+    var verticallyVisible = pos.bottom >= 0 && pos.bottom <= vh - 40;
+    return horizontallyVisible && verticallyVisible;
+  }
+
+  if (savedPos && positionIsVisible(savedPos)) {
     host.style.cssText =
       'position:fixed;bottom:' + savedPos.bottom + 'px;left:' + savedPos.left + 'px;z-index:2147483647;';
   } else {
+    // Either no saved position, or saved position is off-screen — use default.
+    // If savedPos exists but failed the check, clear it so we don't re-test every load.
+    if (savedPos) {
+      try { localStorage.removeItem('meridian-ct-pos'); } catch (e) {}
+    }
     host.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:2147483647;';
   }
 
