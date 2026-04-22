@@ -4301,3 +4301,89 @@ Learnings for future iterations:
   - Inactive tab color `rgba(0,0,0,0.05)` (light) / `rgba(255,255,255,0.06)` (dark) → `var(--hover-surface)` — correct mapping confirmed
   - Inactive tab text `#475569` (light) / `rgba(255,255,255,0.55)` (dark) → `var(--text-dim)` — correct mapping confirmed
 ---
+
+## Iteration Token-2.7 - Task 2.7 (Token Consolidation PRD): ActivityLog.jsx const C migration
+- CaseLink count BEFORE edit: 3 (must stay 3)
+- Removed `const C = { ... }` block entirely (lines 745-766 originally) — eliminated all isLight ternaries
+- Inlined var() references at every C.xxx usage site in FilterTab, EntryRow, and ActivityLog main render
+- Removed C prop from FilterTab and EntryRow function signatures
+- Removed C={C} from <FilterTab> and <EntryRow> JSX call sites
+- Kept `const { theme } = useTheme()` and `const isLight = theme === 'light'` — still needed at line 861 for "All" button active border (rgba(0,0,0,0.25) / rgba(255,255,255,0.25) — no token equivalent)
+- MC (module-level modal constant, line 170) is NOT named `const C` so not in scope for this task
+- Token mappings used:
+  - C.bg → var(--bg-deep)
+  - C.bgCard → var(--bg-card)
+  - C.bgHover → var(--hover-surface)
+  - C.border → var(--divider)
+  - C.orange → var(--color-mmark)
+  - C.textPrimary → var(--text-pri)
+  - C.textSecondary → var(--text-sec)
+  - C.textMuted → var(--text-dim)
+- Semantic colors (green, red, blue, lightBlue variants) were in C but never referenced — dropped cleanly
+- Acceptance checks:
+  - grep -n "const C = {" ActivityLog.jsx → 0 matches ✓
+  - grep -c "CaseLink" ActivityLog.jsx → 3 (unchanged) ✓
+  - npx vite build → ✓ built in 1.32s, 0 errors
+
+Files changed:
+  src/components/ActivityLog.jsx (const C removed, var() inlined at all usage sites)
+  PRD.md (Task 2.7 marked [x])
+
+Learnings for future iterations:
+  - When a C object is passed as a prop to sub-components (FilterTab, EntryRow), removing C requires updating both the prop definition AND the JSX call site
+  - Module-level constants named MC (not C) are separate from const C; check grep acceptance criteria carefully
+  - isLight may remain in scope even after removing const C if it's used directly elsewhere in the component
+  - The "All" filter button uses rgba(0,0,0,0.25)/rgba(255,255,255,0.25) — no token for this; left as-is with isLight
+---
+
+## Iteration N - Task 2.8: SettingsPage.jsx token migration
+- Migrated `const C` in `src/components/SettingsPage.jsx` from `--dash-*` vars (non-existent) + hex to canonical tokens
+- All `--dash-*` variables do NOT exist in index.css — they were all broken references
+- Also fixed one inline `var(--dash-card)` in theme card JSX (line ~467)
+
+Token mappings:
+  - C.bg: var(--dash-bg) → var(--bg-deep)
+  - C.card: var(--dash-card) → var(--bg-card)
+  - C.border: var(--dash-border) → var(--border)
+  - C.divider: var(--dash-border) → var(--border)
+  - C.textPri: var(--dash-text-pri) → var(--text-pri)
+  - C.textSec: var(--dash-text-sec) → var(--text-sec)
+  - C.textDim: var(--dash-text-dim) → var(--text-dim)
+  - C.accent: '#E8540A' → var(--color-mmark)
+
+Note for Task 3.3: line 449 has `previewBg: '#1a1a2e'` — intentional dark-theme preview swatch
+  (outside const C, not in scope for Task 2.8 acceptance). Will be caught by Task 3.3 grep check.
+
+Acceptance checks:
+  - grep -n "const C = {" SettingsPage.jsx → line 6 exists (const C block still present, just with vars)
+  - grep -n "hex in C block" → 0 (no hex in const C values) ✓
+  - npx vite build → ✓ built in 1.39s, 0 errors
+
+Files changed:
+  src/components/SettingsPage.jsx (const C migrated to canonical tokens)
+  PRD.md (Task 2.8 marked [x])
+
+Learnings for future iterations:
+  - SettingsPage was using --dash-* variables that don't exist anywhere in index.css — silent broken references
+  - Theme preview swatches (hardcoded preview colors) are intentional fixed values, NOT styling tokens
+  - Check for inline var(--dash-*) references beyond the const C block when migrating
+---
+
+## Iteration Token-2.9 - Task 2.9 (Token Consolidation PRD): Admin surface const C migration
+- AdminTab.jsx: `const C` only had token refs (no hex); removed it and inlined var() directly at the 2 usage sites
+- SuggestionsPanel.jsx: `const C` only had token refs; removed it, updated SELECT_STYLE to use literal token strings, inlined all C.xxx references
+- Template literal `\`1px solid ${C.border}\`` converted to plain string `'1px solid var(--border)'`
+- Acceptance checks:
+  - `grep -rn "const C = {" src/components/admin/ src/components/AdminTab.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.38s, 0 errors
+
+Files changed:
+  src/components/AdminTab.jsx (const C removed, C.xxx inlined)
+  src/components/admin/SuggestionsPanel.jsx (const C removed, SELECT_STYLE + all C.xxx inlined)
+  PRD.md (Task 2.9 marked [x])
+
+Learnings for future iterations:
+  - When const C already uses var() refs (no hex), the task is to remove the indirection object and inline the strings directly
+  - Template literals `\`1px solid ${C.border}\`` must become plain strings `'1px solid var(--border)'` — no template needed
+  - replace_all on `C.textSec` etc. is the cleanest approach when the token string is unambiguous
+---

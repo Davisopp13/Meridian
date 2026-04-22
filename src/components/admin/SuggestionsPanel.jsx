@@ -4,15 +4,6 @@ import { formatSuggestionListForClaude } from '../../lib/suggestionFormat.js';
 import SuggestionList from '../feedback/SuggestionList.jsx';
 import SuggestionDetailPanel from '../feedback/SuggestionDetailPanel.jsx';
 
-const C = {
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-  bg:      'var(--bg-card)',
-  border:  'var(--border)',
-  input:   'var(--card-bg-subtle)',
-};
-
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
   { value: 'new', label: 'New' },
@@ -32,10 +23,10 @@ const TYPE_OPTIONS = [
 ];
 
 const SELECT_STYLE = {
-  background: C.input,
-  border: `1px solid ${C.border}`,
+  background: 'var(--card-bg-subtle)',
+  border: '1px solid var(--border)',
   borderRadius: 6,
-  color: C.textPri,
+  color: 'var(--text-pri)',
   fontSize: 13,
   padding: '6px 10px',
   cursor: 'pointer',
@@ -65,7 +56,7 @@ export default function SuggestionsPanel({ user, profile }) {
   if (profile?.role !== 'admin') {
     return (
       <div style={{ maxWidth: 560, margin: '80px auto', textAlign: 'center', padding: '0 20px' }}>
-        <p style={{ color: C.textSec, fontSize: 15 }}>
+        <p style={{ color: 'var(--text-sec)', fontSize: 15 }}>
           Not authorized. Admin access only.
         </p>
       </div>
@@ -99,7 +90,7 @@ export default function SuggestionsPanel({ user, profile }) {
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
       {/* Counts summary */}
-      <p style={{ color: C.textDim, fontSize: 13, margin: '0 0 24px' }}>
+      <p style={{ color: 'var(--text-dim)', fontSize: 13, margin: '0 0 24px' }}>
         {counts.newCount} new · {counts.inProg} in progress · {counts.total} total
       </p>
 
@@ -132,8 +123,8 @@ export default function SuggestionsPanel({ user, profile }) {
           disabled={suggestions.length === 0}
           style={{
             padding: '6px 14px', borderRadius: 6,
-            border: `1px solid ${C.border}`,
-            background: 'transparent', color: C.textPri,
+            border: '1px solid var(--border)',
+            background: 'transparent', color: 'var(--text-pri)',
             cursor: suggestions.length === 0 ? 'not-allowed' : 'pointer',
             fontSize: 13, opacity: suggestions.length === 0 ? 0.45 : 1,
           }}
@@ -141,7 +132,7 @@ export default function SuggestionsPanel({ user, profile }) {
           Copy all for Claude
         </button>
         {copyMsg && (
-          <span style={{ fontSize: 12, color: C.textDim }}>{copyMsg}</span>
+          <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{copyMsg}</span>
         )}
       </div>
 
@@ -154,7 +145,7 @@ export default function SuggestionsPanel({ user, profile }) {
 
       {/* List */}
       {loading ? (
-        <div style={{ color: C.textSec, fontSize: 14, padding: '12px 0' }}>Loading…</div>
+        <div style={{ color: 'var(--text-sec)', fontSize: 14, padding: '12px 0' }}>Loading…</div>
       ) : (
         suggestions.map(suggestion => (
           <div key={suggestion.id}>
@@ -176,7 +167,7 @@ export default function SuggestionsPanel({ user, profile }) {
       )}
 
       {!loading && suggestions.length === 0 && (
-        <p style={{ color: C.textSec, fontSize: 14, padding: '12px 0' }}>
+        <p style={{ color: 'var(--text-sec)', fontSize: 14, padding: '12px 0' }}>
           No suggestions match the current filters.
         </p>
       )}

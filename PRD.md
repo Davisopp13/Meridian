@@ -225,7 +225,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Migrate the `const C` palette.
   - **Acceptance:** no hex in `const C` block. Build passes.
 
-- [ ] **Task 2.9: Admin surface — `AdminTab.jsx` and everything under `src/components/admin/`**
+- [x] **Task 2.9: Admin surface — `AdminTab.jsx` and everything under `src/components/admin/`**
   - `AdminTab.jsx` has a top-level `const C`. Every file under `src/components/admin/` uses inline styles.
   - Focus on the top-level `const C` definitions only — migrate those to token refs.
   - **Acceptance:** `grep -rn "const C = {" src/components/admin/ src/components/AdminTab.jsx` = 0. Build passes.
