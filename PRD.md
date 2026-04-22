@@ -239,7 +239,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Migrate the `const C`.
   - **Acceptance:** no hex in `const C`. Build passes.
 
-- [ ] **Task 2.12: Chart — `DashboardChart.jsx`**
+- [x] **Task 2.12: Chart — `DashboardChart.jsx`**
   - Has a `const C`. Note: chart data colors (the green/red/blue/etc. for each metric) should stay as-is — they're semantic metric colors, not theme surface colors. Only migrate background/border/text tokens to vars.
   - **Acceptance:** background/border/text values use vars. Metric colors unchanged. Build passes.
 

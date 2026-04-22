@@ -8,16 +8,6 @@ import {
   Tooltip,
 } from 'recharts';
 
-const C = {
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-  divider: 'var(--divider)',
-  border: 'var(--border)',
-  cardBg: 'var(--card-bg-subtle)',
-  mMark: 'var(--color-mmark)',
-};
-
 const METRIC_CONFIG = {
   resolved: { label: 'Resolved', color: '#16a34a' },
   reclass: { label: 'Reclassified', color: '#dc2626' },
@@ -33,26 +23,26 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
   const metricColor = config.color;
   const metricLabel = config.label;
 
-  const axisStyle = { fill: C.textDim, fontSize: 11 };
+  const axisStyle = { fill: 'var(--text-dim)', fontSize: 11 };
 
   const toggleBtnStyle = (active) => ({
     height: 30,
     padding: '0 12px',
     borderRadius: 6,
-    border: active ? 'none' : `1px solid ${C.border}`,
-    background: active ? C.mMark : C.cardBg,
-    color: active ? '#fff' : C.textSec,
+    border: active ? 'none' : '1px solid var(--border)',
+    background: active ? 'var(--color-mmark)' : 'var(--card-bg-subtle)',
+    color: active ? '#fff' : 'var(--text-sec)',
     fontSize: 12,
     fontWeight: active ? 700 : 400,
     cursor: 'pointer',
-    transition: 'all 150ms',
+    transition: 'all var(--motion-fast)',
   });
 
   const cardStyle = {
-    background: C.cardBg,
+    background: 'var(--card-bg-subtle)',
     backdropFilter: 'blur(12px)',
     WebkitBackdropFilter: 'blur(12px)',
-    border: `1px solid ${C.border}`,
+    border: '1px solid var(--border)',
     borderRadius: 16,
     padding: 20,
     marginTop: 24,
@@ -68,20 +58,20 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
   };
 
   const titleStyle = {
-    color: '#fff',
+    color: 'var(--text-pri)',
     fontSize: 15,
     fontWeight: 700,
   };
 
   const chart = chartType === 'area' ? (
     <AreaChart data={rows}>
-      <CartesianGrid strokeDasharray="3 3" stroke={C.divider} />
+      <CartesianGrid strokeDasharray="3 3" stroke="var(--divider)" />
       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
       <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
       <Tooltip
         cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
-        contentStyle={{ background: 'var(--bg-card)', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
-        labelStyle={{ color: C.textSec }}
+        contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-pri)' }}
+        labelStyle={{ color: 'var(--text-sec)' }}
       />
       <Area
         type="monotone"
@@ -94,13 +84,13 @@ export default function DashboardChart({ rows, activeMetric, chartType, onChartT
     </AreaChart>
   ) : (
     <BarChart data={rows}>
-      <CartesianGrid strokeDasharray="3 3" stroke={C.divider} />
+      <CartesianGrid strokeDasharray="3 3" stroke="var(--divider)" />
       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
       <YAxis tick={axisStyle} axisLine={false} tickLine={false} />
       <Tooltip
         cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-        contentStyle={{ background: 'var(--bg-card)', border: `1px solid ${C.border}`, borderRadius: 8, color: '#fff' }}
-        labelStyle={{ color: C.textSec }}
+        contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-pri)' }}
+        labelStyle={{ color: 'var(--text-sec)' }}
       />
       <Bar dataKey={activeMetric} fill={metricColor} radius={[4, 4, 0, 0]} />
     </BarChart>
