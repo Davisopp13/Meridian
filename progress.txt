@@ -4498,3 +4498,17 @@ Learnings for future iterations:
   - CaseLink.jsx was added after the token system was established, so it was already compliant
   - No gotchas; pure no-op verification task
 ---
+
+## Iteration 16 - Task 2.15: salesforce.js review
+- No changes needed — file contains only logic (URL construction, ID validation), zero styling
+- `git diff --name-only src/lib/salesforce.js` → empty (no modifications)
+- File content: SF_HOST constant, caseUrl() and accountUrl() with regex validation — pure logic
+- `npx vite build` → ✓ built in 1.31s, 0 errors
+
+Files changed:
+  PRD.md only (Task 2.15 marked [x])
+
+Learnings for future iterations:
+  - salesforce.js is a utility module with no visual concerns; will never need token migration
+  - No-op review tasks confirm the scope boundary is intact
+---

@@ -253,7 +253,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - **DO NOT** change the `onClick={(e) => e.stopPropagation()}`, the `target`/`rel` attributes, the `caseUrl()` import, or the `showOnHover` prop logic — all functional.
   - **Acceptance:** `grep -nE "#[0-9a-fA-F]{3,6}" src/components/CaseLink.jsx` returns 0 matches. Build passes.
 
-- [ ] **Task 2.15: `src/lib/salesforce.js` — review only, hands off**
+- [x] **Task 2.15: `src/lib/salesforce.js` — review only, hands off**
   - This file owns the SF URL construction. It contains only logic, no styling.
   - Verify no changes are needed. Mark complete.
   - **Acceptance:** `git diff --name-only src/lib/salesforce.js` shows no modifications after Ralph's run.
