@@ -196,12 +196,12 @@ After each file, run `npx vite build` — it must pass before moving on.
 - [x] **Task 2.3: `src/components/auth/SignUp.jsx`**
   - **Acceptance:** no hex in file. Build passes.
 
-- [ ] **Task 2.4: Onboarding trio — `Step1Profile.jsx`, `Step2Team.jsx`, `Step3Bookmarklet.jsx`**
+- [x] **Task 2.4: Onboarding trio — `Step1Profile.jsx`, `Step2Team.jsx`, `Step3Bookmarklet.jsx`**
   - All three are under `src/components/onboarding/` and each has its own `const C`.
   - Migrate all three in this task.
   - **Acceptance:** `grep -rn "#003087\|#E8540A\|#0f0f1e\|#1a1a2e\|rgba(255,255,255,0.12)" src/components/onboarding/` = 0. Build passes.
 
-- [ ] **Task 2.5: `src/components/Dashboard.jsx`**
+- [x] **Task 2.5: `src/components/Dashboard.jsx`**
   - The `const C` uses var-prefixed values already. The issue is the inline `theme === 'light' ? '…' : '…'` ternary in `tabStyle()`. Replace with a single `var(--hover-surface)` reference — the CSS var already branches for light mode.
   - Also update active-tab background from `C.mMark` (orange) to `var(--tab-active-bg)` (navy) — orange should be reserved for brand moments, not active tabs. (See audit finding F-05.)
   - **Acceptance:** `grep -n "theme === 'light'" src/components/Dashboard.jsx` = 0. Build passes.

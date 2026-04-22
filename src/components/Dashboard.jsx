@@ -1,5 +1,4 @@
 import { useState, lazy, Suspense } from 'react';
-import { useTheme } from '../context/ThemeContext.jsx';
 import Navbar from './Navbar.jsx';
 import { useDashboardStats } from '../hooks/useDashboardStats.js';
 import DashboardStatCard from './DashboardStatCard.jsx';
@@ -47,7 +46,6 @@ const METRICS = [
 ];
 
 export default function Dashboard({ user, profile, onLaunchPip, onLaunchMpl, onRefreshProfile }) {
-  const { theme } = useTheme();
   const [period, setPeriod] = useState('this_week');
   const [activeMetric, setActiveMetric] = useState('resolved');
   const [chartType, setChartType] = useState('bar');
@@ -93,9 +91,9 @@ export default function Dashboard({ user, profile, onLaunchPip, onLaunchMpl, onR
       cursor: 'pointer',
       fontSize: 13,
       fontWeight: active ? 700 : 500,
-      background: active ? C.mMark : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'),
-      color: active ? '#fff' : (theme === 'light' ? '#475569' : 'rgba(255,255,255,0.55)'),
-      transition: 'background 150ms, color 150ms',
+      background: active ? 'var(--tab-active-bg)' : 'var(--hover-surface)',
+      color: active ? 'var(--tab-active-fg)' : 'var(--text-dim)',
+      transition: 'background var(--motion-fast), color var(--motion-fast)',
     };
   }
 

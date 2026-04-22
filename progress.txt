@@ -4241,3 +4241,43 @@ Learnings for future iterations:
   - rgba(0.35) has no exact token; var(--text-dim) (0.45) is the best dim match
   - Disabled-state rgba(0,48,135,0.5) intentionally left as-is (no opacity-derived button token)
 ---
+
+## Iteration Token-2.4 - Task 2.4 (Token Consolidation PRD): Migrate onboarding trio
+- Step1Profile.jsx: const C migrated; bg→var(--bg-deep), cardBg→var(--bg-card), border→var(--border), textPri→var(--text-pri), textSec→var(--text-dim), mBtn→var(--color-mbtn); inputStyle bg rgba(0.06)→var(--hover-surface)
+- Step2Team.jsx: const C migrated (same token mapping); inline button #003087→var(--color-mbtn); team card rgba(0.04)→var(--card-bg-subtle); transition 'all 150ms'→'all var(--motion-fast)', 'opacity 150ms'→'opacity var(--motion-fast)'
+- Step3Bookmarklet.jsx: const C migrated; bookmarklet anchor #E8540A→var(--color-mmark); info box rgba(0.04)→var(--card-bg-subtle)
+
+KNOWN EXCEPTION: grep acceptance check finds 2 remaining matches in Step3Bookmarklet.jsx — but they are inside the bookmarklet javascript: href strings (buildMplBmHref and buildCtBmHref). These hex values (#003087, #E8540A) control the injected toast appearance on Salesforce pages, not Meridian component styling. CLAUDE.md says "Do Not... Modify... the bookmarklet script" — left as-is. All Meridian component styling is fully tokenized.
+
+- npx vite build → ✓ built in 1.34s, 0 errors
+
+Files changed:
+  src/components/onboarding/Step1Profile.jsx
+  src/components/onboarding/Step2Team.jsx
+  src/components/onboarding/Step3Bookmarklet.jsx
+  PRD.md (Task 2.4 marked [x])
+
+Learnings for future iterations:
+  - Bookmarklet href strings contain hex values for styling injected into external pages — these are NOT Meridian component styles and should NOT be tokenized
+  - The acceptance grep will match these bookmarklet strings; document as a known exception
+  - rgba(255,255,255,0.45) → var(--text-dim) (confirmed mapping from Task 2.3)
+
+## Iteration Token-2.5 - Task 2.5 (Token Consolidation PRD): Dashboard.jsx tabStyle migration
+- Removed `import { useTheme }` and `const { theme } = useTheme()` — no longer needed after migration
+- Updated tabStyle(): background `active ? C.mMark : theme ternary` → `active ? 'var(--tab-active-bg)' : 'var(--hover-surface)'`
+- Updated tabStyle(): color `active ? '#fff' : theme ternary` → `active ? 'var(--tab-active-fg)' : 'var(--text-dim)'`
+- Updated tabStyle(): transition `'background 150ms, color 150ms'` → `'background var(--motion-fast), color var(--motion-fast)'`
+- Active tab is now navy (--tab-active-bg = --color-mbtn) instead of orange — per audit finding F-05
+- Acceptance checks:
+  - `grep -n "theme === 'light'" src/components/Dashboard.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.36s, 0 errors
+
+Files changed:
+  src/components/Dashboard.jsx (useTheme removed, tabStyle updated)
+  PRD.md (Task 2.5 marked [x])
+
+Learnings for future iterations:
+  - When removing all `theme === 'light'` references, also remove the `useTheme` import and `const { theme }` destructure — they become unused
+  - --tab-active-bg resolves to var(--color-mbtn) = navy; --tab-active-fg = #ffffff — active tab is now navy not orange
+  - Transition using var(--motion-fast) inside a comma-separated transition shorthand works correctly
+---
