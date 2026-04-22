@@ -221,7 +221,7 @@ After each file, run `npx vite build` — it must pass before moving on.
     - `grep -c "CaseLink" src/components/ActivityLog.jsx` is unchanged from before Ralph's edit (run it both before and after; values must match). Capture the before-count in `progress.txt` before editing.
     - Build passes.
 
-- [ ] **Task 2.8: `src/components/SettingsPage.jsx`**
+- [x] **Task 2.8: `src/components/SettingsPage.jsx`**
   - Migrate the `const C` palette.
   - **Acceptance:** no hex in `const C` block. Build passes.
 
