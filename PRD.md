@@ -281,7 +281,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - `grep -n "backdropFilter" src/components/DashboardStatCard.jsx` = 0.
   - Build passes.
 
-- [ ] **Task 3.2: Fix `prefers-reduced-motion` on the `fade-in-up` animation**
+- [x] **Task 3.2: Fix `prefers-reduced-motion` on the `fade-in-up` animation**
 
   The `fade-in-up` keyframe animation is inlined in `Dashboard.jsx`. The global rule added in Task 0.1 should handle it, but verify.
 

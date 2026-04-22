@@ -4512,3 +4512,35 @@ Learnings for future iterations:
   - salesforce.js is a utility module with no visual concerns; will never need token migration
   - No-op review tasks confirm the scope boundary is intact
 ---
+
+## Iteration 20 - Task 3.1: Remove backdropFilter no-op from DashboardStatCard.jsx
+- Removed `backdropFilter: 'blur(12px)'` and `WebkitBackdropFilter: 'blur(12px)'` from cardStyle (no-op on opaque background)
+- Updated `transition` from `'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'` to `'all var(--motion-fast)'`
+- Files changed: src/components/DashboardStatCard.jsx, PRD.md
+- grep -n "backdropFilter" src/components/DashboardStatCard.jsx → 0 matches ✓
+- npx vite build → ✓ built in 1.34s
+- Learnings for future iterations:
+  - File was short (85 lines) and clean — easy surgical edit
+  - No other style changes needed; `color: '#fff'` on label/icon/value are intentional (stat cards have colored backgrounds, white text is correct)
+---
+
+## Iteration Token-3.2 - Task 3.2 (Token Consolidation PRD): Verify prefers-reduced-motion on fade-in-up
+- Verification-only task — no code changes needed
+- Confirmed: both animations in Dashboard.jsx use the `animation` shorthand (not `animation-duration` directly)
+  - Line 68: `animation: 'fade-in-up 0.4s ease-out forwards'`
+  - Line 202: `animation: 'meridian-pulse 1.4s ease-in-out infinite'`
+- Confirmed: no component uses `animation-duration` directly — only src/index.css does, in the global rule
+  - `grep -rn "animation-duration" src/` → 1 match: src/index.css line 102 (`animation-duration: 0.01ms !important`)
+- Mechanism: CSS `!important` on `animation-duration` in `@media (prefers-reduced-motion: reduce)` overrides inline styles
+  - Even though both animations are inline React styles, `!important` in a stylesheet still wins
+  - At 0.01ms duration, animations are effectively invisible; `forwards` fill keeps opacity:1 after fade-in-up
+- Build passes: `npx vite build` → ✓ built in 1.37s, 0 errors
+
+Files changed:
+  PRD.md (Task 3.2 marked [x])
+
+Learnings for future iterations:
+  - CSS `!important` in a stylesheet overrides inline styles — `animation-duration: 0.01ms !important` wins over `style="animation: ... 0.4s ..."`
+  - The `animation` shorthand is correctly handled by the longhand `animation-duration` override
+  - No DevTools visual check was performed (no browser available in CLI context); verification was code-analysis only
+---
