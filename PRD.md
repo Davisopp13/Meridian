@@ -387,7 +387,7 @@ Things the codebase already has that this PRD builds on:
   - `npx vite build` passes.
   - Visual check: hovering a row with `sf_case_id` reveals the icon; rows without one show no icon; layout width does not shift on hover.
 
-- [ ] **Task 2.5: Wire `CaseLink` into the recent-activity preview in `Dashboard.jsx` (if applicable)**
+- [x] **Task 2.5: Wire `CaseLink` into the recent-activity preview in `Dashboard.jsx` (if applicable)**
 
   Check whether `Dashboard.jsx` renders case numbers directly. If it does, apply the same treatment. If it only delegates to `<ActivityLog />`, this task is a no-op — mark complete after confirming.
 

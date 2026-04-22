@@ -4023,3 +4023,56 @@ Learnings for future iterations:
   - showOnHover=false is the correct prop for modal/non-row-hover surfaces (Task 2.4 uses it in the edit modal header)
   - The hover reveal CSS (.case-link-host:hover .case-link-icon) is added in Task 2.3 (src/index.css)
 ---
+
+## Iteration SF-6 - Task 2.3 (SF Direct Link PRD): Add case-link-host hover reveal CSS rule
+- Appended 8 lines to src/index.css after the `body.widget-mode` block
+- Rules: .case-link-host .case-link-icon { opacity: 0; } + :hover and :focus-within reveals
+- `grep -c "case-link-host\|case-link-icon" src/index.css` returns 4 ✓
+- `npx vite build` passes — ✓ built in 1.37s, 0 errors
+
+Files changed:
+  src/index.css (appended hover reveal rules)
+  PRD.md (Task 2.3 marked [x])
+
+Learnings for future iterations:
+  - src/index.css is 89 lines — the widget-mode block is the last rule, so appending after it is safe
+  - The :focus-within selector ensures keyboard nav also reveals the icon (accessibility)
+---
+
+## Iteration SF-7 - Task 2.4 (SF Direct Link PRD): Wire CaseLink into ActivityLog.jsx row
+- Added `import CaseLink from './CaseLink.jsx'` to ActivityLog.jsx
+- Added `sf_case_id: '500abc123def4567'` and `'500XYZ987uvw3456'` to mock entries 1 & 2 for dev preview
+- Added `className="case-link-host"` to EntryRow wrapper div (enables CSS hover reveal from index.css)
+- Updated case # slot: width 96→116px, added display:flex + alignItems:center, added `{entry.case_number && <CaseLink sfCaseId={entry.sf_case_id} />}`
+- Updated edit modal header: wrapped `#{entry.case_number}` in Fragment with `<CaseLink sfCaseId={entry.sf_case_id} showOnHover={false} />`
+- Updated useActivityData.js select query to include `sf_case_id` on case_events and `ct_cases(…, sf_case_id)`
+- Updated `normalizeCaseEvent` to surface `sf_case_id: row.sf_case_id || row.ct_cases?.sf_case_id || null`
+- `grep -c "CaseLink\|case-link-host" src/components/ActivityLog.jsx` returns 4 (≥3 ✓)
+- `grep -c "sf_case_id" src/components/ActivityLog.jsx` returns 4 (≥2 ✓)
+- `npx vite build` passes — 2517 modules, 0 errors, built in 1.39s
+
+Files changed:
+  src/components/ActivityLog.jsx (import, mock entries, row wrapper, case# slot, modal header)
+  src/hooks/useActivityData.js (select query, normalizeCaseEvent)
+  PRD.md (Task 2.4 marked [x])
+
+Learnings for future iterations:
+  - useActivityData uses explicit field selection (not select('*')) — must add sf_case_id to both case_events select AND the ct_cases sub-select
+  - normalizeCaseEvent prefers row.sf_case_id (case_events column) with fallback to row.ct_cases?.sf_case_id — covers both storage paths
+  - EntryRow is defined outside ActivityLog to avoid hooks-in-loop; className="case-link-host" goes on its outermost div (the row wrapper), not inside ActivityLog
+  - showOnHover=false is used in the edit modal header because there's no row-hover context there
+---
+
+## Iteration SF-8 - Task 2.5 (SF Direct Link PRD): Wire CaseLink into Dashboard.jsx (if applicable)
+- Task 2.5 no-op — Dashboard delegates to ActivityLog.
+- `grep -n "case_number\|caseNumber" src/components/Dashboard.jsx` returned no matches.
+- Dashboard.jsx does not directly render case numbers; all case number rendering goes through ActivityLog.jsx.
+- `npx vite build` passes — ✓ built in 1.39s, 0 errors.
+
+Files changed:
+  PRD.md (Task 2.5 marked [x])
+
+Learnings for future iterations:
+  - Dashboard.jsx is a tab container — it delegates all case/activity display to ActivityLog.jsx
+  - No CaseLink import needed in Dashboard.jsx
+---
