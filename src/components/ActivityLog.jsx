@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useActivityData } from '../hooks/useActivityData';
 import { useTheme } from '../context/ThemeContext.jsx';
+import CaseLink from './CaseLink.jsx';
 
 const TYPE_STYLE = {
   Resolved:     { color: '#16a34a', bg: 'rgba(22,163,74,0.12)',   border: 'rgba(22,163,74,0.28)' },
@@ -31,6 +32,7 @@ const MOCK_ENTRIES = [
     type: 'Resolved',
     src: 'case',
     case_number: '130971881',
+    sf_case_id: '500abc123def4567',
     category: 'Inland / Inland Precarriage',
     dur: 134,
     rfc: true,
@@ -41,6 +43,7 @@ const MOCK_ENTRIES = [
     type: 'Reclassified',
     src: 'case',
     case_number: '130855234',
+    sf_case_id: '500XYZ987uvw3456',
     category: 'Documentation / Bill of Lading',
     dur: 87,
     rfc: false,
@@ -355,9 +358,12 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                   <span style={{ color: MC.orange, fontSize: 14 }}>✎</span>
                   <span style={{ color: MC.textPrimary, fontSize: 14, fontWeight: 600 }}>Edit Activity</span>
                   {entry.case_number && (
-                    <span style={{ color: MC.textMuted, fontSize: 12, fontFamily: 'monospace' }}>
-                      #{entry.case_number}
-                    </span>
+                    <>
+                      <span style={{ color: MC.textMuted, fontSize: 12, fontFamily: 'monospace' }}>
+                        #{entry.case_number}
+                      </span>
+                      <CaseLink sfCaseId={entry.sf_case_id} showOnHover={false} />
+                    </>
                   )}
                 </div>
                 <button
@@ -618,6 +624,7 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
 
   return (
     <div
+      className="case-link-host"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -666,8 +673,8 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
       {/* Separator */}
       <span style={{ color: C.textMuted, fontSize: 12, flexShrink: 0, marginRight: 8 }}>·</span>
 
-      {/* Case # — 96px */}
-      <div style={{ width: 96, flexShrink: 0, overflow: 'hidden' }}>
+      {/* Case # — 116px (extra 20px for SF link icon slot) */}
+      <div style={{ width: 116, flexShrink: 0, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
         <span
           style={{
             color: C.textSecondary,
@@ -678,6 +685,7 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
         >
           {entry.case_number || 'Manual'}
         </span>
+        {entry.case_number && <CaseLink sfCaseId={entry.sf_case_id} />}
       </div>
 
       {/* Separator */}

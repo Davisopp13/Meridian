@@ -336,7 +336,7 @@ Things the codebase already has that this PRD builds on:
   - `grep -c "case-link-host\|case-link-icon" src/index.css` returns at least `4`.
   - `npx vite build` passes.
 
-- [ ] **Task 2.4: Wire `CaseLink` into `ActivityLog.jsx` row**
+- [x] **Task 2.4: Wire `CaseLink` into `ActivityLog.jsx` row**
 
   Open `src/components/ActivityLog.jsx`.
 

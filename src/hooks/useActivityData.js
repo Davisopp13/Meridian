@@ -35,6 +35,7 @@ function normalizeCaseEvent(row) {
     session_id: row.session_id || null,
     case_number: row.ct_cases?.case_number || null,
     case_id: row.ct_cases?.id || null,
+    sf_case_id: row.sf_case_id || row.ct_cases?.sf_case_id || null,
     category: '',
     dur: row.ct_cases?.duration_s || 0,
     rfc: row.rfc || false,
@@ -84,7 +85,7 @@ export function useActivityData({ userId, userIds, rangeDays }) {
     const [caseResult, mplResult] = await Promise.all([
       supabase
         .from('case_events')
-        .select('id, user_id, type, rfc, timestamp, session_id, ct_cases(id, case_number, duration_s)')
+        .select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, ct_cases(id, case_number, duration_s, sf_case_id)')
         .in('user_id', resolvedIds)
         .gte('timestamp', cutoff.toISOString()),
       supabase
