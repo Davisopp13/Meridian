@@ -4154,3 +4154,47 @@ Learnings for future iterations:
   - The broken tokens were in 6 files (not just the 5 listed in PRD) — MplByCategoryPanel and TeamFilterDropdown also had them
   - Always grep `src/` (not just `src/components/insights/`) to catch the full scope of a token typo
 ---
+
+## Iteration Token-1.2 - Task 1.2 (Token Consolidation PRD): Remove inline fontFamily declarations
+- Python script (remove_fontfamily) removed fontFamily: '...' inline style declarations from all files in src/components/, src/mpl/, src/ct/
+- 28 files modified, 86 lines of fontFamily declarations removed
+- Added `font-family: var(--font-family)` to `body.widget-mode` rule in index.css (per task's "check and add if needed" instruction)
+- Acceptance check results:
+  - `grep -rn "fontFamily.*Segoe|fontFamily.*Inter|font-family:.*Segoe" src/` → 3 matches:
+    1. `src/index.css:3` — expected (the `--font-family` token definition)
+    2. `src/components/onboarding/Step3Bookmarklet.jsx:14` — bookmarklet toast CSS string (runs in SF context, not React; CSS inheritance impossible)
+    3. `src/components/onboarding/Step3Bookmarklet.jsx:18` — same
+  - `npx vite build` → ✓ built in 1.22s, 0 errors
+- `grep -c "CaseLink" src/components/ActivityLog.jsx` → 3 (unchanged: import line + row render + modal header)
+
+Files changed:
+  src/index.css (added font-family to body.widget-mode)
+  28 component/mpl/ct files (fontFamily lines removed)
+  PRD.md (Task 1.2 marked [x])
+
+Learnings for future iterations:
+  - Python regex approach: (1) strip standalone fontFamily lines with multiline flag, (2) remove `, fontFamily: '...'` (leading comma), (3) remove `fontFamily: '...', ` (trailing comma+space)
+  - Step3Bookmarklet.jsx lines 14 and 18 contain `font-family:"Segoe UI"` inside bookmarklet JavaScript template literals. These run in Salesforce's page context and CANNOT use CSS variables or inheritance. Per CLAUDE.md, do not modify bookmarklet script content. These 2 matches are expected and acceptable.
+  - src/hooks/usePipWindow.js still has `--font-family: 'Inter'` in injected PiP window CSS — this is a separate hooks/ file not in scope for this task but could be addressed later
+  - body.widget-mode needs explicit font-family since widget popup windows don't inherit from the main document's computed styles
+---
+
+## Iteration Token-2.1 - Task 2.1 (Token Consolidation PRD): Navbar.jsx const C migration
+- Migrated const C: bg→var(--bg-navbar), border→var(--border), textPri→var(--text-pri), textSec→var(--text-sec), mBtn→var(--color-mbtn), mMark→var(--color-mmark)
+- Replaced 4 inline transition strings with motion tokens: 'all 0.2s ease'×2 + 'background 0.15s ease' + 'transform 0.2s ease' → var(--motion-fast)
+- Left `all 0.3s cubic-bezier(0.23, 1, 0.32, 1)` on launchCtBtnStyle/launchMplBtnStyle — these are special hover-lift effects, not plain ease
+- Replaced `#E8540A` in launchCtBtnStyle gradient → `var(--color-mmark)` in the CSS gradient string
+- Replaced `#E8540A` in JSX inline active-tab color for Feedback/Admin buttons → C.mMark
+- Acceptance checks:
+  - `grep -n "#003087|#E8540A|rgba(26" src/components/Navbar.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.33s, 0 errors
+
+Files changed:
+  src/components/Navbar.jsx (const C tokens, transitions, #E8540A inline refs)
+  PRD.md (Task 2.1 marked [x])
+
+Learnings for future iterations:
+  - CSS custom properties (var(--token)) work inside CSS gradient strings in JS inline styles — browser resolves them at paint time
+  - `#E8540A` hex may appear both in const C AND directly in JSX inline style spreads — grep the whole file before editing
+  - Only replace ease transitions with motion tokens; leave custom cubic-bezier hover animations (they have specific timing intent)
+---

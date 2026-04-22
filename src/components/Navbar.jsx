@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 
 const C = {
-    bg: 'rgba(26, 26, 46, 0.8)', // Semi-transparent for glassmorphism
-    border: 'rgba(255, 255, 255, 0.12)',
-    textPri: 'rgba(255, 255, 255, 0.95)',
-    textSec: 'rgba(255, 255, 255, 0.75)',
-    mBtn: '#003087',
-    mMark: '#E8540A',
+    bg: 'var(--bg-navbar)',
+    border: 'var(--border)',
+    textPri: 'var(--text-pri)',
+    textSec: 'var(--text-sec)',
+    mBtn: 'var(--color-mbtn)',
+    mMark: 'var(--color-mmark)',
 };
 
 // Helper to extract initials
@@ -82,7 +82,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         alignItems: 'center',
         gap: 8,
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'all var(--motion-fast)',
     };
 
     const dropdownStyle = {
@@ -114,7 +114,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        transition: 'background 0.15s ease',
+        transition: 'background var(--motion-fast)',
         boxSizing: 'border-box',
     };
 
@@ -148,7 +148,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         fontSize: 13,
         fontWeight: 600,
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'all var(--motion-fast)',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
@@ -160,7 +160,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         borderRadius: 12,
         border: 'none',
         background: isCtHovered
-            ? 'linear-gradient(135deg, #c94600, #E8540A)'
+            ? 'linear-gradient(135deg, #c94600, var(--color-mmark))'
             : 'linear-gradient(135deg, #b33d00, #c94600)',
         color: '#fff',
         fontSize: 13,
@@ -222,7 +222,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                         ...secondaryBtnStyle,
                         background: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.15)' : 'rgba(255, 255, 255, 0.05)',
                         borderColor: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.5)' : C.border,
-                        color: activeView === 'feedback' ? '#E8540A' : C.textPri,
+                        color: activeView === 'feedback' ? C.mMark : C.textPri,
                     }}
                     onMouseOver={(e) => {
                         if (activeView !== 'feedback') {
@@ -248,7 +248,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                             ...secondaryBtnStyle,
                             background: activeView === 'admin' ? 'rgba(232, 84, 10, 0.15)' : 'rgba(255, 255, 255, 0.05)',
                             borderColor: activeView === 'admin' ? 'rgba(232, 84, 10, 0.5)' : C.border,
-                            color: activeView === 'admin' ? '#E8540A' : C.textPri,
+                            color: activeView === 'admin' ? C.mMark : C.textPri,
                         }}
                         onMouseOver={(e) => {
                             if (activeView !== 'admin') {
@@ -341,7 +341,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                                 fontSize: 10,
                                 color: C.textSec,
                                 marginLeft: 2,
-                                transition: 'transform 0.2s ease',
+                                transition: 'transform var(--motion-fast)',
                                 transform: showUserMenu ? 'rotate(180deg)' : 'none',
                             }}>▼</span>
                         </div>

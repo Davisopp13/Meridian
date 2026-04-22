@@ -184,7 +184,7 @@ For each file below, the transformation is the same three-step pattern:
 
 After each file, run `npx vite build` — it must pass before moving on.
 
-- [ ] **Task 2.1: `src/components/Navbar.jsx`**
+- [x] **Task 2.1: `src/components/Navbar.jsx`**
   - Replace the `const C = { bg: 'rgba(26, 26, 46, 0.8)', … }` with token refs (`bg: 'var(--bg-navbar)'`, etc.).
   - Replace inline `transition: 'all 150ms ease'` with `transition: 'all var(--motion-fast)'`.
   - **Acceptance:** `grep -n "#003087\|#E8540A\|rgba(26" src/components/Navbar.jsx` = 0. Build passes.
