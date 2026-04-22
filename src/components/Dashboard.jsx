@@ -26,7 +26,7 @@ const METRICS = [
   { key: 'reclass',       label: 'Reclassified',   color: '#dc2626' },
   { key: 'calls',         label: 'Calls',           color: '#0d9488' },
   { key: 'notACase',      label: 'Not a Case',      color: '#6b7280' },
-  { key: 'casesAndCalls', label: 'Cases & Calls',   color: 'var(--color-mbtn)' },
+  { key: 'casesAndCalls', label: 'Cases & Calls',   color: '#003087' },
   { key: 'processes',     label: 'Processes',       color: '#60a5fa' },
   { key: 'totalActivity', label: 'Total Activity',  color: 'var(--color-mmark)' },
 ];
