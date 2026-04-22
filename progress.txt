@@ -4611,3 +4611,20 @@ Learnings for future iterations:
   - RPC uses SECURITY DEFINER + auth.uid() guard so anon key cannot call it from the bookmarklet; only authenticated PiP session can invoke bulk_reclassify_cases
   - batch_id on both tables enables surgical undo without needing a separate undo_log table
 ---
+
+## Iteration N - Task 2: List-view detection in meridian-trigger.js
+- Added list-view detection branch to the existing SF code path in meridian-trigger.js
+- Detection uses URL check (`/lightning/o/Case/list`) OR plain DOM querySelectorAll for `tr[data-row-key-value]` starting with '500'
+- If list view detected: calls `handleListViewContext(relay, userId, showToast)` and returns (skips single-case widget flow)
+- Added stub `handleListViewContext` function (shows info toast); Task 3 replaces with real implementation
+- Both tests pass: `node -c` → syntax ok; `grep -c "handleListViewContext"` → 2 (≥ 2 required)
+
+Files changed:
+  public/meridian-trigger.js (list-view detection branch + stub function)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - function declarations inside the IIFE are hoisted, so `handleListViewContext` can be called before its declaration in source order
+  - Task 3 will replace the stub with walkShadow + collectSelectedCases + full handleListViewContext; the DOM check also gets enhanced to use walkShadow for shadow-DOM traversal
+  - Decision (from PRD Task 3 note): cases array is stuffed into `case_number` field as JSON string to reuse existing pending_triggers schema without a migration
+---

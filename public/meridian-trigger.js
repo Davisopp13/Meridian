@@ -38,6 +38,21 @@
     return;
   }
 
+  // ── List-view detection ──────────────────────────────────────────────────
+  var isListView = window.location.pathname.includes('/lightning/o/Case/list');
+  if (!isListView) {
+    var trs = document.querySelectorAll('tr[data-row-key-value]');
+    for (var i = 0; i < trs.length; i++) {
+      var kv = trs[i].getAttribute('data-row-key-value');
+      if (kv && kv.startsWith('500')) { isListView = true; break; }
+    }
+  }
+
+  if (isListView) {
+    handleListViewContext(relay, userId, showToast);
+    return;
+  }
+
   // ── Ask relay to fetch ct-widget.js ─────────────────────────────────────
   var msgId = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 
@@ -70,6 +85,11 @@
   setTimeout(function() {
     window.removeEventListener('message', onRelayResponse);
   }, 10000);
+
+  // ── List-view handler (stub — full implementation in Task 3) ────────────
+  function handleListViewContext(relay, userId, showToast) {
+    showToast('Meridian: Select cases in the list, then click again.', 'info');
+  }
 
   // ── Toast UI ─────────────────────────────────────────────────────────────
 

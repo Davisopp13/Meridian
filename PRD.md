@@ -183,7 +183,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
 
 ### Phase 2: Bookmarklet Context Detection
 
-- [ ] **Task 2: Add list-view detection to `meridian-trigger.js`**
+- [x] **Task 2: Add list-view detection to `meridian-trigger.js`**
   - Modify `public/meridian-trigger.js`. After the existing `isSalesforce` check and BEFORE the relay FETCH_CODE postMessage for `ct-widget.js`, add a list-view detection branch.
   - Detect list view using BOTH signals (either one is sufficient):
     - URL match: `window.location.pathname.includes('/lightning/o/Case/list')`
