@@ -104,26 +104,25 @@ export function useActivityData({ userId, userIds, rangeDays }) {
       return;
     }
 
-    // Batch-fetch ct_cases by session_id and merge in JS.
-    // We join this way (rather than via PostgREST embedded resource) because
-    // the two inserts are independent — there is no FK constraint, only an index.
-    const sessionIds = (caseResult.data || []).map(r => r.session_id).filter(Boolean);
-    const casesBySessionId = {};
-    if (sessionIds.length > 0) {
+    // Batch-fetch ct_cases by id and merge in JS.
+    // case_events.session_id is a FK to ct_cases.id (historically misnamed column).
+    const parentIds = (caseResult.data || []).map(r => r.session_id).filter(Boolean);
+    const casesById = {};
+    if (parentIds.length > 0) {
       const { data: casesData } = await supabase
         .from('ct_cases')
-        .select('id, case_number, duration_s, sf_case_id, session_id')
-        .in('session_id', sessionIds);
+        .select('id, case_number, duration_s, sf_case_id')
+        .in('id', parentIds);
       if (casesData) {
         for (const c of casesData) {
-          if (c.session_id) casesBySessionId[c.session_id] = c;
+          if (c.id) casesById[c.id] = c;
         }
       }
     }
 
     const enrichedCaseRows = (caseResult.data || []).map(row => ({
       ...row,
-      ct_cases: row.session_id ? (casesBySessionId[row.session_id] || null) : null,
+      ct_cases: row.session_id ? (casesById[row.session_id] || null) : null,
     }));
 
     const caseEntries = enrichedCaseRows.map(normalizeCaseEvent);
