@@ -4387,3 +4387,104 @@ Learnings for future iterations:
   - Template literals `\`1px solid ${C.border}\`` must become plain strings `'1px solid var(--border)'` — no template needed
   - replace_all on `C.textSec` etc. is the cleanest approach when the token string is unambiguous
 ---
+
+## Iteration Token-2.10 - Task 2.10 (Token Consolidation PRD): Feedback surface const C migration
+- Removed `const C = {` from 6 files: SuggestionRow.jsx, AttachmentUploader.jsx, SuggestionForm.jsx, CategoryPromotionModal.jsx, SuggestionDetailPanel.jsx, FeedbackTab.jsx
+- All C.xxx references inlined directly as var(--token) strings
+- SuggestionForm.jsx: const C had `orange: '#E8540A'` — migrated to `var(--color-mmark)`; submit button changed to `background: 'var(--color-mmark)', opacity: submitting ? 0.5 : 1` (cleaner than rgba fallback)
+- SuggestionDetailPanel.jsx: hardcoded `background: '#E8540A'` in save notes button migrated to `var(--color-mmark)`
+- SuggestionForm.jsx: module-level `inputStyle` and `labelStyle` objects also updated to use var() directly
+- rgba(232,84,10,0.12) and rgba(232,84,10,0.4) tint variants in type pill picker left as-is (no token; derived tint, not brand hex literal)
+- Acceptance checks:
+  - `grep -rn "const C = {" src/components/feedback/ src/components/FeedbackTab.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.38s, 0 errors
+
+Files changed:
+  src/components/feedback/SuggestionRow.jsx
+  src/components/feedback/AttachmentUploader.jsx
+  src/components/feedback/SuggestionForm.jsx
+  src/components/feedback/CategoryPromotionModal.jsx
+  src/components/feedback/SuggestionDetailPanel.jsx
+  src/components/FeedbackTab.jsx
+  PRD.md (Task 2.10 marked [x])
+
+Learnings for future iterations:
+  - Module-level style constants that use C.xxx must also be updated (not just JSX) when const C is removed
+  - For orange disabled states, `opacity: 0.5` on `var(--color-mmark)` is cleaner than a hardcoded rgba fallback
+  - replace_all for C.textDim, C.textSec, etc. is fast when the value appears multiple times in a file
+---
+
+## Iteration Token-2.11 - Task 2.11 (Token Consolidation PRD): BookmarkletModal.jsx const C migration
+- Removed `const C = {` with 5 hex values; replaced all C.xxx usages inline with var() tokens
+- Also migrated 2 non-C inline hex values: `#E8540A` → var(--color-mmark), `rgba(255,255,255,0.04)` → var(--card-bg-subtle)
+- Remaining `#fff` values (white text on brand-colored backgrounds) left as-is — not a token migration target
+
+Token mappings:
+  - C.bg: '#1a1a2e' → var(--bg-card)
+  - C.mBtn: '#003087' → var(--color-mbtn)
+  - C.textPri: 'rgba(255,255,255,0.93)' → var(--text-pri)
+  - C.textSec: 'rgba(255,255,255,0.75)' → var(--text-sec)
+  - C.border: 'rgba(255,255,255,0.12)' → var(--border)
+  - inline '#E8540A' → var(--color-mmark)
+  - inline 'rgba(255,255,255,0.04)' → var(--card-bg-subtle)
+
+Acceptance checks:
+  - `grep -n "const C = {" src/components/BookmarkletModal.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.34s, 0 errors
+
+Files changed:
+  src/components/BookmarkletModal.jsx (const C removed, all values inlined as var() tokens)
+  PRD.md (Task 2.11 marked [x])
+
+Learnings for future iterations:
+  - #fff used as text color on colored backgrounds (brand buttons, number bubbles) is NOT a migration target
+  - Scan for inline hex beyond const C block (backdrop colors, button backgrounds) and migrate those too
+---
+
+## Iteration Token-2.12 - Task 2.12 (Token Consolidation PRD): DashboardChart.jsx const C migration
+- `const C` already used var() references (no hex) — removed the indirection object and inlined all var() strings directly
+- METRIC_CONFIG semantic colors (resolved/reclass/calls/etc.) left unchanged per PRD spec
+- `#fff` on active orange toggle button left as-is (text on brand-colored background, not a migration target)
+- Fixed non-C inline values:
+  - `titleStyle.color: '#fff'` → `'var(--text-pri)'` (card title, not on colored bg)
+  - Tooltip `contentStyle.color: '#fff'` → `'var(--text-pri)'` in both AreaChart and BarChart
+  - `transition: 'all 150ms'` → `'all var(--motion-fast)'` in toggleBtnStyle
+- `rgba(255,255,255,0.1)` cursor stroke and `rgba(255,255,255,0.05)` cursor fill left as-is (recharts hover effect, not theme colors)
+
+Acceptance checks:
+  - `grep -n "const C = {" src/components/DashboardChart.jsx` → 0 matches ✓
+  - Remaining hex: only METRIC_CONFIG semantic colors + `#fff` on orange button (both exempted) ✓
+  - `npx vite build` → ✓ built in 1.35s, 0 errors
+
+Files changed:
+  src/components/DashboardChart.jsx (const C removed, all values inlined as var() tokens)
+  PRD.md (Task 2.12 marked [x])
+
+Learnings for future iterations:
+  - When const C already uses var() refs, remove the object and inline strings directly (same pattern as Task 2.9)
+  - Chart title `#fff` IS a migration target (plain card background) — use var(--text-pri)
+  - Recharts hover cursor colors (rgba overlays) are visual effects, not theme tokens — leave as-is
+---
+
+## Iteration Token-13 - Task 2.13: DashboardTable.jsx and InsightsEmptyState.jsx
+- Both files already used `const C` with `var(--dash-*)` token references that do not exist in index.css
+- Migrated broken token names to correct ones:
+  - `--dash-text-pri` → `--text-pri`
+  - `--dash-text-sec` → `--text-sec`
+  - `--dash-text-dim` → `--text-dim`
+  - `--dash-border` → `--border`
+  - `--dash-card` → `--bg-card`
+- Fixed inline `var(--dash-row-alt)` in DashboardTable row alternating background → `var(--card-bg-subtle)`
+- Remaining hex values in DashboardTable (COLS array): #16a34a, #dc2626, #0284c7, #6b7280, #60a5fa — all semantic metric colors per PRD exclusion list, left as-is
+- `npx vite build` passes — 0 errors
+
+Files changed:
+  src/components/DashboardTable.jsx
+  src/components/insights/InsightsEmptyState.jsx
+  PRD.md (Task 2.13 marked [x])
+
+Learnings for future iterations:
+  - DashboardTable and InsightsEmptyState were using `--dash-*` prefixed tokens that never existed — silent CSS fallback meant they rendered with unintended colors
+  - The `--card-bg-subtle` token covers subtle alternating row backgrounds (rgba(255,255,255,0.04))
+  - Always check index.css with grep before assuming a `var(--...)` reference is valid
+---

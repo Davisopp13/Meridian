@@ -1,12 +1,12 @@
 import React from 'react';
 
 const C = {
-  textPri: 'var(--dash-text-pri)',
-  textSec: 'var(--dash-text-sec)',
-  textDim: 'var(--dash-text-dim)',
-  divider: 'var(--dash-border)',
-  border:  'var(--dash-border)',
-  cardBg:  'var(--dash-card)',
+  textPri: 'var(--text-pri)',
+  textSec: 'var(--text-sec)',
+  textDim: 'var(--text-dim)',
+  divider: 'var(--border)',
+  border:  'var(--border)',
+  cardBg:  'var(--bg-card)',
 };
 
 const COLS = [
@@ -84,7 +84,7 @@ export default function DashboardTable({ rows }) {
           display: 'grid',
           gridTemplateColumns: `repeat(${COLS.length}, 1fr)`,
           height: 44,
-          background: i % 2 === 0 ? 'transparent' : 'var(--dash-row-alt)',
+          background: i % 2 === 0 ? 'transparent' : 'var(--card-bg-subtle)',
           borderBottom: i < rows.length - 1 ? `1px solid ${C.divider}` : 'none',
           transition: 'background 0.2s',
         };

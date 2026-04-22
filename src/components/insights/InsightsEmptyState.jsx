@@ -1,8 +1,8 @@
 const C = {
-  card: 'var(--dash-card)',
-  border: 'var(--dash-border)',
-  textSec: 'var(--dash-text-sec)',
-  textDim: 'var(--dash-text-dim)',
+  card: 'var(--bg-card)',
+  border: 'var(--border)',
+  textSec: 'var(--text-sec)',
+  textDim: 'var(--text-dim)',
 };
 
 export default function InsightsEmptyState({ reason }) {
