@@ -405,7 +405,7 @@ Things the codebase already has that this PRD builds on:
 
 ### Phase 3 — Query + verification
 
-- [ ] **Task 3.1: Ensure the activity data hook selects `sf_case_id`**
+- [x] **Task 3.1: Ensure the activity data hook selects `sf_case_id`**
 
   Open `src/hooks/useActivityData.js` (or wherever the activity feed's Supabase query lives). Find the `.select(...)` call against `case_events` and `ct_cases`. Confirm `sf_case_id` is in the selection; if using `select('*')` it's automatic; if the fields are enumerated, add it.
 

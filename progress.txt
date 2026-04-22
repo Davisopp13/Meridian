@@ -4076,3 +4076,19 @@ Learnings for future iterations:
   - Dashboard.jsx is a tab container — it delegates all case/activity display to ActivityLog.jsx
   - No CaseLink import needed in Dashboard.jsx
 ---
+
+## Iteration SF-9 - Task 3.1 (SF Direct Link PRD): Ensure activity data hook selects sf_case_id
+- Verification task — useActivityData.js already fully implemented sf_case_id selection (done in Task 2.4)
+- Line 88: `.select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, ct_cases(id, case_number, duration_s, sf_case_id)')`
+- Line 38: `sf_case_id: row.sf_case_id || row.ct_cases?.sf_case_id || null` in normalizeCaseEvent
+- `npx vite build` passes — ✓ built in 1.42s, 0 errors
+- `grep -n "sf_case_id\|select(" src/hooks/useActivityData.js` confirmed presence on lines 38 and 88
+
+Files changed:
+  PRD.md (Task 3.1 marked [x])
+
+Learnings for future iterations:
+  - Task 3.1 was pre-implemented during Task 2.4; no code changes needed
+  - sf_case_id is explicitly listed in the select (not select('*')) — using two columns: on case_events directly AND nested in ct_cases sub-select
+  - normalizeCaseEvent prefers case_events.sf_case_id with fallback to ct_cases.sf_case_id
+---
