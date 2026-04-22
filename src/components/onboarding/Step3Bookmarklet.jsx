@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase.js';
 
 const C = {
-  bg:      '#1a1a2e',
-  bgDeep:  '#0f0f1e',
-  mBtn:    '#003087',
-  textPri: 'rgba(255,255,255,0.93)',
-  textSec: 'rgba(255,255,255,0.45)',
-  border:  'rgba(255,255,255,0.12)',
+  bg:      'var(--bg-card)',
+  bgDeep:  'var(--bg-deep)',
+  mBtn:    'var(--color-mbtn)',
+  textPri: 'var(--text-pri)',
+  textSec: 'var(--text-dim)',
+  border:  'var(--border)',
 };
 
 export function buildMplBmHref(userId) {
@@ -74,7 +74,7 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
             draggable="true"
             style={{
               display: 'inline-block',
-              background: '#E8540A',
+              background: 'var(--color-mmark)',
               color: '#fff',
               fontWeight: 700,
               fontSize: 14,
@@ -92,7 +92,7 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
 
         {/* Info box */}
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
+          background: 'var(--card-bg-subtle)',
           border: `1px solid ${C.border}`,
           borderRadius: 10,
           padding: '14px 16px',

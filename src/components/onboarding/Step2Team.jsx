@@ -1,10 +1,10 @@
 import { useState } from 'react';
 
 const C = {
-  bg:      '#1a1a2e',
-  bgDeep:  '#0f0f1e',
-  textSec: 'rgba(255,255,255,0.45)',
-  border:  'rgba(255,255,255,0.12)',
+  bg:      'var(--bg-card)',
+  bgDeep:  'var(--bg-deep)',
+  textSec: 'var(--text-dim)',
+  border:  'var(--border)',
 };
 
 export default function Step2Team({ onNext, onBack }) {
@@ -51,14 +51,14 @@ export default function Step2Team({ onNext, onBack }) {
                   height: 110,
                   borderRadius: 12,
                   border: `2px solid ${isSelected ? t.accent : C.border}`,
-                  background: isSelected ? `rgba(${hexToRgb(t.accent)},0.12)` : 'rgba(255,255,255,0.04)',
+                  background: isSelected ? `rgba(${hexToRgb(t.accent)},0.12)` : 'var(--card-bg-subtle)',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  transition: 'all 150ms',
+                  transition: 'all var(--motion-fast)',
                 }}
               >
                 <span style={{ fontSize: 32, fontWeight: 800, color: isSelected ? t.accent : '#fff' }}>
@@ -79,7 +79,7 @@ export default function Step2Team({ onNext, onBack }) {
           style={{
             width: '100%',
             height: 48,
-            background: '#003087',
+            background: 'var(--color-mbtn)',
             color: '#fff',
             fontSize: 15,
             fontWeight: 700,
@@ -87,7 +87,7 @@ export default function Step2Team({ onNext, onBack }) {
             border: 'none',
             cursor: selected ? 'pointer' : 'not-allowed',
             opacity: selected ? 1 : 0.4,
-            transition: 'opacity 150ms',
+            transition: 'opacity var(--motion-fast)',
           }}
         >
           Continue →

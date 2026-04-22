@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
 const C = {
-  bg:      '#0f0f1e',
-  cardBg:  '#1a1a2e',
-  border:  'rgba(255,255,255,0.12)',
-  textPri: 'rgba(255,255,255,0.93)',
-  textSec: 'rgba(255,255,255,0.45)',
-  mBtn:    '#003087',
+  bg:      'var(--bg-deep)',
+  cardBg:  'var(--bg-card)',
+  border:  'var(--border)',
+  textPri: 'var(--text-pri)',
+  textSec: 'var(--text-dim)',
+  mBtn:    'var(--color-mbtn)',
 }
 
 export default function Step1Profile({ user, onNext }) {
@@ -67,7 +67,7 @@ export default function Step1Profile({ user, onNext }) {
     display: 'block',
     width: '100%',
     height: 48,
-    background: 'rgba(255,255,255,0.06)',
+    background: 'var(--hover-surface)',
     border: `1px solid ${C.border}`,
     borderRadius: 10,
     color: C.textPri,
