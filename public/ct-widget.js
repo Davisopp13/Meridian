@@ -1,7 +1,7 @@
 // ct-widget.js
 // Vanilla JS CT overlay widget — injected into Salesforce pages via meridian-trigger.js
 // Received via: new Function('MERIDIAN_PAYLOAD', code)(payload)
-// MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId }
+// MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId }
 
 (function () {
 
@@ -46,6 +46,7 @@
     caseType:     '',
     caseSubtype:  '',
     accountId:    '',
+    sfCaseId:     '',
     elapsed:      0,
     timerRunning: false,
     timerId:      null,
@@ -235,6 +236,7 @@
       resolution:  'resolved',
       is_rfc:      false,
       source:      'pip',
+      sf_case_id:  state.sfCaseId || null,
       entry_date:  getTodayNY(),
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
@@ -245,6 +247,7 @@
         type:       'resolved',
         excluded:   false,
         rfc:        false,
+        sf_case_id: state.sfCaseId || null,
       }).catch(function (err) {
         console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
       });
@@ -253,6 +256,7 @@
       state.caseType    = '';
       state.caseSubtype = '';
       state.accountId   = '';
+      state.sfCaseId    = '';
       state.stats.resolved++;
       showWidgetToast('\u2713 Resolved \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -275,6 +279,7 @@
       resolution:  'reclassified',
       is_rfc:      false,
       source:      'pip',
+      sf_case_id:  state.sfCaseId || null,
       entry_date:  getTodayNY(),
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
@@ -285,6 +290,7 @@
         type:       'reclassified',
         excluded:   false,
         rfc:        false,
+        sf_case_id: state.sfCaseId || null,
       }).catch(function (err) {
         console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
       });
@@ -293,6 +299,7 @@
       state.caseType    = '';
       state.caseSubtype = '';
       state.accountId   = '';
+      state.sfCaseId    = '';
       state.stats.reclass++;
       showWidgetToast('\u21a9 Reclassified \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -316,6 +323,7 @@
         type:       'call',
         excluded:   false,
         rfc:        false,
+        sf_case_id: state.sfCaseId || null,
       }).catch(function (err) {
         console.warn('[Meridian CT] case_events call write failed:', err.message);
       });
@@ -346,6 +354,7 @@
     state.caseType    = '';
     state.caseSubtype = '';
     state.accountId   = '';
+    state.sfCaseId    = '';
     state.elapsed     = 0;
     state.isAwaiting  = false;
     render();
@@ -486,8 +495,13 @@
     state.caseType    = MERIDIAN_PAYLOAD.caseType    || '';
     state.caseSubtype = MERIDIAN_PAYLOAD.caseSubtype || '';
     state.accountId   = MERIDIAN_PAYLOAD.accountId   || '';
+    state.sfCaseId    = MERIDIAN_PAYLOAD.sfCaseId    || '';
     startTimer();
     render();
+  }
+
+  if (MERIDIAN_PAYLOAD.sfCaseId) {
+    state.sfCaseId = MERIDIAN_PAYLOAD.sfCaseId;
   }
 
   // ── Expose refresh hook for double-injection guard ────────────────────────
@@ -497,6 +511,7 @@
       state.caseType    = payload.caseType    || '';
       state.caseSubtype = payload.caseSubtype || '';
       state.accountId   = payload.accountId   || '';
+      state.sfCaseId    = payload.sfCaseId    || '';
       if (!state.timerRunning) {
         state.elapsed = 0;
         startTimer();

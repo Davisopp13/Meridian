@@ -151,7 +151,7 @@ Things the codebase already has that this PRD builds on:
   - `grep -c "sfCaseId\|cID" src/components/onboarding/Step3Bookmarklet.jsx` returns at least `2`.
   - `npx vite build` passes.
 
-- [ ] **Task 1.2: Receive and persist `sf_case_id` in the widget**
+- [x] **Task 1.2: Receive and persist `sf_case_id` in the widget**
 
   Open `public/ct-widget.js`. At line 4 (the MERIDIAN_PAYLOAD doc comment), update to reflect the new field:
 

@@ -3953,3 +3953,32 @@ Learnings for future iterations:
   - Escaping was not an issue here: the new code uses only single quotes (already the pattern in the string) and no backticks or template expressions beyond the existing `${userId}`
   - Pattern to add a sibling ID scrape in the walker: copy the account ID block, rename href→hrefC, ai→ci, 001→500, aN→cID — all in one go with no other changes needed
 ---
+
+## Iteration SF-3 - Task 1.2 (SF Direct Link PRD): Receive and persist sf_case_id in the widget
+- Updated MERIDIAN_PAYLOAD doc comment to include `sfCaseId`
+- Added `sfCaseId: ''` to the state object
+- Added `sf_case_id: state.sfCaseId || null` to ct_cases insert in handleResolved
+- Added `sf_case_id: state.sfCaseId || null` to case_events insert in handleResolved
+- Added `state.sfCaseId = ''` to the reset block in handleResolved
+- Added `sf_case_id: state.sfCaseId || null` to ct_cases insert in handleReclass
+- Added `sf_case_id: state.sfCaseId || null` to case_events insert in handleReclass
+- Added `state.sfCaseId = ''` to the reset block in handleReclass
+- Added `sf_case_id: state.sfCaseId || null` to case_events insert in handleCall
+- Added `state.sfCaseId = ''` to handleDismissCase reset
+- Added `state.sfCaseId = MERIDIAN_PAYLOAD.sfCaseId || ''` inside the auto-start hydration block
+- Added sibling `if (MERIDIAN_PAYLOAD.sfCaseId)` block for sfCaseId-only hydration
+- Added `state.sfCaseId = payload.sfCaseId || ''` to `_meridianRefresh` handler
+- `grep -c "sfCaseId\|sf_case_id" public/ct-widget.js` returns 14 (≥ 12 ✓)
+- `node -c public/ct-widget.js` → SYNTAX OK ✓
+- `npx vite build` passes — ✓ built in 1.48s, 0 errors, 0 warnings
+
+Files changed:
+  public/ct-widget.js (8 edits: comment, state, handleResolved, handleReclass, handleCall, handleDismissCase, auto-start block, _meridianRefresh)
+  PRD.md (Task 1.2 marked [x])
+
+Learnings for future iterations:
+  - ct-widget.js is plain JS (no build step) — both `node -c` and `npx vite build` are required acceptance criteria
+  - The auto-start block already sets sfCaseId inside the `if (MERIDIAN_PAYLOAD.caseNumber)` block, plus the PRD-specified sibling block for sfCaseId-only payloads
+  - handleResolved and handleReclass each have two inserts (ct_cases + case_events) — both need sf_case_id
+  - handleCall only inserts into case_events (not ct_cases) — sf_case_id on case_events only
+---
