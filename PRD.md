@@ -1,402 +1,493 @@
-# Meridian Admin Panel — Phase 1 PRD
+# Meridian SF Direct Link PRD
 
 ## Project Overview
 
-The current "Admin" button in Meridian opens a single-view suggestions-review screen. This PRD expands it into a proper **four-tab Admin Panel**: **Users**, **Teams**, **Suggestions**, and **Categories**. It also reconciles a quiet schema/code drift where migration `003_teams_and_roles.sql` declares `role IN ('agent', 'supervisor', 'director')` but production actually has `('agent', 'supervisor', 'admin')` and the codebase references all four.
+Make every case number in Meridian's UI a **one-click link to the live case in Salesforce**. Today, `case_number` renders as a static monospace label; tomorrow, it reveals a small external-link icon on row hover (matching CT 1.0's documented pattern — *"SF link icon on case # only appears on hover — less visual noise at rest"*) that opens the case in a new tab.
 
-The outcome is that Davis (admin) can do everything he currently does via SQL through a real UI — promote James to agent when he finally gets an account, move an agent between Export Rail: SGP and Export Rail: NEM, add a new team without writing a migration, review suggestions, and edit MPL categories/subcategories that were either seeded originally or promoted from user suggestions.
+The important constraint: Salesforce routes by **record Id** (a 15- or 18-character alphanumeric starting with `500` for the Case object), not by the 8-digit display `CaseNumber`. So the real work is split into three layers:
 
-Scope is additive on top of the existing `AdminTab.jsx` — the current suggestion-review UI becomes one tab of the new shell. Nothing in Insights, Feedback, Dashboard, or the MPL/CT widgets is touched.
+1. **Capture** the SF case record Id at log time via the existing bookmarklet relay scrape.
+2. **Persist** it through the widget → Supabase data layer on every relevant table.
+3. **Render** a deep-link icon in the UI surfaces that show case numbers.
 
-Success looks like: Davis opens the Admin Panel, sees four tabs, clicks Users, sees every platform user with their role and team, changes an agent's team via a dropdown (write succeeds, RLS allows it), clicks Teams, adds a new Export Rail team under IDT, clicks Categories, flips an MPL subcategory's `is_active` to false, clicks Suggestions, sees the existing suggestion list unchanged. Build passes. Non-admins continue to have no access to the Admin route.
+Success = clicking the icon next to `130971881` in Meridian's Activity Log opens `https://hlag.lightning.force.com/lightning/r/Case/500AbC…/view` in a new tab, scoped only to cases logged **after this PRD ships**. Historical entries (no `sf_case_id`) render without the icon — they're not broken, just not linkable until backfill lands as a follow-up.
+
+---
 
 ## Architecture & Key Decisions
 
-These are locked. Ralph must not renegotiate them.
+Do not question or change these. They're established by the audit + prior architecture work.
 
-- **Framework:** Vite + React 18, existing Meridian codebase at `/Users/davis/Meridian 1.0`. No TypeScript.
-- **Styling:** Inline styles only. Reuse CSS variables already defined (`--text-pri`, `--text-sec`, `--text-dim`, `--bg-card`, `--border`, `--card-bg-subtle`, `--color-mmark`). Hapag Blue `#003087`, Hapag Orange `#E8540A`, Segoe UI. Match the existing `AdminTab.jsx` aesthetic for form elements.
-- **Data layer:** All Supabase access goes through `src/lib/api.js` wrappers. No direct `supabase.from(...)` calls in new components. Add new wrappers to `api.js` when needed. New wrappers return the standard `{ data, error }` shape.
-- **State:** Local React state only. Tab state lives on the new `AdminTab.jsx` shell and is passed to sub-tabs as props. No URL routing or query params in this PRD.
-- **Role gating:** The Admin route is admin-only. The existing `Navbar.jsx` check `profile?.role === 'admin'` for the Admin button stays. Every new sub-tab additionally guards inside itself by re-checking `profile?.role === 'admin'` and rendering "Not authorized" if false, mirroring the existing pattern in `AdminTab.jsx`.
-- **Role enum:** Canonical set going forward is `('agent', 'supervisor', 'admin')`. `'director'` is dropped from the codebase. A migration reconciles the drift between migration 003's file and production.
-- **RLS for admin writes:** Admins can `UPDATE` rows on `platform_users`, `teams`, `departments`, `mpl_categories`, `mpl_subcategories`. A new migration adds these policies. Non-admin writes on these tables remain blocked.
-- **No teardown of existing code.** The current `AdminTab.jsx` content becomes the new `SuggestionsPanel.jsx` sub-tab, rendered inside the new tabbed shell. Do not delete `useAllSuggestions`, `SuggestionList`, `SuggestionDetailPanel`, or the "Copy all for Claude" button.
-- **Migrations:** New migrations are created as files under `supabase/migrations/`. Apply is manual by Davis via the Supabase SQL Editor — Ralph does NOT run them against a live database. Ralph's only responsibility is authoring the SQL file and confirming it parses.
-- **Destructive actions require confirm.** Deleting a team, deleting a department, or deactivating a category requires a `window.confirm` dialog with explicit wording of consequences. No soft-delete UI magic — destructive means destructive.
-- **No new npm packages.** If a new package seems needed, stop and leave the task unchecked with a note in `progress.txt`.
+- **Salesforce identifiers:** Case `Id` is 15 or 18 chars, starts with prefix `500`. Scrape pattern: `/500[a-zA-Z0-9]{12,15}/`. The same shadow-DOM walker the bookmarklet already uses for `001…` account IDs (`Step3Bookmarklet.jsx` line 18) is the model.
+- **URL pattern:** `https://hlag.lightning.force.com/lightning/r/Case/{sf_case_id}/view`. Host is the Hapag-Lloyd Lightning instance; do not hardcode anywhere except `src/lib/salesforce.js`.
+- **Rendering pattern:** Match CT 1.0 — icon hidden at rest, appears on row hover in a fixed-width slot so layout doesn't shift. Modeled after the existing edit pencil (✎) in `ActivityLog.jsx` line 714.
+- **Token consolidation PRD must land first.** This PRD references new CSS tokens (`--focus-ring`, `--motion-fast`) that the token PRD introduces. If for some reason the token PRD hasn't run, this one will fail build. Do not attempt without it.
+- **Backfill is out of scope.** Pre-existing `ct_cases` and `case_events` rows have `sf_case_id = NULL` and will simply not render the icon. A separate track will map historical case_numbers → SF IDs via Power Query or direct SF API.
+- **No new dependencies.** Use Lucide (`ExternalLink` icon) — already in use in `Dashboard.jsx`.
+- **Inline styles stay.** House pattern. Don't refactor.
+- **Privacy:** `sf_case_id` is a Salesforce internal identifier, not PII. Fine to store and transmit via RLS-protected rows.
 
-## File Structure
-
-```
-src/
-  components/
-    AdminTab.jsx                       (modify — becomes the tabbed shell)
-    admin/
-      AdminTabs.jsx                    (new — 4-tab strip: Users/Teams/Suggestions/Categories)
-      UsersPanel.jsx                   (new — list + inline role/team edit)
-      UserRow.jsx                      (new — a single row in UsersPanel)
-      TeamsPanel.jsx                   (new — department + team CRUD)
-      DepartmentCard.jsx               (new — one department with its teams inside)
-      TeamRow.jsx                      (new — a single team row within a department)
-      AddTeamForm.jsx                  (new — inline form to add a team to a department)
-      AddDepartmentForm.jsx            (new — inline form to add a new department)
-      CategoriesPanel.jsx              (new — MH/CH category + subcategory edit)
-      CategoryGroup.jsx                (new — one category with its subcategories)
-      SubcategoryRow.jsx               (new — a single subcategory row)
-      AddCategoryForm.jsx              (new — inline add)
-      AddSubcategoryForm.jsx           (new — inline add, scoped to a parent category)
-      SuggestionsPanel.jsx             (new — wraps the current AdminTab body as-is)
-  hooks/
-    useAdminUsers.js                   (new — fetch + mutate platform_users, teams, departments for admin tab)
-    useAdminTeams.js                   (new — fetch + mutate teams + departments)
-    useAdminCategories.js              (new — fetch + mutate mpl_categories + mpl_subcategories)
-  lib/
-    api.js                             (modify — add admin-facing wrappers)
-supabase/
-  migrations/
-    010_reconcile_role_constraint.sql  (new — fixes the agent/supervisor/director → agent/supervisor/admin drift)
-    011_admin_panel_rls.sql            (new — admin UPDATE/INSERT/DELETE policies for the tables above)
-```
+---
 
 ## Environment & Setup
 
-- Ralph is working against the existing repo. All dependencies are installed.
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set in `.env.local`.
-- The Supabase project ref is `wluynppocsoqjdbmwass`. Live URL is `https://wluynppocsoqjdbmwass.supabase.co`. Ralph does not need to connect to it directly — all DB work is schema-authoring.
-- Primary test command: `npm run build`. Must complete with zero errors. Warnings that exist in `main` today are acceptable; do not introduce new ones.
-- If a task requires running migrations to verify, skip that verification — Ralph cannot apply migrations. Instead, verify the SQL file is syntactically sound by visual inspection (balanced DO blocks, no stray commas, each statement ends with `;`) and note in `progress.txt` that Davis must apply the migration manually before the UI-side tasks that depend on it can be end-to-end tested.
+Ralph should assume:
+- Working directory: the local `Meridian 1.0` checkout.
+- The **token consolidation PRD has already run and committed** (`var(--focus-ring)` and `var(--motion-fast)` exist in `src/index.css`).
+- Supabase project `wluynppocsoqjdbmwass` is live; Davis runs migrations manually via the Supabase SQL editor.
+- Primary build check: `npx vite build`.
+- Widget changes (`public/ct-widget.js`) take effect without a Vite rebuild since they ship as static files.
+
+---
+
+## Pre-existing Context
+
+Things the codebase already has that this PRD builds on:
+
+- The bookmarklet (`buildCtBmHref` in `Step3Bookmarklet.jsx`) **already walks the SF shadow DOM** and scrapes the account ID via pattern `/001[a-zA-Z0-9]{12,15}/`. The Case ID scrape is a near-identical addition.
+- The widget (`public/ct-widget.js`) **already posts `ct_cases`** with rich metadata (`case_type`, `case_subtype`, `duration_s`, etc.). Adding `sf_case_id` is one line per relevant insert.
+- The `ct_calls` table schema **already has a `case_id` column** (line 308 of `ct-widget.js` writes `case_id: null` today). The naming is inconsistent with what we want — Ralph will add `sf_case_id` as a new column on `ct_cases` and `case_events`, and leave `ct_calls.case_id` alone for now (separate concern — it's a FK, not an SF ID).
+- `ActivityLog.jsx` has a **hover-only edit pencil at the end of every row** (line 714) that's the exact interaction pattern to mirror for the SF link icon.
+
+---
 
 ## Tasks
 
-### Phase 1: Role reconciliation (migration only)
+### Phase 0 — Data layer
 
-- [x] **Task 1: Create migration 010 reconciling the role CHECK constraint**
-  - **What to build:** A new file `supabase/migrations/010_reconcile_role_constraint.sql` that drops the existing `platform_users_role_check` constraint and re-adds it with the canonical list `('agent', 'supervisor', 'admin')`. The migration must be idempotent — running it against production (which already has the correct constraint) should be a no-op, and running it against a fresh DB created from migrations 001–009 should end in the same state as production.
-  - The migration must NOT touch migration 003's file. That file stays as historical record.
-  - Include a `DO $$ ... $$` block that warns (not errors) if any `platform_users` row has a role outside `('agent', 'supervisor', 'admin')`, so Davis can see the count if there's any stray data.
-  - At the end, `SELECT` a summary: count of users per role, and the current `pg_get_constraintdef` output for the constraint.
-  - **Files to create:** `supabase/migrations/010_reconcile_role_constraint.sql`
-  - **Acceptance:** File exists. SQL parses (no obvious syntax errors). Starts with `-- 010_reconcile_role_constraint.sql` comment header. Is idempotent (safe to run multiple times). Does not reference `'director'` anywhere except in the idempotency cleanup section (see next sentence). If the constraint currently includes `'director'`, the migration migrates any `role = 'director'` rows to `role = 'supervisor'` before swapping the constraint, then drops and re-adds. This handles both the production case (no director rows) and a hypothetical fresh-DB case (the drift has never been applied).
-  - **Test:** `npm run build` (no-op — this is SQL). Manually inspect the file for the checklist in Acceptance.
+- [x] **Task 0.1: Migration — add `sf_case_id` to `ct_cases` and `case_events`**
 
-- [x] **Task 2: Purge `'director'` references from the codebase**
-  - **What to build:** Remove every mention of the `'director'` role from JSX and hooks. Specifically:
-    - `src/components/InsightsTab.jsx` line ~35: `profile?.role === 'supervisor' || profile?.role === 'director' || profile?.role === 'admin'` → `profile?.role === 'supervisor' || profile?.role === 'admin'`.
-    - `src/components/Navbar.jsx` line ~271: same substitution.
-    - Any other grep hit for the literal string `'director'`.
-  - Do NOT remove `'director'` from comments explaining migration history. Only remove from active role checks.
-  - **Files to modify:** `src/components/InsightsTab.jsx`, `src/components/Navbar.jsx`, and anything else `grep -rn "'director'" src/` returns.
-  - **Acceptance:** `grep -rn "'director'" src/` returns zero hits. Build passes.
-  - **Test:** `npm run build` + `grep -rn "'director'" src/ | wc -l` returns `0`.
+  Create `supabase/migrations/007_sf_case_id.sql`:
 
-### Phase 2: RLS migration for admin writes
+  ```sql
+  -- 007_sf_case_id.sql
+  -- Adds Salesforce Case record Id column to enable deep-linking from Meridian
+  -- into the live SF case. Nullable because pre-existing rows don't have it,
+  -- and because non-SF pages (MPL) don't produce case IDs.
 
-- [x] **Task 3: Create migration 011 adding admin write RLS policies**
-  - **What to build:** A new file `supabase/migrations/011_admin_panel_rls.sql` that adds INSERT / UPDATE / DELETE policies for admins on the following tables. The policies must `USING` and `WITH CHECK` that the caller's row in `platform_users` has `role = 'admin'`, matching the pattern already used in migration `006_suggestion_box.sql` (`EXISTS (SELECT 1 FROM platform_users pu WHERE pu.id = auth.uid() AND pu.role = 'admin')`).
-  - Tables and required policies:
-    - `platform_users` — UPDATE (for changing role, team_id, full_name). No INSERT (users are created via auth trigger) and no DELETE. Name the policy `"admins update platform_users"`.
-    - `teams` — INSERT, UPDATE, DELETE. Policies named `"admins insert teams"`, `"admins update teams"`, `"admins delete teams"`.
-    - `departments` — INSERT, UPDATE, DELETE. Same naming pattern.
-    - `mpl_categories` — INSERT, UPDATE (for `name`, `is_active`, `display_order`), DELETE. Same naming pattern.
-    - `mpl_subcategories` — INSERT, UPDATE, DELETE. Same naming pattern.
-    - `supervisor_teams` — INSERT, DELETE. For assigning/unassigning supervisors to teams. Same naming pattern.
-  - Add `GRANT INSERT, UPDATE, DELETE` on each of those tables to `authenticated`, because the RLS policies gate by role on top of the grant.
-  - All policies must be `CREATE POLICY IF NOT EXISTS` OR wrapped in `DROP POLICY IF EXISTS ... ; CREATE POLICY ...` so the migration is re-runnable.
-  - **Files to create:** `supabase/migrations/011_admin_panel_rls.sql`
-  - **Acceptance:** File exists. Every policy is scoped to `auth.uid()` having `role = 'admin'`. No policy allows non-admin writes. The file ends with a `SELECT` that lists all policies on the affected tables so Davis can visually confirm after applying.
-  - **Test:** Visual inspection. `npm run build` (no-op).
+  ALTER TABLE public.ct_cases
+    ADD COLUMN IF NOT EXISTS sf_case_id TEXT;
 
-### Phase 3: API wrappers
+  ALTER TABLE public.case_events
+    ADD COLUMN IF NOT EXISTS sf_case_id TEXT;
 
-- [x] **Task 4: Add admin user-management wrappers to `api.js`**
-  - **What to build:** Add these async wrappers, all returning the Supabase `{ data, error }` shape. Each goes at the bottom of `src/lib/api.js` in a section commented `// ===== Admin Panel: users, teams, departments, categories =====`.
-    - `fetchAllPlatformUsers()` — selects `id, email, full_name, role, team_id, department_id, onboarding_complete, created_at` from `platform_users` ordered by `full_name asc nulls last`. Also LEFT JOINs to get `teams!left(id, name)` so the UI can show the team name inline without a second fetch.
-    - `updatePlatformUserRole({ userId, role })` — asserts `role in ['agent', 'supervisor', 'admin']` client-side (throws if not) and `UPDATE`s that row. The RLS policy from Task 3 gates the write.
-    - `updatePlatformUserTeam({ userId, teamId })` — `UPDATE` the `team_id`. `teamId` of `null` is allowed and means "unassigned."
-    - `updatePlatformUserName({ userId, fullName })` — for admins to fix typos in agents' `full_name`.
-  - **Files to modify:** `src/lib/api.js`
-  - **Acceptance:** All four wrappers exist, exported. Build passes.
-  - **Test:** `npm run build`.
+  -- Basic shape check — SF Case IDs start with '500' and are 15 or 18 chars.
+  -- Enforced as CHECK rather than a type because we want NULLs to pass freely.
+  ALTER TABLE public.ct_cases
+    DROP CONSTRAINT IF EXISTS ct_cases_sf_case_id_shape,
+    ADD CONSTRAINT ct_cases_sf_case_id_shape
+      CHECK (
+        sf_case_id IS NULL
+        OR sf_case_id ~ '^500[a-zA-Z0-9]{12,15}$'
+      );
 
-- [x] **Task 5: Add admin team/department wrappers to `api.js`**
-  - **What to build:** Add:
-    - `fetchAllDepartmentsWithTeams()` — returns departments with their teams nested: `departments.select('id, name, teams(id, name, haulage_type, active)').order('name')`. The UI will render this hierarchically.
-    - `createDepartment({ name })` — inserts a department, returns the new row.
-    - `updateDepartment({ id, name })` — renames a department.
-    - `deleteDepartment({ id })` — deletes. The FK on `teams.department_id` is `ON DELETE RESTRICT`, so the DB will reject deleting a department with teams. That's intentional — the UI must catch the error and show a friendly message.
-    - `createTeam({ name, departmentId, haulageType })` — inserts. `haulageType` must be `'CH'` or `'MH'`.
-    - `updateTeam({ id, name, active })` — toggles active or renames. The form of this call allows partial updates: if `name` is undefined, only `active` is sent, and vice versa.
-    - `deleteTeam({ id })` — deletes. FK on `platform_users.team_id` is `ON DELETE SET NULL`, so users get unassigned, not deleted.
-  - **Files to modify:** `src/lib/api.js`
-  - **Acceptance:** All wrappers exist, exported, documented with a one-line comment describing the RLS implications where relevant. Build passes.
-  - **Test:** `npm run build`.
+  ALTER TABLE public.case_events
+    DROP CONSTRAINT IF EXISTS case_events_sf_case_id_shape,
+    ADD CONSTRAINT case_events_sf_case_id_shape
+      CHECK (
+        sf_case_id IS NULL
+        OR sf_case_id ~ '^500[a-zA-Z0-9]{12,15}$'
+      );
 
-- [x] **Task 6: Add admin category/subcategory wrappers to `api.js`**
-  - **What to build:** Add:
-    - `fetchAllCategoriesForAdmin()` — returns every row in `mpl_categories` (both CH and MH, both active and inactive) with their `mpl_subcategories` nested. Ordered by `team` then `display_order`. Unlike `fetchCategoriesForTeam`, this does NOT filter by `is_active` — admins need to see deactivated ones too.
-    - `createCategory({ name, team, displayOrder })` — inserts. `team` must be `'CH'` or `'MH'`. Default `displayOrder` to the next integer after the max existing one for that team.
-    - `updateCategory({ id, name, isActive, displayOrder })` — partial update.
-    - `deleteCategory({ id })` — deletes. The `mpl_subcategories` FK should cascade; if not, the DB will error and the UI shows the message.
-    - `createSubcategory({ name, categoryId, displayOrder })` — inserts.
-    - `updateSubcategory({ id, name, isActive, displayOrder })` — partial update.
-    - `deleteSubcategory({ id })` — deletes.
-  - **Files to modify:** `src/lib/api.js`
-  - **Acceptance:** All wrappers exist, exported. Build passes.
-  - **Test:** `npm run build`.
+  -- Index on case_events for the common lookup:
+  -- "give me this agent's recent activity with SF links resolvable"
+  CREATE INDEX IF NOT EXISTS idx_case_events_sf_case_id
+    ON public.case_events (sf_case_id)
+    WHERE sf_case_id IS NOT NULL;
 
-### Phase 4: Tab shell on AdminTab
+  -- Grants, in case a DROP SCHEMA CASCADE has stripped them historically.
+  GRANT SELECT, INSERT, UPDATE ON public.ct_cases TO anon, authenticated, service_role;
+  GRANT SELECT, INSERT, UPDATE ON public.case_events TO anon, authenticated, service_role;
+  ```
 
-- [x] **Task 7: Create `AdminTabs.jsx` — the 4-tab strip**
-  - **What to build:** A stateless presentational component that renders four pill tabs — "Users", "Teams", "Suggestions", "Categories" — matching the `tabStyle()` pattern from `src/components/InsightsTab.jsx`. Props: `{ activeTab, onTabChange }` where `activeTab` is `'users' | 'teams' | 'suggestions' | 'categories'`.
-  - Active pill uses `var(--color-mmark)` (Hapag Orange). Inactive uses the muted background from the Insights tabs.
-  - Count badges are optional for now. Do not add them.
-  - **Files to create:** `src/components/admin/AdminTabs.jsx`
-  - **Acceptance:** Component renders. Clicking a tab fires `onTabChange` with the key. Build passes.
-  - **Test:** `npm run build`.
+  **Do NOT run this migration from Ralph.** Davis runs it manually in the Supabase SQL editor, then pastes the summary output back. Ralph's job is to write the file and commit it.
 
-- [x] **Task 8: Create `SuggestionsPanel.jsx` by relocating existing AdminTab body**
-  - **What to build:** Create `src/components/admin/SuggestionsPanel.jsx`. Move the entire current body of `src/components/AdminTab.jsx` — the filters, counts summary, suggestion list rendering, "Copy all for Claude" button, and all associated state — into this new file.
-  - Props: `{ user, profile }`.
-  - Drop the top `<h2>Admin</h2>` heading — the tab shell will provide a panel heading.
-  - Keep all imports intact (`useAllSuggestions`, `formatSuggestionListForClaude`, `SuggestionList`, `SuggestionDetailPanel`).
-  - Keep the `if (profile?.role !== 'admin')` guard at the top.
-  - **Files to create:** `src/components/admin/SuggestionsPanel.jsx`
-  - **Acceptance:** File compiles on its own. The file is essentially `AdminTab.jsx`'s current logic, minus the outer `<h2>`, exported as `SuggestionsPanel`.
-  - **Test:** `npm run build`.
+  **Acceptance:**
+  - File exists: `ls supabase/migrations/007_sf_case_id.sql`
+  - `grep -c "ADD COLUMN IF NOT EXISTS sf_case_id" supabase/migrations/007_sf_case_id.sql` returns `2`.
+  - `grep -c "ADD CONSTRAINT" supabase/migrations/007_sf_case_id.sql` returns `2`.
+  - Commit: `migration: add sf_case_id to ct_cases and case_events`.
 
-- [x] **Task 9: Restructure `AdminTab.jsx` to host the tabbed shell**
-  - **What to build:** Rewrite `src/components/AdminTab.jsx` to be the tabbed shell. Structure:
-    - `if (profile?.role !== 'admin') return <NotAuthorized />` block (reuse the existing "Not authorized. Admin access only." markup — move to a small inline helper or keep as literal JSX).
-    - `const [activeTab, setActiveTab] = useState('users')` — default landing tab is Users.
-    - Render a heading row: `<h2>Admin</h2>` (centered/left-aligned matching current style).
-    - Render `<AdminTabs activeTab={activeTab} onTabChange={setActiveTab} />`.
-    - Below tabs, conditionally render one of four panels based on `activeTab`:
-      - `'users'` → `<UsersPanel user={user} profile={profile} />`
-      - `'teams'` → `<TeamsPanel user={user} profile={profile} />`
-      - `'suggestions'` → `<SuggestionsPanel user={user} profile={profile} />`
-      - `'categories'` → `<CategoriesPanel user={user} profile={profile} />`
-    - For this task, `UsersPanel`, `TeamsPanel`, `CategoriesPanel` don't exist yet — stub them as `function UsersPanel() { return <div style={{ color: 'var(--text-sec)' }}>Coming in Task 11</div>; }` etc., imported from their files which also don't exist yet. To keep this task atomic, create placeholder files for all three panels that export a stub component.
-  - **Files to modify:** `src/components/AdminTab.jsx`
-  - **Files to create (stubs):** `src/components/admin/UsersPanel.jsx`, `src/components/admin/TeamsPanel.jsx`, `src/components/admin/CategoriesPanel.jsx`
-  - **Acceptance:** Admin page renders with four tabs. Suggestions tab shows the existing suggestion list exactly as before (functionally unchanged). Other three tabs render "Coming in Task N" placeholders. Build passes.
-  - **Test:** `npm run build`. Run `npm run dev`, log in as admin, navigate to Admin — confirm tabs render and Suggestions tab is fully functional.
+---
 
-### Phase 5: Users panel
+### Phase 1 — Capture (bookmarklet + widget)
 
-- [x] **Task 10: Build `useAdminUsers` hook**
-  - **What to build:** A hook `useAdminUsers()` at `src/hooks/useAdminUsers.js` that:
-    - Calls `fetchAllPlatformUsers()` on mount.
-    - Returns `{ users, loading, error, refetch, updateRole, updateTeam, updateName }`.
-    - `updateRole(userId, role)` calls `updatePlatformUserRole`, then optimistically updates local state on success. On error, shows the previous state and returns the error.
-    - `updateTeam(userId, teamId)` likewise calls `updatePlatformUserTeam` with optimistic update.
-    - `updateName(userId, fullName)` likewise calls `updatePlatformUserName`.
-    - Do NOT subscribe to realtime on `platform_users` — the admin is the only writer, so local state + refetch is enough.
-  - **Files to create:** `src/hooks/useAdminUsers.js`
-  - **Acceptance:** Hook exists. Has the returned signature. Uses `api.js` wrappers only. Build passes.
-  - **Test:** `npm run build`.
+- [ ] **Task 1.1: Scrape `sf_case_id` in the bookmarklet**
 
-- [x] **Task 11: Build `UsersPanel.jsx` — full implementation**
-  - **What to build:** Replace the stub `src/components/admin/UsersPanel.jsx` with the real implementation:
-    - Uses `useAdminUsers()` for data.
-    - Loading state: centered spinner matching the Insights spinner.
-    - Error state: red-tinted error message with a "Retry" button that calls `refetch`.
-    - Header row: total count of users. Inline search box (client-side filter on `full_name` and `email`, case-insensitive).
-    - Table/list of users. Each row is a `<UserRow>` component (Task 12). Columns visible: full_name, email, role (dropdown), team (dropdown), and a "pending onboarding" badge if `onboarding_complete === false`.
-    - The current admin (`user.id`) is rendered but the role dropdown is disabled with a tooltip "You cannot change your own role." This prevents Davis from accidentally locking himself out.
-  - Filters for the search box: 200ms debounce, plain `includes()` match on lowercased `full_name` and `email`.
-  - **Files to modify:** `src/components/admin/UsersPanel.jsx`
-  - **Acceptance:** Admin → Users renders every user. Search works. Role and team dropdowns render (changes don't have to fully write yet — that's Task 12). Self-row role dropdown is disabled. Build passes.
-  - **Test:** `npm run build` + manual smoke via `npm run dev`.
+  Open `src/components/onboarding/Step3Bookmarklet.jsx`. Locate `buildCtBmHref(userId)` (line 17). Inside the IIFE string, the shadow-DOM walker already captures account ID. Add case ID capture alongside it.
 
-- [x] **Task 12: Build `UserRow.jsx` with inline role/team edit**
-  - **What to build:** `src/components/admin/UserRow.jsx`. Props: `{ user, teams, isSelf, onUpdateRole, onUpdateTeam, onUpdateName }`.
-  - Renders a row with `full_name` (clickable to edit inline), `email` (read-only), role `<select>` (values: `agent`, `supervisor`, `admin`), team `<select>` (populated from the `teams` prop — options are "Unassigned" + each team's name, value is team id or empty string for unassigned).
-  - Changes write through via the `onUpdate*` callbacks from the parent, which are wired to the hook's mutators.
-  - On a failed write, flash a brief red toast at the top of the row ("Failed to update role — RLS rejected.") for 3 seconds, then revert. Parent hook is responsible for the revert.
-  - Role change confirm: if changing someone TO admin or FROM admin, show a `window.confirm` first ("Promote Wanda to admin? They will be able to edit all users, teams, and categories."). Other role changes don't prompt.
-  - If `isSelf` is true, the role dropdown is disabled and shows a tooltip via `title` attribute.
-  - Inline name edit: clicking `full_name` turns it into a small `<input>` with Enter-to-save, Escape-to-cancel.
-  - **Files to create:** `src/components/admin/UserRow.jsx`
-  - **Acceptance:** Row renders. Role change fires confirm for admin toggles. Team change is silent. Self-row role is locked. Build passes.
-  - **Test:** `npm run build`.
+  Find this block (inside the bookmarklet string, currently inside the `w()` walker):
 
-### Phase 6: Teams panel
+  ```js
+  if (!aN && n.tagName === 'A') {
+    var href = n.getAttribute('href');
+    if (href && href.startsWith('/lightning/r/Account/001')) {
+      var ai = href.match(/001[a-zA-Z0-9]{12,15}/);
+      if (ai && ai[0]) aN = ai[0];
+    }
+  }
+  ```
 
-- [x] **Task 13: Build `useAdminTeams` hook**
-  - **What to build:** Hook at `src/hooks/useAdminTeams.js`:
-    - Calls `fetchAllDepartmentsWithTeams()` on mount.
-    - Returns `{ departments, loading, error, refetch, createDept, updateDept, deleteDept, createTeam, updateTeam, deleteTeam }`.
-    - All mutators call the corresponding `api.js` wrapper and trigger a refetch on success.
-    - No optimistic updates for this hook — the structure is nested enough that refetch is simpler than patching nested state.
-  - **Files to create:** `src/hooks/useAdminTeams.js`
-  - **Acceptance:** Hook exists with the returned signature. Build passes.
-  - **Test:** `npm run build`.
+  Add a sibling block for Case IDs:
 
-- [x] **Task 14: Build `TeamsPanel.jsx` + `DepartmentCard.jsx`**
-  - **What to build:**
-    - Replace stub `src/components/admin/TeamsPanel.jsx` with real implementation.
-    - Renders a vertical list of `<DepartmentCard>` components, one per department.
-    - Below the list, renders `<AddDepartmentForm>` (Task 16).
-    - Empty state if no departments: "No departments yet. Add one below to get started."
-  - `DepartmentCard.jsx` at `src/components/admin/DepartmentCard.jsx`:
-    - Header: department name (inline-editable by clicking) + a delete button (trash icon).
-    - Body: list of `<TeamRow>` for each team in this department.
-    - Footer: `<AddTeamForm departmentId={dept.id}>` for adding a new team.
-    - Delete department: `window.confirm("Delete department 'X'? This will only succeed if no teams reference it.")` — the DB will reject if teams exist, and the UI surfaces that.
-  - **Files to modify:** `src/components/admin/TeamsPanel.jsx`
-  - **Files to create:** `src/components/admin/DepartmentCard.jsx`
-  - **Acceptance:** Teams tab shows IDT and Customer Service with their teams nested. Delete and rename controls render. Build passes.
-  - **Test:** `npm run build`.
+  ```js
+  if (!cID && n.tagName === 'A') {
+    var hrefC = n.getAttribute('href');
+    if (hrefC && hrefC.startsWith('/lightning/r/Case/500')) {
+      var ci = hrefC.match(/500[a-zA-Z0-9]{12,15}/);
+      if (ci && ci[0]) cID = ci[0];
+    }
+  }
+  ```
 
-- [x] **Task 15: Build `TeamRow.jsx` and `AddTeamForm.jsx`**
-  - **What to build:**
-    - `TeamRow.jsx` at `src/components/admin/TeamRow.jsx`. Shows team `name`, `haulage_type` (CH/MH), `active` toggle, delete button. Inline-editable name. Haulage type is read-only after creation (changing would scramble category fetch logic — defer to a future PRD). `active` toggle flips `active` on the team; inactive teams still exist but shouldn't be selectable in the Users panel's team dropdown (UsersPanel must filter `teams.active === true` for its dropdown, minus any team the user is currently on — edit UsersPanel to do this filter).
-    - Delete: `window.confirm("Delete team 'X'? Any users currently on this team will become unassigned.")`.
-    - `AddTeamForm.jsx` at `src/components/admin/AddTeamForm.jsx`. Props: `{ departmentId, onCreated }`. Inline form with `name` text input, `haulage_type` radio (CH / MH), "Add team" button. Validates name length > 2 before submit.
-  - Update `UsersPanel.jsx` (and `UserRow.jsx` if needed) so its team dropdown filters out `active === false` teams EXCEPT the user's currently-assigned team (so a user assigned to a now-inactive team can still be reassigned off it).
-  - **Files to create:** `src/components/admin/TeamRow.jsx`, `src/components/admin/AddTeamForm.jsx`
-  - **Files to modify:** `src/components/admin/UsersPanel.jsx` and/or `src/components/admin/UserRow.jsx`
-  - **Acceptance:** Can add, rename, deactivate, and delete teams via UI. Users panel correctly filters inactive teams. Build passes.
-  - **Test:** `npm run build`.
+  Initialize `cID` next to `aN` at the top of the walker (where `var aN='', typeVal='', subtypeVal='';` is declared): change to `var aN='', cID='', typeVal='', subtypeVal='';`.
 
-- [x] **Task 16: Build `AddDepartmentForm.jsx`**
-  - **What to build:** `src/components/admin/AddDepartmentForm.jsx`. Small inline form with a `name` text input + "Add department" button. Validates length > 2. On success, fires `onCreated` from parent (which calls `refetch`).
-  - **Files to create:** `src/components/admin/AddDepartmentForm.jsx`
-  - **Acceptance:** Can add a new department. Appears immediately in the list. Build passes.
-  - **Test:** `npm run build`.
+  **Pass `cID` to the widget.** The existing code passes `MERIDIAN_PAYLOAD` to the widget via relay; extend the payload. Find where the widget is invoked after trigger response — the payload already carries `userId` and `relayFrame`. Inject `sfCaseId: cID` into that payload so the widget sees it on launch.
 
-### Phase 7: Categories panel
+  The bookmarklet code is a minified IIFE string. Be careful with escaping: single quotes inside the string must stay escaped. If the resulting string breaks the JS template literal, roll the change back and log in `progress.txt` — this task may need CC's hand rather than Ralph's.
 
-- [x] **Task 17: Build `useAdminCategories` hook**
-  - **What to build:** Hook at `src/hooks/useAdminCategories.js`:
-    - Calls `fetchAllCategoriesForAdmin()` on mount.
-    - Returns `{ categories, loading, error, refetch, createCat, updateCat, deleteCat, createSub, updateSub, deleteSub }`.
-    - Categories are grouped by `team` ('CH' vs 'MH') in the returned shape, for easier rendering. The hook can compute `{ mh: [], ch: [] }` from the flat list returned by the API wrapper.
-    - All mutators call the corresponding `api.js` wrapper and trigger a refetch on success.
-  - **Files to create:** `src/hooks/useAdminCategories.js`
-  - **Acceptance:** Hook exists. Build passes.
-  - **Test:** `npm run build`.
+  **Acceptance:**
+  - `grep -c "500\[a-zA-Z0-9\]" src/components/onboarding/Step3Bookmarklet.jsx` returns at least `1`.
+  - `grep -c "sfCaseId\|cID" src/components/onboarding/Step3Bookmarklet.jsx` returns at least `2`.
+  - `npx vite build` passes.
 
-- [x] **Task 18: Build `CategoriesPanel.jsx` + `CategoryGroup.jsx`**
-  - **What to build:**
-    - Replace stub `src/components/admin/CategoriesPanel.jsx` with real implementation.
-    - Two sections side-by-side on wide viewports (stacked on narrow): "Merchant Haulage (MH)" and "Carrier Haulage (CH)".
-    - Each section renders a list of `<CategoryGroup>` components for its team's categories, plus an `<AddCategoryForm team="MH" />` / `<AddCategoryForm team="CH" />` at the bottom.
-    - Inactive categories render with `opacity: 0.5` and a small "Inactive" label.
-  - `CategoryGroup.jsx` at `src/components/admin/CategoryGroup.jsx`:
-    - Header: category name (inline-editable), `display_order` (numeric input, small), `is_active` toggle, delete button.
-    - Body: list of `<SubcategoryRow>` components (Task 19) + an `<AddSubcategoryForm categoryId={cat.id}>` at the bottom.
-    - Delete: `window.confirm("Delete category 'X'? All subcategories under it will also be deleted.")`.
-  - **Files to modify:** `src/components/admin/CategoriesPanel.jsx`
-  - **Files to create:** `src/components/admin/CategoryGroup.jsx`
-  - **Acceptance:** Categories tab shows both MH and CH trees. Can rename a category, reorder, toggle active, delete. Build passes.
-  - **Test:** `npm run build`.
+- [ ] **Task 1.2: Receive and persist `sf_case_id` in the widget**
 
-- [x] **Task 19: Build `SubcategoryRow.jsx`, `AddCategoryForm.jsx`, `AddSubcategoryForm.jsx`**
-  - **What to build:**
-    - `SubcategoryRow.jsx` — one subcategory with inline-editable name, `display_order` input, `is_active` toggle, delete button. Delete confirm: `"Delete subcategory 'X'? MPL entries historically logged against this subcategory will retain their foreign-key reference and continue to appear in reports."` (Only true if the FK is `ON DELETE SET NULL` or similar — check the actual FK in 001_initial_schema before finalizing the confirm message. If the FK is `ON DELETE CASCADE`, change the message to reflect that.)
-    - `AddCategoryForm.jsx` — props `{ team, onCreated }`. Form: `name` input, "Add category" button. `display_order` auto-assigned (max + 1) by the hook.
-    - `AddSubcategoryForm.jsx` — props `{ categoryId, onCreated }`. Form: `name` input, "Add subcategory" button. `display_order` auto-assigned.
-  - **Files to create:** `src/components/admin/SubcategoryRow.jsx`, `src/components/admin/AddCategoryForm.jsx`, `src/components/admin/AddSubcategoryForm.jsx`
-  - **Acceptance:** Full CRUD on categories and subcategories works end-to-end through the UI (assuming migrations 010 and 011 are applied). Build passes.
-  - **Test:** `npm run build`.
+  Open `public/ct-widget.js`. At line 4 (the MERIDIAN_PAYLOAD doc comment), update to reflect the new field:
 
-### Phase 8: Polish & verification
+  ```js
+  // MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId }
+  ```
 
-- [x] **Task 20: Verify the Suggestions tab is unchanged functionally**
-  - **What to build:** A verification pass. Run `npm run dev`, sign in as admin, navigate to Admin → Suggestions, confirm: the filters dropdown works, the list populates, clicking a row opens the detail panel, the "Copy all for Claude" button copies text to clipboard, status changes write successfully.
-  - If anything is broken, fix it now. The most likely bug is a missed import path after the move.
-  - **Files to modify:** As needed.
-  - **Acceptance:** Manual smoke test passes.
-  - **Test:** `npm run build` + `npm run dev` manual verification logged in `progress.txt`.
+  At line 45, where `state` is declared, add `sfCaseId: ''`:
 
-- [x] **Task 21: Add progress.txt entries documenting manual-apply migrations**
-  - **What to build:** Append to `progress.txt`:
+  ```js
+  state = {
+    userId:       '',
+    caseNumber:   '',
+    caseType:     '',
+    caseSubtype:  '',
+    accountId:    '',
+    sfCaseId:     '',   // ← new
+    // … rest of state …
+  }
+  ```
+
+  Find the initial payload hydration block (line 484):
+
+  ```js
+  if (MERIDIAN_PAYLOAD.caseNumber) {
+    state.caseNumber  = MERIDIAN_PAYLOAD.caseNumber;
+  ```
+
+  Add a sibling line:
+
+  ```js
+  if (MERIDIAN_PAYLOAD.sfCaseId) {
+    state.sfCaseId  = MERIDIAN_PAYLOAD.sfCaseId;
+  }
+  ```
+
+  Also find the re-trigger handler around line 495 (`if (payload && payload.caseNumber)`) and add the same for `sfCaseId`.
+
+  In `handleResolved()` (line 224) and `handleReclass()` (line 264):
+  - Change the `relayPost('ct_cases', { … })` call to include `sf_case_id: state.sfCaseId || null,` alongside the existing `case_type`, `case_subtype`, etc.
+  - Change the `relayPost('case_events', { … })` call to include `sf_case_id: state.sfCaseId || null,` alongside `type`.
+
+  In `handleCall()` (line 304), add the same `sf_case_id` to the `case_events` insert (not `ct_calls` — `ct_calls.case_id` is a different column, leave it alone).
+
+  In `handleStartCase()` (line 330), after setting `state.caseNumber = m[1]`, note that the SF Case ID is NOT scraped here from `document.title` — it's only available via the bookmarklet's shadow-DOM walker. If `state.sfCaseId` is already set from the original payload, keep it. If not, leave blank and the activity just won't be linkable. This is fine.
+
+  In `handleDismissCase()` and the reset blocks inside `handleResolved`/`handleReclass` (lines 252, 292), reset `state.sfCaseId = ''` alongside the other case fields.
+
+  **Acceptance:**
+  - `grep -c "sfCaseId\|sf_case_id" public/ct-widget.js` returns at least `12`.
+  - No compilation via Vite is needed (static file), but the file must still be valid JS: `node -c public/ct-widget.js` returns exit 0.
+  - Manual smoke test (Davis will do this): open a SF case, click bookmarklet, confirm widget opens. Resolve the case. Query Supabase: `select case_number, sf_case_id from ct_cases order by ended_at desc limit 1;` — should show both values.
+
+---
+
+### Phase 2 — Render
+
+- [ ] **Task 2.1: Add `src/lib/salesforce.js` — single source of SF URL truth**
+
+  Create `src/lib/salesforce.js`:
+
+  ```js
+  // Single source of truth for Salesforce deep links.
+  // Any time we want to open a case or account in SF, we route through this module.
+  // The host is hardcoded here and nowhere else — when SF migrates (sandboxes,
+  // org changes, etc.), there's exactly one line to update.
+
+  const SF_HOST = 'https://hlag.lightning.force.com';
+
+  /**
+   * Build a deep link to a Salesforce Case record by its 15/18-char Id.
+   * Returns null if id is falsy or malformed — callers should treat a null
+   * return as "no link available" and skip rendering the link affordance.
+   */
+  export function caseUrl(sfCaseId) {
+    if (!sfCaseId) return null;
+    if (!/^500[a-zA-Z0-9]{12,15}$/.test(sfCaseId)) return null;
+    return `${SF_HOST}/lightning/r/Case/${sfCaseId}/view`;
+  }
+
+  /**
+   * Build a deep link to a Salesforce Account record by its 15/18-char Id.
+   * Mirrors caseUrl — future-friendly for when we surface account context.
+   */
+  export function accountUrl(sfAccountId) {
+    if (!sfAccountId) return null;
+    if (!/^001[a-zA-Z0-9]{12,15}$/.test(sfAccountId)) return null;
+    return `${SF_HOST}/lightning/r/Account/${sfAccountId}/view`;
+  }
+  ```
+
+  **Acceptance:**
+  - File exists with two exported functions.
+  - `grep -c "^export function" src/lib/salesforce.js` returns `2`.
+  - `npx vite build` passes.
+
+- [ ] **Task 2.2: Add `src/components/CaseLink.jsx` — one component, every surface**
+
+  Create `src/components/CaseLink.jsx`:
+
+  ```jsx
+  import { ExternalLink } from 'lucide-react';
+  import { caseUrl } from '../lib/salesforce.js';
+
+  /**
+   * Renders a small external-link icon next to a case number.
+   * - If sfCaseId is missing or malformed, renders nothing (graceful).
+   * - If showOnHover is true (the default), the icon is invisible at rest
+   *   and revealed when the parent row is hovered. Parent must set the
+   *   CSS class `case-link-host` OR pass showOnHover={false}.
+   * - Clicking opens the case in a new tab; stopPropagation on click so
+   *   the parent row's click handler (if any) doesn't also fire.
+   */
+  export default function CaseLink({ sfCaseId, showOnHover = true, size = 12 }) {
+    const href = caseUrl(sfCaseId);
+    if (!href) return null;
+
+    const baseStyle = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 20,
+      height: 20,
+      marginLeft: 6,
+      borderRadius: 3,
+      color: 'var(--text-dim)',
+      opacity: showOnHover ? 0 : 1,
+      transition: 'opacity var(--motion-fast), color var(--motion-fast), background var(--motion-fast)',
+      flexShrink: 0,
+      cursor: 'pointer',
+      textDecoration: 'none',
+    };
+
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="case-link-icon"
+        title="Open in Salesforce"
+        aria-label="Open case in Salesforce"
+        style={baseStyle}
+        onClick={(e) => e.stopPropagation()}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'var(--color-mmark)';
+          e.currentTarget.style.background = 'var(--hover-surface)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'var(--text-dim)';
+          e.currentTarget.style.background = 'transparent';
+        }}
+      >
+        <ExternalLink size={size} strokeWidth={2} />
+      </a>
+    );
+  }
+  ```
+
+  **Acceptance:**
+  - File exists.
+  - Default export is a component named `CaseLink`.
+  - `grep -n "from 'lucide-react'" src/components/CaseLink.jsx` returns 1.
+  - `npx vite build` passes.
+
+- [ ] **Task 2.3: Add the `case-link-host` hover reveal CSS rule**
+
+  Open `src/index.css`. At the bottom, add:
+
+  ```css
+  /* Case link icon — appears only when its parent row is hovered.
+     Parent must carry `case-link-host` class, or `showOnHover` must be false. */
+  .case-link-host .case-link-icon {
+    opacity: 0;
+  }
+  .case-link-host:hover .case-link-icon,
+  .case-link-host:focus-within .case-link-icon {
+    opacity: 1;
+  }
+  ```
+
+  **Acceptance:**
+  - `grep -c "case-link-host\|case-link-icon" src/index.css` returns at least `4`.
+  - `npx vite build` passes.
+
+- [ ] **Task 2.4: Wire `CaseLink` into `ActivityLog.jsx` row**
+
+  Open `src/components/ActivityLog.jsx`.
+
+  First, **extend the data layer** to carry `sf_case_id`:
+  - Find where `useActivityData` is consumed and where `case_events` rows are normalized into the `entry` shape. The normalization step (if not already mapping `sf_case_id`) needs to include it so `entry.sf_case_id` is available to the render.
+  - The mock entries around lines 28–100 don't need to change (they're for dev render), but add a few of them with a realistic `sf_case_id` like `'500abc123def4567890'` for visual verification.
+
+  Second, **render** the link:
+  - Find the case number render block around line 669–681. Replace:
+
+    ```jsx
+    <div style={{ width: 96, flexShrink: 0, overflow: 'hidden' }}>
+      <span style={{...}}>{entry.case_number || 'Manual'}</span>
+    </div>
     ```
-    Admin Panel Phase 1 — manual steps for Davis after Ralph completes:
 
-    1. Apply migration 010_reconcile_role_constraint.sql in Supabase SQL Editor.
-       Expected: no-op in production (constraint already matches), summary shows
-       role counts (agent, supervisor, admin).
+  - With:
 
-    2. Apply migration 011_admin_panel_rls.sql in Supabase SQL Editor.
-       Expected: policies created on platform_users, teams, departments,
-       mpl_categories, mpl_subcategories, supervisor_teams. Summary lists them.
-
-    3. Smoke test: sign in as Davis (admin), open Admin panel. Confirm:
-       - Users tab lists all ~16 alpha users.
-       - Teams tab shows IDT and Customer Service with Export Rail SGP + NEM
-         under IDT.
-       - Categories tab shows MH categories (CH currently empty — expected).
-       - Suggestions tab works identically to before.
-
-    4. Smoke test: sign in as Wanda or Carlos (non-admin). Confirm the Admin
-       button is NOT visible in the navbar.
-
-    Known limitation: no audit log of admin writes. Added to backlog.
+    ```jsx
+    <div style={{ width: 116, flexShrink: 0, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+      <span style={{...}}>{entry.case_number || 'Manual'}</span>
+      {entry.case_number && <CaseLink sfCaseId={entry.sf_case_id} />}
+    </div>
     ```
-  - **Files to modify:** `progress.txt`
-  - **Acceptance:** Entries present at end of file.
-  - **Test:** `cat progress.txt | tail -30`.
 
-- [x] **Task 22: Final build + commit summary**
-  - **What to build:** Run `npm run build`. Ensure zero errors. Append a final section to `progress.txt` listing every file created/modified with a one-line summary of what changed.
-  - **Acceptance:** `npm run build` clean. Summary present.
-  - **Test:** `npm run build`.
+  - Note: width changes from 96 → 116 to accommodate the 20px icon slot. Adjust neighboring widths only if visual inspection shows misalignment.
 
-## Testing Strategy
+  - Add `import CaseLink from './CaseLink.jsx';` at the top.
 
-- Primary: `npm run build` after every task. If a task's test command says "`npm run build`", that is the single criterion for passing.
-- Secondary: `npm run dev` manual smoke tests for Tasks 9, 11, 14, 18, 20. Log results in `progress.txt`.
-- Migrations are NOT applied by Ralph. They are authored, syntax-checked via visual inspection, and flagged in `progress.txt` for Davis to apply manually.
-- No automated test framework is currently set up for this project. If one is added later, revisit.
+  - On the **row wrapper `<div>`** (the outermost element of each activity row, currently the element that hosts the `onMouseEnter` that toggles the edit icon's visibility), add `className="case-link-host"` to opt into the hover reveal. If the row already has a className, append it.
+
+  Also update the **edit modal header** render around line 357–361: where `#{entry.case_number}` is displayed, pass the icon too but with `showOnHover={false}` since the modal isn't a row-hover context:
+
+  ```jsx
+  {entry.case_number && (
+    <>
+      <span style={{ color: MC.textMuted, fontSize: 12, fontFamily: 'monospace' }}>
+        #{entry.case_number}
+      </span>
+      <CaseLink sfCaseId={entry.sf_case_id} showOnHover={false} />
+    </>
+  )}
+  ```
+
+  **Acceptance:**
+  - `grep -c "CaseLink\|case-link-host" src/components/ActivityLog.jsx` returns at least `3`.
+  - `grep -c "sf_case_id" src/components/ActivityLog.jsx` returns at least `2`.
+  - `npx vite build` passes.
+  - Visual check: hovering a row with `sf_case_id` reveals the icon; rows without one show no icon; layout width does not shift on hover.
+
+- [ ] **Task 2.5: Wire `CaseLink` into the recent-activity preview in `Dashboard.jsx` (if applicable)**
+
+  Check whether `Dashboard.jsx` renders case numbers directly. If it does, apply the same treatment. If it only delegates to `<ActivityLog />`, this task is a no-op — mark complete after confirming.
+
+  ```bash
+  grep -n "case_number\|caseNumber" src/components/Dashboard.jsx
+  ```
+
+  If the grep returns nothing, mark the task done with a note in `progress.txt`: `Task 2.5 no-op — Dashboard delegates to ActivityLog.`
+
+  **Acceptance:**
+  - Either: Dashboard imports `CaseLink` and renders it everywhere a case number appears; or `progress.txt` notes the no-op.
+  - `npx vite build` passes.
+
+---
+
+### Phase 3 — Query + verification
+
+- [ ] **Task 3.1: Ensure the activity data hook selects `sf_case_id`**
+
+  Open `src/hooks/useActivityData.js` (or wherever the activity feed's Supabase query lives). Find the `.select(...)` call against `case_events` and `ct_cases`. Confirm `sf_case_id` is in the selection; if using `select('*')` it's automatic; if the fields are enumerated, add it.
+
+  **Acceptance:**
+  - `grep -n "sf_case_id\|select(" src/hooks/useActivityData.js` shows `sf_case_id` is either explicitly selected or the query is `select('*')`.
+  - `npx vite build` passes.
+
+- [ ] **Task 3.2: Final grep + build sweep**
+
+  ```bash
+  # CaseLink is imported from the lib, not reinvented elsewhere
+  grep -rn "lightning/r/Case/500\|lightning/r/Case/\${" src/ --include="*.jsx" --include="*.js" | grep -v "src/lib/salesforce.js"
+  # ↑ Expect zero matches. The only place that hardcodes the URL is salesforce.js.
+
+  # No leftover hardcoded SF hosts
+  grep -rn "hlag.lightning.force.com" src/ --include="*.jsx" --include="*.js" | grep -v "src/lib/salesforce.js"
+  # ↑ Expect zero matches.
+
+  # CaseLink used in at least two surfaces
+  grep -rn "<CaseLink " src/components/ --include="*.jsx" | wc -l
+  # ↑ Expect ≥ 2.
+
+  # Build
+  npx vite build
+  ```
+
+  If any grep returns unexpected matches, open the file and migrate to use `caseUrl(…)` from the lib. If build fails, debug the last task's change.
+
+  **Acceptance:** all three grep checks produce expected output. Build passes. Commit with message: `feat: SF direct-link icon on case numbers (data + render layers)`.
+
+---
 
 ## Out of Scope
 
-Ralph must NOT do any of the following. They are intentionally excluded and will be handled in future PRDs:
+These are deliberately excluded so this PRD stays small and reviewable:
 
-- **No audit log.** Admin writes are not recorded to a log table in this phase.
-- **No supervisor-teams junction editing UI.** Assigning supervisors to teams is done via SQL for now. The RLS policy from Task 3 allows it, and a UI will come in a later PRD.
-- **No bulk operations.** No "promote all users from this team to supervisor" kind of batch. One row at a time.
-- **No CSV import/export.** No "upload a CSV to add 30 users."
-- **No email invites / new account creation.** Users still sign up via the existing auth flow. Admins cannot create accounts.
-- **No password resets or MFA management.** Auth administration stays in Supabase Auth UI.
-- **No deletion of platform_users.** If someone leaves the company, their row stays for historical attribution.
-- **No RFC configuration UI.** That surface is deferred. `case_events.excluded` remains dormant dead code for now.
-- **No feature flags table or UI.** Deferred.
-- **No changes to the Insights tab, Feedback tab, Dashboard, MPL widget, or CT widget.** This PRD is Admin-only.
-- **No new npm packages.** If a task seems to need one, stop and leave it unchecked.
-- **No TypeScript conversion.** The project is plain JSX; stay there.
-- **No changes to the bookmarklet, relay iframe, or PiP windows.**
-- **No React Router or URL-based tab state.** In-memory tab state only.
+- ❌ Backfilling `sf_case_id` on historical `ct_cases` / `case_events` rows. Those render without the icon for now; that's fine. A future track (probably Power Query + Salesforce Objects connector) will map `case_number` → SF record Id and backfill.
+- ❌ MPL entries. Processes don't have a Salesforce case by definition. Leave `mpl_entries` alone.
+- ❌ Calls surface (`ct_calls.case_id`). It's a different concern and the column is already wired to a different purpose. Do not touch.
+- ❌ Changing the widget's **visual** rendering of the case number. The bar still shows the display number; only the downstream Supabase write changes.
+- ❌ CT 1.0 row parity — this PRD does not modify `src/ct/` or legacy CT 1.0 code. Only Meridian ActivityLog and downstream.
+- ❌ Account deep links. The `accountUrl` helper in `salesforce.js` is infrastructure for a future track, not exercised here.
+- ❌ Tests. Meridian doesn't have a unit-test suite; grep + build + manual smoke is the verification standard established by prior PRDs.
+- ❌ Copy updates, tooltips beyond the `title="Open in Salesforce"` attribute, keyboard-shortcut surfacing.
+
+---
+
+## Testing Strategy
+
+**Per-task:**
+- `grep` acceptance in each task.
+- `npx vite build` passes cleanly.
+- For widget tasks: `node -c public/ct-widget.js` (syntax-only check).
+
+**End-to-end (Davis runs manually after all tasks commit):**
+
+1. Run migration 007 in Supabase SQL editor; confirm output shows `ALTER TABLE … ADD COLUMN` without errors.
+2. Confirm `\d ct_cases` and `\d case_events` in `psql` (or the Supabase table editor) both show a new `sf_case_id text` column.
+3. In a Salesforce case page, click the CT bookmarklet. Widget should appear as before. Resolve the case.
+4. Query Supabase:
+   ```sql
+   select case_number, sf_case_id
+   from ct_cases
+   order by ended_at desc
+   limit 3;
+   ```
+   The most-recent row should show a `500…` value in `sf_case_id`. Older rows will have NULL.
+5. Open Meridian's Activity Log. Hover the row for the case just logged — the external-link icon appears at the right of the case number. Hover the icon, cursor becomes pointer, color shifts to Hapag Orange.
+6. Click the icon. A new tab opens to `https://hlag.lightning.force.com/lightning/r/Case/500…/view` and renders the case. ✅
+7. Hover a row with no `sf_case_id` (historical) — no icon appears. ✅
+8. Tab through the Activity Log with keyboard — focus ring appears on rows and on the icon when it's revealed.
+
+---
 
 ## Notes for Ralph
 
-Patterns already in this codebase that you should follow:
+- **Task 1.1 is the hairiest task.** The bookmarklet is a single-line minified IIFE inside a template literal. Escaping is brittle. If the string breaks, roll back and log for Davis — don't try to be clever. The file must remain parseable by JS.
+- **Do NOT run any SQL.** Migration files are committed, not executed. Davis handles every database change manually.
+- **The edit-modal surface (Task 2.4) uses `showOnHover={false}`.** This is deliberate. Inside a modal, the icon is always visible because there's no row-hover context.
+- **Column widths are fragile.** The activity row uses fixed-width zones for alignment (see CT 1.0 design note: *"Fixed-width zones — type label is 110px, case # is 96px, so every row aligns perfectly"*). When the case# slot grows from 96 → 116 to accommodate the icon, visually verify the rest of the row still aligns. If it doesn't, don't fight it — put the icon in a separate dedicated slot instead.
+- **If Task 3.1 reveals that `useActivityData` selects specific fields instead of `*`**, the absence of `sf_case_id` will silently render no icons even on new entries. This is the most likely cause of "feature looks broken but build passes."
+- **Commit per-task.** Davis wants rollback granularity.
+- **If any task fails or feels wrong, log it in `progress.txt` and move on.** Ralph shipping four of five tasks correctly is better than five of five with a broken one.
 
-- **Guard at the top of admin-only components.** Every admin sub-panel begins with:
-  ```jsx
-  if (profile?.role !== 'admin') {
-    return <NotAuthorized />;
-  }
-  ```
-  This mirrors the existing `src/components/AdminTab.jsx`. Don't skip it in sub-panels — RLS is the real guard, but UI-level guards prevent wasted fetches and surface errors clearly.
-
-- **`full_name` not `display_name`.** The column is `full_name`. Patched across the codebase in a prior track. Don't re-introduce `display_name`.
-
-- **API wrappers return `{ data, error }`.** Every wrapper in `src/lib/api.js` returns the Supabase shape. New wrappers must match. Components check `if (error) { ... }` and never rely on try/catch for Supabase errors.
-
-- **Theme tokens.** Use CSS variables. Available: `--text-pri`, `--text-sec`, `--text-dim`, `--bg-card`, `--bg-deep`, `--border`, `--card-bg-subtle`, `--dash-bg`, `--dash-card`, `--dash-border`, `--color-mbtn` (blue), `--color-mmark` (orange), `--divider`.
-
-- **Inline styles only.** No CSS files, no style props imported from elsewhere. Follow the pattern in `AdminTab.jsx` where styles are declared at the top of the component as constants.
-
-- **Error surfacing.** Supabase errors (RLS rejections, constraint violations) should show user-friendly text, not raw `error.message`. A pattern: `error.message?.includes('row-level security') ? 'You do not have permission.' : error.message || 'Unknown error.'`. Don't swallow errors silently.
-
-- **Confirms for destructive actions.** Use plain `window.confirm`. No custom modal library. Phrasing should state the consequence explicitly ("Delete team 'X'? Users on this team will become unassigned.").
-
-- **PiP / widget context.** Admin Panel is a host-page-only feature. It never renders inside the PiP window. No PiP-specific gotchas apply. Use React hooks and inline styles normally.
-
-- **Migration re-applicability.** Both new migrations must be idempotent. Wrap constraint adds in `DROP CONSTRAINT IF EXISTS`. Wrap policies in `DROP POLICY IF EXISTS ... ; CREATE POLICY ...`. Wrap seed data in `ON CONFLICT DO NOTHING`. The file should be safe to run twice.
-
-- **When uncertain, stop.** If a task is ambiguous, leave it unchecked and log the ambiguity in `progress.txt`. Do not invent behavior. Davis will clarify in the morning.
+---
