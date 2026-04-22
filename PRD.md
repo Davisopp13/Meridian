@@ -1,402 +1,359 @@
-# Meridian Design Token Consolidation PRD
+# Meridian Mass Reclass PRD
 
 ## Project Overview
 
-Eliminate design-token duplication across the Meridian codebase. The app has a solid set of CSS custom properties defined in `src/index.css`, but 20 components declare their own local `const C = { … }` palette with hardcoded hex values instead of using the tokens. This drift blocks theme switching, makes color changes a 20-file search, and has produced at least one silent bug (the Insights module references tokens that don't exist).
+Adds a "mass reclassify" feature to Meridian that lets agents select multiple cases in a Salesforce list view, click the existing Meridian bookmarklet, and bulk-log them all as reclassified in one action. Eliminates the need to open each case individually to reclassify it.
 
-The work is **100% mechanical**: no new features, no new logic, no new dependencies. Just route every visual value through the existing token system — and fix the critical bugs uncovered during the design audit along the way.
+**Success criteria:** An agent on a Salesforce case list view with 3+ rows checked can click the Meridian bookmarklet, see a confirmation modal in their Meridian PiP window listing the selected case numbers, click Confirm, and have matching `ct_cases` + `case_events` rows written — all without opening any individual case page. Existing single-case bookmarklet behavior on record pages remains unchanged.
 
-**Success criteria:**
-- `grep -rn "const C = {" src/components/` returns **zero results** in components (only in hooks/libs if any).
-- `grep -rn "var(--text-primary)\|var(--text-secondary)" src/` returns **zero results**.
-- `grep -rn "'#003087'\|'#E8540A'\|'#0f0f1e'\|'#1a1a2e'" src/components/` returns **zero results** (all via tokens).
-- `npx vite build` completes cleanly.
-- Dark mode and light mode both render correctly after the pass (visual check).
-- All interactive elements show a visible focus ring when Tab'd to.
+**Stack:** Vite + React 18, Supabase (Postgres + Realtime + RPC), vanilla JS overlay widget on Salesforce pages, Node 18+, npm.
 
 ---
 
 ## Architecture & Key Decisions
 
-Do not change these. They are established and correct — the work here is aligning to them, not questioning them.
+**These decisions are locked. Do NOT relitigate them during execution.**
 
-- **Token source of truth: `src/index.css`.** All color, font, motion, and spacing tokens live there. Components read via `var(--token-name)`.
-- **Font is Segoe UI.** No `Inter`, no Google Fonts, no `@import`. Set once in `:root` via `--font-family`, inherit everywhere.
-- **Theme switching is CSS-driven, not JS-driven.** The `[data-theme="light"]` block in `index.css` already handles dark↔light swaps. Components should NOT branch on `theme === 'light'` in their style objects.
-- **Inline styles remain.** Meridian's house style is inline-styled React components (pattern established in `Dashboard.jsx`, `Navbar.jsx`). Do not introduce CSS modules, Tailwind, styled-components, or a new CSS file. Just route inline-style values through `var(...)` references.
-- **The `const C` pattern stays** — but its values become `var(...)` references, not hex literals. This is a surgical transformation, not a refactor.
-- **No new tokens unless listed in Task 0.** If a component needs a color that has no token, check the candidate list in Task 0 first, then add to `index.css` — never reintroduce hex at the call site.
+- **Bookmarklet stays one bookmarklet.** The existing bookmarklet becomes context-aware: record page → existing single-case widget flow (unchanged); list view with ≥1 checked row → mass reclass flow. No second bookmarklet, no new onboarding step.
+- **DOM scraping on the SF list view.** Case numbers and SF Case IDs are read from the native SLDS datatable DOM. Primary selector: `tr[data-row-key-value]` for the SF Case ID and `th[data-label="Case Number"] span[title]` for the case number. Fallback selector: any `<span title>` in the row whose value matches `/^\d{8,}$/`. The primary signal for "is this row selected" is the native `<input type="checkbox">` inside each row — use `.checked`, NOT the `aria-selected` attribute on the `<tr>` (it lies).
+- **Shadow DOM walk reuses the existing `dS()`-style recursive traversal pattern** from the current bookmarklet. The `<lightning-datatable>` renders rows inside a shadow root, so a non-recursive `document.querySelectorAll` will not find them.
+- **Confirmation UI lives in the existing PiP window**, not on the SF page. The bookmarklet inserts a `pending_triggers` row with `action='mass_reclass'`; the PiP window's existing `usePendingTriggers` hook receives the Realtime event and opens a new `MassReclassModal` component. Reuses all existing trigger plumbing.
+- **Batch writes via a Supabase RPC**, not a client loop. The RPC `bulk_reclassify_cases(p_case_refs jsonb)` accepts an array of `{ case_number, sf_case_id }` objects and writes N `ct_cases` rows + N `case_events` rows in a single transaction. Computes `reopen_count` server-side via a subquery per case_number.
+- **Bulk rows carry `source = 'bulk'`** — a NEW enum value added to the `ct_cases.source` CHECK constraint in this migration. `duration_s` is `NULL` on bulk rows (they have no session). `started_at` = `ended_at` = `now()`.
+- **Undo window of 10 seconds** after the batch completes. The confirmation modal's success state shows a countdown toast with an Undo button. Undo deletes the exact rows written (tracked by a `batch_id` UUID stamped on both `ct_cases` and `case_events`).
+- **No widget changes on SF record pages.** The existing single-case widget file `public/ct-widget.js` is NOT modified in this PRD. Only `public/meridian-trigger.js` is modified, to add the list-view branch.
+
+---
+
+## File Structure
+
+**New files:**
+```
+supabase/migrations/020_mass_reclass.sql   ← migration: source enum + RPC + batch_id columns
+src/components/MassReclassModal.jsx        ← PiP-rendered confirmation + undo UI
+src/hooks/useMassReclass.js                ← handler for action='mass_reclass' triggers
+```
+
+**Modified files:**
+```
+public/meridian-trigger.js                 ← add list-view detection + mass-reclass branch
+src/hooks/usePendingTriggers.js            ← route action='mass_reclass' to useMassReclass
+src/mpl/MplApp.jsx                         ← wire MassReclassModal into the PiP render tree
+```
+
+**NOT modified (protect these):**
+```
+public/ct-widget.js                        ← single-case widget, untouched
+public/meridian-relay.html                 ← relay, untouched
+src/ct/CtApp.jsx                           ← CT dashboard view, untouched
+supabase/migrations/001-019                ← existing migrations, never edit
+```
 
 ---
 
 ## Environment & Setup
 
-Ralph should assume:
-- Working directory: `/Users/davis/Meridian 1.0` (or wherever the repo is cloned).
-- `npm install` already done.
-- `.env.local` populated with Supabase keys.
-- Primary test command: `npx vite build`
-- Secondary check: `grep` assertions listed in each task.
-
----
-
-## Pre-existing Context
-
-Things Ralph should know before starting:
-
-- The app ships a dark theme by default. A `ThemeContext` exists at `src/context/ThemeContext.jsx` and toggles a `data-theme="light"` attribute on the root. Most CSS variables already have dark/light variants in `index.css`.
-- The canonical brand colors are **Hapag Blue `#003087`** (`--color-mbtn`) and **Hapag Orange `#E8540A`** (`--color-mmark`).
-- Hapag Orange should be **reserved for brand moments** — the M° mark, primary CTAs, the focus ring — not every active tab state.
-- There is a migration script pattern in the repo (`scripts/sync-ct1-*`); don't touch it. It's CT 1.0 bridge code.
-- Two other audit findings relate to visual polish (stat card redesign, Insights hierarchy rebalance) — those are **out of scope** for this PRD. Just do the token consolidation and bug fixes.
+- Supabase project ref: `wluynppocsoqjdbmwass` (Meridian, live).
+- `ct_cases.source` CHECK constraint currently allows `'pip'` and `'manual'`. Migration 020 adds `'bulk'`.
+- `pending_triggers` is already in the `supabase_realtime` publication. No publication changes needed.
+- `ct_cases.reopen_count` column already exists (migration 002b era). The RPC stamps it per-row based on count of prior `resolution='resolved'` or `resolution='reclassified'` rows for the same `case_number`.
+- `case_events` already allows `type='reclassified'` (migration 008 expanded the enum).
+- The relay iframe at `meridian-relay.html` already exposes `SUPABASE_INSERT_TRIGGER` for inserts to `pending_triggers`. This is the mechanism the bookmarklet uses. No relay changes needed.
+- Anon-key RLS on `pending_triggers` allows inserts with `WITH CHECK (true)` (established in prior tracks). The bookmarklet continues to use the anon key via the relay.
+- The PiP window is implemented in `src/mpl/MplApp.jsx` (despite the filename, this is the unified PiP surface post-refactor). New modals render inside its component tree.
 
 ---
 
 ## Tasks
 
-### Phase 0 — Foundation: fix the token system itself
+### Phase 1: Database Migration
 
-- [x] **Task 0.1: Extend `src/index.css` with missing tokens**
+- [x] **Task 1: Create migration 020_mass_reclass.sql**
+  - Create `supabase/migrations/020_mass_reclass.sql` with the following SQL, all in one transaction:
+  - **Add `'bulk'` to the source CHECK constraint on `ct_cases`:**
+    ```sql
+    ALTER TABLE public.ct_cases DROP CONSTRAINT IF EXISTS ct_cases_source_check;
+    ALTER TABLE public.ct_cases ADD CONSTRAINT ct_cases_source_check
+      CHECK (source IN ('pip', 'manual', 'bulk'));
+    ```
+  - **Add `batch_id` columns** to `ct_cases` and `case_events` for undo tracking:
+    ```sql
+    ALTER TABLE public.ct_cases ADD COLUMN IF NOT EXISTS batch_id uuid;
+    ALTER TABLE public.case_events ADD COLUMN IF NOT EXISTS batch_id uuid;
+    CREATE INDEX IF NOT EXISTS idx_ct_cases_batch_id ON public.ct_cases(batch_id) WHERE batch_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_case_events_batch_id ON public.case_events(batch_id) WHERE batch_id IS NOT NULL;
+    ```
+  - **Create the RPC `bulk_reclassify_cases`:**
+    ```sql
+    CREATE OR REPLACE FUNCTION public.bulk_reclassify_cases(p_case_refs jsonb)
+    RETURNS TABLE (batch_id uuid, case_count int)
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path = public
+    AS $$
+    DECLARE
+      v_user_id uuid := auth.uid();
+      v_batch_id uuid := gen_random_uuid();
+      v_now timestamptz := now();
+      v_today date := (now() AT TIME ZONE 'America/New_York')::date;
+      v_ref jsonb;
+      v_case_number text;
+      v_sf_case_id text;
+      v_reopen_count int;
+      v_new_case_id uuid;
+      v_inserted int := 0;
+    BEGIN
+      IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'bulk_reclassify_cases: not authenticated';
+      END IF;
+      IF jsonb_typeof(p_case_refs) <> 'array' THEN
+        RAISE EXCEPTION 'bulk_reclassify_cases: p_case_refs must be a JSON array';
+      END IF;
 
-  The existing tokens are good but incomplete. Add the handful we need to route every `const C` through vars without introducing new hex.
+      FOR v_ref IN SELECT * FROM jsonb_array_elements(p_case_refs)
+      LOOP
+        v_case_number := v_ref->>'case_number';
+        v_sf_case_id  := v_ref->>'sf_case_id';
+        CONTINUE WHEN v_case_number IS NULL OR v_case_number = '';
 
-  Edit `src/index.css`. In the `:root` block, add (keep existing tokens untouched):
+        SELECT COUNT(*) INTO v_reopen_count
+        FROM public.ct_cases
+        WHERE case_number = v_case_number
+          AND resolution IN ('resolved', 'reclassified');
 
-  ```css
-  :root {
-    /* … existing tokens … */
+        INSERT INTO public.ct_cases (
+          user_id, case_number, sf_case_id,
+          started_at, ended_at, duration_s,
+          status, resolution, is_rfc, source,
+          entry_date, reopen_count, batch_id
+        ) VALUES (
+          v_user_id, v_case_number, v_sf_case_id,
+          v_now, v_now, NULL,
+          'closed', 'reclassified', false, 'bulk',
+          v_today, v_reopen_count, v_batch_id
+        )
+        RETURNING id INTO v_new_case_id;
 
-    /* Font — canonical, Segoe UI commit */
-    --font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+        INSERT INTO public.case_events (
+          session_id, user_id, type, excluded, rfc, sf_case_id, batch_id
+        ) VALUES (
+          v_new_case_id, v_user_id, 'reclassified', false, false, v_sf_case_id, v_batch_id
+        );
 
-    /* Navbar — specific because it's glassy */
-    --bg-navbar: rgba(26, 26, 46, 0.8);
+        v_inserted := v_inserted + 1;
+      END LOOP;
 
-    /* Hover surface (dark mode default) */
-    --hover-surface: rgba(255, 255, 255, 0.06);
-    --hover-surface-soft: rgba(255, 255, 255, 0.03);
+      RETURN QUERY SELECT v_batch_id, v_inserted;
+    END;
+    $$;
 
-    /* Active-tab fill (navy by default — NOT orange) */
-    --tab-active-bg: var(--color-mbtn);
-    --tab-active-fg: #ffffff;
+    GRANT EXECUTE ON FUNCTION public.bulk_reclassify_cases(jsonb) TO authenticated;
+    ```
+  - **Create the RPC `undo_mass_reclass_batch`:**
+    ```sql
+    CREATE OR REPLACE FUNCTION public.undo_mass_reclass_batch(p_batch_id uuid)
+    RETURNS int
+    LANGUAGE plpgsql
+    SECURITY DEFINER
+    SET search_path = public
+    AS $$
+    DECLARE
+      v_user_id uuid := auth.uid();
+      v_deleted int;
+    BEGIN
+      IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'undo_mass_reclass_batch: not authenticated';
+      END IF;
 
-    /* Motion tokens */
-    --motion-fast: 150ms cubic-bezier(0.3, 0, 0.2, 1);
-    --motion-slow: 240ms cubic-bezier(0.3, 0, 0.2, 1);
+      DELETE FROM public.case_events
+      WHERE batch_id = p_batch_id AND user_id = v_user_id;
 
-    /* Focus ring */
-    --focus-ring: 2px solid var(--color-mmark);
-    --focus-offset: 2px;
-  }
+      DELETE FROM public.ct_cases
+      WHERE batch_id = p_batch_id AND user_id = v_user_id;
+      GET DIAGNOSTICS v_deleted = ROW_COUNT;
 
-  [data-theme="light"] {
-    /* … existing overrides … */
-    --bg-navbar: rgba(255, 255, 255, 0.85);
-    --hover-surface: rgba(15, 23, 42, 0.06);
-    --hover-surface-soft: rgba(15, 23, 42, 0.03);
-  }
-  ```
+      RETURN v_deleted;
+    END;
+    $$;
 
-  Add a **global focus-visible rule** to the same file, below the `body` block:
+    GRANT EXECUTE ON FUNCTION public.undo_mass_reclass_batch(uuid) TO authenticated;
+    ```
+  - Test: `node -e "require('fs').readFileSync('supabase/migrations/020_mass_reclass.sql', 'utf8').length > 0 && console.log('ok')"` prints `ok`.
+  - Note: Ralph does NOT apply this migration to the live database. Davis applies it manually via Supabase SQL Editor after reviewing the commit. Do not `supabase db push` or similar.
 
-  ```css
-  :focus-visible {
-    outline: var(--focus-ring);
-    outline-offset: var(--focus-offset);
-    border-radius: 4px;
-  }
-  button:focus-visible,
-  [role="button"]:focus-visible,
-  a:focus-visible,
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
-    outline: var(--focus-ring);
-    outline-offset: var(--focus-offset);
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
+### Phase 2: Bookmarklet Context Detection
+
+- [ ] **Task 2: Add list-view detection to `meridian-trigger.js`**
+  - Modify `public/meridian-trigger.js`. After the existing `isSalesforce` check and BEFORE the relay FETCH_CODE postMessage for `ct-widget.js`, add a list-view detection branch.
+  - Detect list view using BOTH signals (either one is sufficient):
+    - URL match: `window.location.pathname.includes('/lightning/o/Case/list')`
+    - DOM presence: a `tr` element with a `data-row-key-value` attribute starting with `500` (SF Case Id prefix), found via the recursive shadow-DOM walker added in Task 3.
+  - If list view is detected, call a new function `handleListViewContext(relay, userId, showToast)` (implemented in Task 3). Do NOT fall through to the single-case widget flow in this case.
+  - If NOT list view, keep the existing flow: ask relay to FETCH_CODE `ct-widget.js` exactly as today.
+  - Test: `node -c public/meridian-trigger.js` exits 0 (syntax check).
+  - Test: `grep -c "handleListViewContext" public/meridian-trigger.js` prints `>= 2` (declaration + invocation).
+
+- [ ] **Task 3: Implement list-view DOM scrape in `meridian-trigger.js`**
+  - Add a recursive shadow-DOM walker `function walkShadow(root, visitor)` at the top of the IIFE. It calls `visitor(node)` for every descendant in both light DOM and shadow DOM, recursing into any `node.shadowRoot` it finds. Mirrors the `dS()` pattern from the original bookmarklet.
+  - Add `function collectSelectedCases()`:
+    - Walks the document via `walkShadow`, collecting every `tr` element that has a `data-row-key-value` attribute starting with `500`.
+    - For each such `tr`:
+      - Find its checkbox: `tr.querySelector('input[type="checkbox"]')`. If missing or `!checkbox.checked`, skip this row.
+      - Extract `sf_case_id` from `tr.getAttribute('data-row-key-value')`.
+      - Extract `case_number` via primary selector first: `tr.querySelector('th[data-label="Case Number"] span[title]')?.getAttribute('title')`. If missing, fallback: scan all `<span title>` elements in the row and return the first whose `title` matches `/^\d{8,}$/`.
+      - If `case_number` is truthy, push `{ case_number, sf_case_id }` onto the result array.
+    - Returns the array. May be empty.
+  - Add `function handleListViewContext(relay, userId, showToast)`:
+    - Calls `collectSelectedCases()`.
+    - If empty: `showToast('Meridian: Select cases in the list, then click again.', 'info')` and returns.
+    - If non-empty: builds a `pending_triggers` payload with:
+      ```js
+      {
+        user_id: userId,
+        type: 'MERIDIAN_MASS_RECLASS',      // matches existing 'type' column naming
+        action: 'mass_reclass',              // for future-proofing / symmetry
+        page_url: window.location.href,
+        // Store the cases array as JSON text in case_number for now to reuse existing schema
+        // (see Task 4 decision note)
+        case_number: JSON.stringify(cases)
+      }
+      ```
+      — and sends it to the relay via `relay.postMessage({ relay: 'MERIDIAN_TRIGGER', id, action: 'SUPABASE_INSERT_TRIGGER', payload })`.
+    - On success response: `showToast('Meridian: Opened with ' + cases.length + ' cases', 'success')`.
+    - On failure response: `showToast('Meridian: Failed — ' + err, 'error')`.
+  - Test: `node -c public/meridian-trigger.js` exits 0.
+  - Test: `grep -c "walkShadow\|collectSelectedCases\|handleListViewContext" public/meridian-trigger.js` prints `>= 6`.
+  - Decision note to preserve in progress.txt: We reuse the existing `pending_triggers` schema (no migration for a new `payload` column) by stuffing the JSON cases array into `case_number`. The PiP-side handler parses it back out. This keeps the migration surface minimal. If a future trigger type needs richer payloads, a proper `payload jsonb` column is a separate track.
+
+### Phase 3: Pending-Trigger Routing
+
+- [ ] **Task 4: Extend `usePendingTriggers.js` to route mass_reclass**
+  - Modify `src/hooks/usePendingTriggers.js`. The hook currently subscribes to inserts on `pending_triggers` and dispatches based on the `type` field (existing types: `MERIDIAN_CASE_START`, etc.).
+  - Add a new case for `type === 'MERIDIAN_MASS_RECLASS'`. When matched:
+    - Parse `row.case_number` as JSON into an array `cases`.
+    - If parsing fails or array is empty, log a warning and delete the trigger row.
+    - If valid, call a new handler `onMassReclass(cases, row.id)` that must be provided to the hook via its options/handlers object (same pattern as existing `onCaseStart`).
+  - Update the hook's TypeScript/JSDoc signature (if applicable) to include `onMassReclass` as an optional handler.
+  - Keep all existing type routing behavior unchanged.
+  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
+  - Test: `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` prints `>= 3`.
+
+- [ ] **Task 5: Create `useMassReclass.js` hook**
+  - Create `src/hooks/useMassReclass.js` exporting a default hook that manages mass-reclass modal state.
+  - State shape:
+    ```js
+    {
+      modalState: 'idle' | 'confirming' | 'submitting' | 'success' | 'error',
+      cases: [{case_number, sf_case_id}],    // pending list
+      batchId: null | string,                 // set on success
+      error: null | string,
+      triggerRowId: null | string,            // pending_triggers.id to delete on close
     }
-  }
-  body {
-    font-variant-numeric: tabular-nums;
-  }
-  ```
+    ```
+  - Exposed actions:
+    - `openModal(cases, triggerRowId)` — sets state to `confirming` with the given cases.
+    - `confirm()` — sets state to `submitting`, calls `supabase.rpc('bulk_reclassify_cases', { p_case_refs: cases })`. On success: sets `batchId` from the returned row, state → `success`. On error: state → `error`, populate `error` message.
+    - `undo()` — calls `supabase.rpc('undo_mass_reclass_batch', { p_batch_id: batchId })`. Resets state to `idle` on success.
+    - `close()` — deletes the `pending_triggers` row (`supabase.from('pending_triggers').delete().eq('id', triggerRowId)`) and resets state to `idle`.
+  - Uses the existing Supabase client import pattern from `src/lib/supabase.js` (or wherever the project already imports from — match existing hooks).
+  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
+  - Test: `grep -c "bulk_reclassify_cases\|undo_mass_reclass_batch" src/hooks/useMassReclass.js` prints `>= 2`.
 
-  **Acceptance:**
-  - `grep -n "motion-fast\|focus-ring\|hover-surface\|tab-active-bg\|bg-navbar" src/index.css` returns ≥ 7 matches.
-  - `grep -n "prefers-reduced-motion\|focus-visible\|tabular-nums" src/index.css` returns ≥ 3 matches.
-  - `npx vite build` passes.
+### Phase 4: UI
 
----
+- [ ] **Task 6: Create `MassReclassModal.jsx`**
+  - Create `src/components/MassReclassModal.jsx`. Takes props: `{ state, cases, batchId, error, onConfirm, onUndo, onClose }`.
+  - Follow the existing design token system — use CSS variables (`--bg-card`, `--text-pri`, `--text-sec`, `--border`, `--color-accent`, etc.) rather than hardcoded hex. Reference the existing `RFCPrompt` component for styling patterns.
+  - Renders as a modal overlay centered in the PiP window when `state !== 'idle'`. Four visual states:
+    - **confirming:** Header "Reclassify selected cases?" · body lists the case numbers (scrollable if >10, capped max-height ~240px) · footer with two buttons: `Cancel` (calls `onClose`) and `Reclassify N cases` (primary, calls `onConfirm`, where N is `cases.length`).
+    - **submitting:** Header "Working…" · body shows a spinner and "Reclassifying N cases" · no buttons.
+    - **success:** Header "Reclassified N cases" · body "Undo within 10 seconds" with a live countdown (10 → 0) · footer with `Undo` button (calls `onUndo`) and a subtle `Dismiss` link (calls `onClose`). After the countdown hits 0, auto-calls `onClose`.
+    - **error:** Header "Something went wrong" · body shows the error message · footer with a `Close` button (calls `onClose`) and a `Retry` button (calls `onConfirm` again).
+  - Modal width ~ 360px on the PiP viewport. Respect the existing PiP width (widget sizing constants in `src/lib/constants.js` if present).
+  - Countdown implementation: `useEffect` with `setInterval(1000)` that decrements a local `secondsLeft` state, cleared on unmount or state change.
+  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
+  - Test: `grep -c "cases.length\|onConfirm\|onUndo" src/components/MassReclassModal.jsx` prints `>= 3`.
 
-### Phase 1 — Critical bug fixes
+- [ ] **Task 7: Wire `useMassReclass` + `MassReclassModal` into `MplApp.jsx`**
+  - Modify `src/mpl/MplApp.jsx`. Import `useMassReclass` and `MassReclassModal`.
+  - Inside the `MplApp` component:
+    - Call `const massReclass = useMassReclass()` near other hook calls.
+    - Pass `onMassReclass: (cases, triggerRowId) => massReclass.openModal(cases, triggerRowId)` into the existing `usePendingTriggers` options object alongside `onCaseStart` etc.
+    - Render `<MassReclassModal {...massReclass.modalProps} />` (or equivalent — if the hook exposes individual props, spread them explicitly) inside the main PiP render tree, AFTER the existing child content but BEFORE closing the root wrapper, so it overlays everything else.
+  - Do NOT modify any existing trigger handlers, timer logic, or MPL state.
+  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
+  - Test: `grep -c "MassReclassModal\|useMassReclass\|onMassReclass" src/mpl/MplApp.jsx` prints `>= 3`.
 
-- [x] **Task 1.1: Fix the Insights token typo (CRITICAL)**
+### Phase 5: Regression Guard
 
-  The entire Insights module references `var(--text-primary)` and `var(--text-secondary)`, which do **not exist**. The canonical tokens are `--text-pri` and `--text-sec`. This means every Insights panel is currently rendering with default browser colors in some contexts.
+- [ ] **Task 8: Verify no changes to protected files**
+  - Run these checks and fail the task if any produce output:
+    - `git diff --stat HEAD~7..HEAD -- public/ct-widget.js` — must be empty (widget file untouched).
+    - `git diff --stat HEAD~7..HEAD -- public/meridian-relay.html` — must be empty (relay untouched).
+    - `git diff --stat HEAD~7..HEAD -- src/ct/CtApp.jsx` — must be empty (CT dashboard untouched).
+  - If any of these files show changes, halt and log the violation to progress.txt. Do NOT attempt to revert — let Davis review.
+  - Test: Write the check commands into `scripts/check-mass-reclass-scope.sh` and run it. Exit 0 means all protected files are clean.
 
-  In each of the following files, replace:
-  - `var(--text-primary)` → `var(--text-pri)`
-  - `var(--text-secondary)` → `var(--text-sec)`
-
-  **Files:**
-  - `src/components/insights/TeamCaseVolumePanel.jsx`
-  - `src/components/insights/AgentHandleTimePanel.jsx`
-  - `src/components/insights/AgentRow.jsx`
-  - `src/components/insights/TrendComparisonPanel.jsx`
-  - `src/components/insights/OverviewTab.jsx`
-  - Any other file under `src/components/insights/` that matches.
-
-  **Acceptance:**
-  - `grep -rn "var(--text-primary)\|var(--text-secondary)" src/` returns **zero matches**.
-  - `grep -rn "var(--text-pri)\|var(--text-sec)" src/components/insights/` returns ≥ 10 matches.
-  - `npx vite build` passes.
-
-- [x] **Task 1.2: Remove the `Inter` font reference**
-
-  `src/index.css` declares `--font-family: 'Inter', system-ui, sans-serif` but Inter is never loaded. Meanwhile every component hardcodes Segoe UI inline. Task 0.1 already updated the token to Segoe UI — now strip the inline restatements so components inherit.
-
-  In every file under `src/components/`, `src/mpl/`, `src/ct/`, `src/DashboardApp.jsx`:
-  - Find any inline style that sets `fontFamily: '"Segoe UI", …'` or `font-family: "Segoe UI"…` or `fontFamily: 'Inter …'`.
-  - **Delete that line entirely.** Don't replace it with `var(--font-family)` — inheritance handles it. The root `body` rule in `index.css` already applies `--font-family`.
-
-  One exception: the `widget-mode` body CSS rule in `index.css` may need its own explicit `font-family: var(--font-family);` if PiP windows don't inherit. Check and add if needed.
-
-  **Acceptance:**
-  - `grep -rn "fontFamily.*Segoe\|fontFamily.*Inter\|font-family:.*Segoe" src/` returns **zero matches** (or only in `src/index.css`).
-  - `npx vite build` passes.
-  - Font is visually unchanged (Segoe UI on Windows, system fallback on Mac).
-
----
-
-### Phase 2 — Token migration: one file per task
-
-For each file below, the transformation is the same three-step pattern:
-
-1. Locate the local `const C = { … }` (or equivalent hardcoded color object).
-2. Replace each hex/rgba value with the corresponding `var(--token)` reference per the **Token Translation Table** at the bottom of this PRD.
-3. If a value has no token equivalent, **check the list of tokens added in Task 0.1 first**, then promote to `index.css` rather than reintroducing a hex.
-
-After each file, run `npx vite build` — it must pass before moving on.
-
-- [x] **Task 2.1: `src/components/Navbar.jsx`**
-  - Replace the `const C = { bg: 'rgba(26, 26, 46, 0.8)', … }` with token refs (`bg: 'var(--bg-navbar)'`, etc.).
-  - Replace inline `transition: 'all 150ms ease'` with `transition: 'all var(--motion-fast)'`.
-  - **Acceptance:** `grep -n "#003087\|#E8540A\|rgba(26" src/components/Navbar.jsx` = 0. Build passes.
-
-- [x] **Task 2.2: `src/components/SignIn.jsx` and `src/components/auth/SignIn.jsx`**
-  - Both files have local `const C`. Migrate both.
-  - **Acceptance:** `grep -n "#003087\|#E8540A\|#0f0f1e\|#1a1a2e" src/components/SignIn.jsx src/components/auth/SignIn.jsx` = 0. Build passes.
-
-- [x] **Task 2.3: `src/components/auth/SignUp.jsx`**
-  - **Acceptance:** no hex in file. Build passes.
-
-- [x] **Task 2.4: Onboarding trio — `Step1Profile.jsx`, `Step2Team.jsx`, `Step3Bookmarklet.jsx`**
-  - All three are under `src/components/onboarding/` and each has its own `const C`.
-  - Migrate all three in this task.
-  - **Acceptance:** `grep -rn "#003087\|#E8540A\|#0f0f1e\|#1a1a2e\|rgba(255,255,255,0.12)" src/components/onboarding/` = 0. Build passes.
-
-- [x] **Task 2.5: `src/components/Dashboard.jsx`**
-  - The `const C` uses var-prefixed values already. The issue is the inline `theme === 'light' ? '…' : '…'` ternary in `tabStyle()`. Replace with a single `var(--hover-surface)` reference — the CSS var already branches for light mode.
-  - Also update active-tab background from `C.mMark` (orange) to `var(--tab-active-bg)` (navy) — orange should be reserved for brand moments, not active tabs. (See audit finding F-05.)
-  - **Acceptance:** `grep -n "theme === 'light'" src/components/Dashboard.jsx` = 0. Build passes.
-
-- [x] **Task 2.6: `src/components/InsightsTab.jsx`**
-  - Same treatment as Dashboard: replace `theme === 'light'` ternary with `var(--hover-surface)`.
-  - Replace active-tab orange with `var(--tab-active-bg)`.
-  - **Acceptance:** `grep -n "theme === 'light'" src/components/InsightsTab.jsx` = 0. Build passes.
-
-- [x] **Task 2.7: `src/components/ActivityLog.jsx`**
-  - Has a `const C` around line 739. Migrate it to token refs.
-  - The `TYPE_STYLE` object at the top also has hardcoded hexes but those ARE semantic status colors — leave them as-is for now (they're a documented exception and consistent with the stat card colors in `Dashboard.jsx`).
-  - **DO NOT TOUCH** any of the SF Direct Link wiring that was added in the prior PRD: the `import CaseLink from './CaseLink.jsx'`, the `<CaseLink sfCaseId={...} />` calls (there are 2 — one in the row render, one in the edit modal header), the `className="case-link-host"` on the EntryRow wrapper, or the `width: 116` on the case# slot. These are functional, not stylistic.
-  - **DO NOT TOUCH** any `entry.sf_case_id` references — that's data flow, not styling.
-  - **Acceptance:**
-    - `grep -n "const C = {" src/components/ActivityLog.jsx` = 0
-    - `grep -c "CaseLink" src/components/ActivityLog.jsx` is unchanged from before Ralph's edit (run it both before and after; values must match). Capture the before-count in `progress.txt` before editing.
-    - Build passes.
-
-- [x] **Task 2.8: `src/components/SettingsPage.jsx`**
-  - Migrate the `const C` palette.
-  - **Acceptance:** no hex in `const C` block. Build passes.
-
-- [x] **Task 2.9: Admin surface — `AdminTab.jsx` and everything under `src/components/admin/`**
-  - `AdminTab.jsx` has a top-level `const C`. Every file under `src/components/admin/` uses inline styles.
-  - Focus on the top-level `const C` definitions only — migrate those to token refs.
-  - **Acceptance:** `grep -rn "const C = {" src/components/admin/ src/components/AdminTab.jsx` = 0. Build passes.
-
-- [x] **Task 2.10: Feedback surface — everything under `src/components/feedback/`**
-  - `SuggestionRow.jsx`, `SuggestionForm.jsx`, `AttachmentUploader.jsx`, `SuggestionDetailPanel.jsx`, `CategoryPromotionModal.jsx` — all have local `const C`.
-  - `FeedbackTab.jsx` also has one.
-  - **Acceptance:** `grep -rn "const C = {" src/components/feedback/ src/components/FeedbackTab.jsx` = 0. Build passes.
-
-- [x] **Task 2.11: Modal components — `BookmarkletModal.jsx`**
-  - Migrate the `const C`.
-  - **Acceptance:** no hex in `const C`. Build passes.
-
-- [x] **Task 2.12: Chart — `DashboardChart.jsx`**
-  - Has a `const C`. Note: chart data colors (the green/red/blue/etc. for each metric) should stay as-is — they're semantic metric colors, not theme surface colors. Only migrate background/border/text tokens to vars.
-  - **Acceptance:** background/border/text values use vars. Metric colors unchanged. Build passes.
-
-- [x] **Task 2.13: `DashboardTable.jsx` and `InsightsEmptyState.jsx`**
-  - Two smaller files with `const C`. Migrate both in this task.
-  - **Acceptance:** no local hex in `const C` blocks. Build passes.
-
-- [x] **Task 2.14: `src/components/CaseLink.jsx` — review only, no migration expected**
-  - This file was added in the SF Direct Link PRD. It already uses CSS vars (`var(--text-dim)`, `var(--color-mmark)`, `var(--hover-surface)`, `var(--motion-fast)`) correctly.
-  - Task: verify that all color/motion values in `CaseLink.jsx` reference tokens, not hex literals. If any do, migrate them. Otherwise mark complete as a no-op and note in `progress.txt`.
-  - **DO NOT** change the `onClick={(e) => e.stopPropagation()}`, the `target`/`rel` attributes, the `caseUrl()` import, or the `showOnHover` prop logic — all functional.
-  - **Acceptance:** `grep -nE "#[0-9a-fA-F]{3,6}" src/components/CaseLink.jsx` returns 0 matches. Build passes.
-
-- [x] **Task 2.15: `src/lib/salesforce.js` — review only, hands off**
-  - This file owns the SF URL construction. It contains only logic, no styling.
-  - Verify no changes are needed. Mark complete.
-  - **Acceptance:** `git diff --name-only src/lib/salesforce.js` shows no modifications after Ralph's run.
-
----
-
-### Phase 3 — Final sweep and verification
-
-- [x] **Task 3.1: Remove the `backdropFilter: blur(12px)` no-op from `DashboardStatCard.jsx`**
-
-  The stat card has `backdropFilter: 'blur(12px)'` on an opaque solid-color background. It does nothing and adds GPU cost.
-
-  In `src/components/DashboardStatCard.jsx`, delete these two lines:
-  ```js
-  backdropFilter: 'blur(12px)',
-  WebkitBackdropFilter: 'blur(12px)',
-  ```
-
-  Also update the `transition` value from its overshoot cubic-bezier curve to the standard motion token — the stat card redesign is out of scope, but the motion consistency win is free:
-  ```js
-  transition: 'all var(--motion-fast)',
-  ```
-
-  **Acceptance:**
-  - `grep -n "backdropFilter" src/components/DashboardStatCard.jsx` = 0.
-  - Build passes.
-
-- [x] **Task 3.2: Fix `prefers-reduced-motion` on the `fade-in-up` animation**
-
-  The `fade-in-up` keyframe animation is inlined in `Dashboard.jsx`. The global rule added in Task 0.1 should handle it, but verify.
-
-  Run the app (or build + inspect output) and confirm no `animation:` shorthand bypasses the global rule by using `animation-duration` directly (the global override works on the shorthand).
-
-  **Acceptance:** visual check in DevTools with "emulate prefers-reduced-motion: reduce" — animations do not fire.
-
-- [x] **Task 3.3: Grep assertion pass — final check**
-
-  Run this block. Every line must return zero unless noted.
-
-  ```bash
-  # No local C palettes in components
-  grep -rln "const C = {" src/components/ | wc -l      # expect 0
-
-  # No broken token references
-  grep -rn "var(--text-primary)\|var(--text-secondary)" src/  # expect empty
-
-  # No inline Inter/Segoe font family (should inherit)
-  grep -rn "fontFamily.*Segoe\|fontFamily.*Inter" src/components/  # expect empty
-
-  # No theme === 'light' branching in style objects
-  grep -rn "theme === 'light' ?" src/components/  # expect empty or very few (with justification)
-
-  # No hardcoded brand hex in components (admin/feedback/dashboard)
-  grep -rn "'#003087'\|'#E8540A'\|'#0f0f1e'\|'#1a1a2e'" src/components/  # expect 0
-
-  # Build
-  npx vite build
-  ```
-
-  If any grep returns unexpected matches, open the file and migrate. If build fails, debug and fix.
-
-  **Acceptance:** all five grep checks produce expected output. Build passes. Commit with message `token consolidation: fix insights vars, route all const C through tokens, add focus ring + motion tokens`.
-
----
-
-## Out of Scope
-
-These are documented design issues but **not** part of this PRD. Do not touch them:
-
-- ❌ Redesigning `DashboardStatCard` visual treatment (separate track — happens after this lands).
-- ❌ Rebuilding the `InsightsTab` hierarchy / adding new Insights panels.
-- ❌ Any changes to `TYPE_STYLE` objects in `ActivityLog.jsx` or metric colors in `Dashboard.jsx` — those are semantic and stay as explicit hex until a separate "semantic color palette" track.
-- ❌ Any database, schema, or API changes.
-- ❌ Adding new features, new tabs, new routes.
-- ❌ Refactoring inline styles to CSS modules or Tailwind — the house style stays inline.
-- ❌ Touching the PiP widget code (`src/ct/`, `public/ct-widget.js`, `public/meridian-trigger.js`, `public/meridian-relay.html`) — those have their own constraints.
-- ❌ Onboarding text copy or flow changes — token migration only.
-- ❌ **Anything related to SF Direct Link functionality.** The prior PRD shipped `src/lib/salesforce.js`, `src/components/CaseLink.jsx`, `<CaseLink />` usages in `ActivityLog.jsx`, `className="case-link-host"` on activity rows, `sf_case_id` data flow in `useActivityData.js`, and the `.case-link-host / .case-link-icon` CSS rules in `index.css`. ALL of this is functional, not stylistic. Do not remove, refactor, or "clean up" any of it. Treat it as load-bearing code.
-
----
-
-## Token Translation Table
-
-Use this as the lookup when migrating any `const C` block. Any value not in this table and not already a token should be resolved with judgement — prefer the closest existing token, and only if none fits reasonably, promote to `index.css`.
-
-| Old hardcoded value | Token to use |
-|---|---|
-| `'#003087'` | `'var(--color-mbtn)'` |
-| `'#E8540A'` | `'var(--color-mmark)'` |
-| `'#0f0f1e'` | `'var(--bg-deep)'` |
-| `'#1a1a2e'` | `'var(--bg-card)'` |
-| `'rgba(255, 255, 255, 0.95)'` | `'var(--text-pri)'` |
-| `'rgba(255, 255, 255, 0.93)'` | `'var(--text-pri)'` |
-| `'rgba(255, 255, 255, 0.75)'` | `'var(--text-sec)'` |
-| `'rgba(255, 255, 255, 0.55)'` | `'var(--text-dim)'` |
-| `'rgba(255, 255, 255, 0.45)'` | `'var(--text-dim)'` |
-| `'rgba(255, 255, 255, 0.12)'` | `'var(--border)'` |
-| `'rgba(255, 255, 255, 0.08)'` | `'var(--divider)'` |
-| `'rgba(255, 255, 255, 0.06)'` | `'var(--hover-surface)'` |
-| `'rgba(255, 255, 255, 0.04)'` | `'var(--card-bg-subtle)'` |
-| `'rgba(26, 26, 46, 0.8)'` | `'var(--bg-navbar)'` |
-
-**Do not migrate these** (they're semantic status colors, stay as-is):
-- `'#16a34a'` / `'#22c55e'` (Resolved green)
-- `'#dc2626'` / `'#ef4444'` (Reclass red)
-- `'#0284c7'` / `'#0d9488'` (Calls blue/teal)
-- `'#60a5fa'` (Process light blue)
-- `'#f59e0b'` / `'#d97706'` / `'#f87171'` (Awaiting amber)
-- `'#6b7280'` (Not a Case neutral)
-- `'#4ade80'` (Active dot)
+- [ ] **Task 9: Final build + commit summary**
+  - Run `npx vite build 2>&1 | tail -20`. Must complete without errors.
+  - Run `git log --oneline HEAD~8..HEAD`. Log the full commit list to progress.txt under a "Mass Reclass: final commits" heading.
+  - Append to progress.txt a "Davis: manual steps to ship" section listing:
+    1. Review commits on the `feat/mass-reclass` branch.
+    2. Apply `supabase/migrations/020_mass_reclass.sql` via Supabase SQL Editor.
+    3. Verify RPCs exist: `SELECT proname FROM pg_proc WHERE proname IN ('bulk_reclassify_cases', 'undo_mass_reclass_batch');` should return 2 rows.
+    4. Push branch, open PR, merge when ready.
+    5. End-to-end test: check 3 cases in an SF list view, click Meridian bookmarklet, confirm in PiP modal, verify 3 `ct_cases` rows with `source='bulk'` and matching `batch_id`.
 
 ---
 
 ## Testing Strategy
 
-**Per-task:**
-- `npx vite build` — must pass cleanly.
-- `grep` assertion in each task's Acceptance block.
+- **Primary build check:** `npx vite build 2>&1 | tail -10` — run after every task that modifies `src/` or `public/`. No errors permitted.
+- **Syntax check for public JS:** `node -c public/meridian-trigger.js` — run after Tasks 2 and 3. Must exit 0.
+- **Migration validity:** Migration SQL is NOT applied automatically. Ralph only verifies the file exists and is non-empty. Davis applies it manually.
+- **No `npm test` requirement:** This project does not have a Jest/Vitest suite. Do not invent tests; rely on build + grep assertions specified per task.
 
-**Final:**
-- `npx vite build` passes.
-- Open the built app in a browser. Walk these surfaces and confirm nothing looks broken:
-  1. Sign-in page renders with correct dark background.
-  2. Onboarding Step 1 renders correctly.
-  3. Dashboard renders — stat cards, period tabs, activity log, table.
-  4. Navbar renders — M° mark orange, buttons functional.
-  5. Insights tab (as a supervisor) — all four panels render with correct text color.
-  6. Settings page, Admin tab, Feedback tab — all render.
-  7. Toggle light mode — everything still readable and the contrast holds.
-  8. Tab through an interactive surface — orange focus ring is visible on every button/link/input.
+---
+
+## Out of Scope
+
+**These are explicitly NOT part of this PRD. Do NOT build them, even if they seem like natural extensions.**
+
+- Mass *resolve* (only mass reclassify, per scope).
+- Bulk actions triggered from the Meridian dashboard queue screen — that's a separate track.
+- Any change to `public/ct-widget.js` (the single-case widget).
+- Any change to `public/meridian-relay.html`.
+- Changes to the bookmarklet href or onboarding flow — the bookmarklet code itself (the `javascript:...` string in `BookmarkletModal.jsx` etc.) is unchanged. Only the fetched `meridian-trigger.js` gains new behavior.
+- Merge-case handling (separate feature, separate PRD).
+- Concurrent cases / pause-resume (separate feature, separate PRD).
+- Adding Mass Reclass to MPL side — MPL has no reclass concept.
+- Reading any SF list-view column OTHER than checkbox state, `data-row-key-value`, and the Case Number cell.
+- Modifying RLS policies on `ct_cases` or `case_events` (SECURITY DEFINER on the RPCs handles auth).
 
 ---
 
 ## Notes for Ralph
 
-- **The migration is mechanical, not creative.** If you find yourself wanting to "improve" the design, stop and add a note to `progress.txt` for Davis to review. This PRD is strictly about routing values through the token system.
-- **Commit after each task.** Use the per-task commit pattern: `token consolidation: <file>`. This gives Davis easy rollback points.
-- **If `npx vite build` fails, do NOT move on.** Debug the file you just touched. The most likely failure mode is a typo in a `var(--…)` name — check against `index.css`.
-- **Never invent new tokens mid-task.** If Task 2.N needs a token that doesn't exist, stop, go back to Task 0.1, add it to `index.css` with a comment explaining why, then continue. Log it in `progress.txt`.
-- **The metric color exception is real.** `'#16a34a'`, `'#dc2626'`, etc. are semantic — they represent meaning (green=resolved, red=reclass) and must stay stable across themes. Do not "fix" them.
-- **If in doubt, leave the file alone and log it.** Ralph shipping a smaller, correct migration is better than Ralph shipping a larger, buggy one.
-- **`grep -c` on files with single-line minified content counts matching LINES, not occurrences.** If a task specifies `grep -c` acceptance on a file that may be minified (or any file where a pattern might appear multiple times on one line), additionally run `grep -o <pattern> <file> | wc -l` for a true count. Specific risk: `public/ct-widget.js` is NOT in scope for this PRD, but this principle applies generally.
-- **Do not claim a grep check passed without actually running it.** Every Acceptance block in this PRD specifies concrete commands. Run them. Paste the output into `progress.txt`. Ralph's self-reported status is only as good as its last `bash` exit code.
-- **Read before you write.** For each task, actually `view` the file before editing. Don't rely on line numbers in the PRD — the file may have shifted since the PRD was written. Find the block by content, not by line.
+- **The existing shadow-DOM walker pattern is the reference.** Look at `public/ct-widget.js` lines ~100–110 for how shadow roots are attached and how the CT 1.0 bookmarklet style pattern works. You are not adding shadow roots; you are *traversing* SF's shadow roots to find the datatable. Read-only traversal.
+- **The list-view DOM evidence (grabbed from a live SF case list view on April 22, 2026):**
+  - Row element: `<tr ... data-row-key-value="500cz00000yTp3fAAC" aria-selected="false" ...>` — `data-row-key-value` holds the SF Case Id even when `aria-selected` is `"false"`. Do NOT trust `aria-selected`.
+  - Case number cell: `<th data-label="Case Number" ...> ... <span title="137480795">137480795</span> ... </th>` — `data-label` and `title` are the anchors. The visible text and `title` attribute carry the same value; prefer `title` for robustness.
+  - Checkbox: `<input type="checkbox" name="lgt-datatable-8-options-60" ...>` — native HTML input, `.checked` is trustworthy. The checkbox name includes a per-datatable prefix (`lgt-datatable-8-`), so do NOT match by name — match by `input[type="checkbox"]` scoped to the row.
+- **PiP window context.** `MplApp.jsx` is the root component rendered inside the PiP window (via `documentPictureInPicture`). It is NOT the Salesforce page. CSS custom properties are injected into the PiP document's `<head>` at mount — this is already working, you do not need to re-inject for the modal. Just use the tokens.
+- **Supabase client auth.** Inside `MplApp.jsx` and its hooks, the Supabase client is authenticated with the user's session (JWT). `auth.uid()` in the RPC resolves to the real user. This is different from the bookmarklet path, which uses the anon key via the relay. Do not conflate the two auth contexts.
+- **If a task's grep assertion fails**, it means the task's implementation is incomplete — DO NOT loosen the grep. Revisit the code.
+- **If the build fails after a task**, revert that task's changes (git stash / reset), re-read the task, try again. Do NOT commit a broken build.
+- **Commit style:** one commit per task. Commit message format: `mass-reclass: [task N] <short description>`.
+- **Branch:** work on `feat/mass-reclass`. Create it off `main` at start of run if not already there.
 
 ---
+
+## Order of Operations
+
+1. Task 1 (migration file) — can run first; no dependencies.
+2. Tasks 2 and 3 (bookmarklet) — Task 3 depends on Task 2's skeleton.
+3. Tasks 4 and 5 (trigger routing + hook) — Task 5 depends on Task 4 conceptually but files are independent.
+4. Task 6 (modal) — depends on Task 5's hook shape being stable.
+5. Task 7 (wire into MplApp) — depends on Tasks 5 and 6.
+6. Task 8 (regression check) — always last before 9.
+7. Task 9 (summary) — final.

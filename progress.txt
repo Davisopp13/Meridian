@@ -4544,3 +4544,70 @@ Learnings for future iterations:
   - The `animation` shorthand is correctly handled by the longhand `animation-duration` override
   - No DevTools visual check was performed (no browser available in CLI context); verification was code-analysis only
 ---
+
+## Iteration Token-3.3 - Task 3.3: Grep assertion pass — final check
+
+**What was found and fixed:**
+
+- `const C = {}` still present in 9 components despite previous migrations — all values were already var() refs but the indirection object was never removed. Fixed by removing const C block and inlining var() strings directly.
+  - Files: Navbar.jsx, SignIn.jsx, Dashboard.jsx, SettingsPage.jsx, DashboardTable.jsx, InsightsEmptyState.jsx, Step1Profile.jsx, Step2Team.jsx, Step3Bookmarklet.jsx
+
+- `theme === 'light'` ternary in InsightsTabs.jsx — removed useTheme import, replaced ternaries with `var(--tab-active-bg)` / `var(--hover-surface)` / `var(--tab-active-fg)` / `var(--text-dim)`.
+
+- Hardcoded `'#E8540A'` in 11 files → `'var(--color-mmark)'`:
+  - ActivityLog.jsx (TYPE_STYLE Awaiting + MC.orange)
+  - AgentHandleTimePanel.jsx (hover color + totalActivity cell)
+  - AgentFilterStrip.jsx (active chip bg + hover text color)
+  - AgentRow.jsx (COLORS.totalActivity)
+  - PendingTriggerBanner.jsx (pulse dot + launch button)
+  - admin/CategoriesPanel.jsx, TeamsPanel.jsx, UsersPanel.jsx (error text)
+  - admin/UserRow.jsx (badge color)
+  - MinimizedStrip.jsx (case number + swap dot + case text)
+  - MplLaunchError.jsx (retry button bg)
+
+- Hardcoded `'#003087'` in 2 files → `'var(--color-mbtn)'`:
+  - Dashboard.jsx METRICS (casesAndCalls chart color)
+  - feedback/SuggestionStatusBadge.jsx (in_progress status badge bg)
+
+- Hardcoded `'#1a1a2e'` in SettingsPage.jsx → `'var(--bg-card)'` (dark theme preview swatch)
+
+**Grep results (all pass):**
+- `grep -rln "const C = {" src/components/ | wc -l` → 0 ✓
+- `grep -rn "var(--text-primary)\|var(--text-secondary)" src/` → empty ✓
+- `grep -rn "fontFamily.*Segoe\|fontFamily.*Inter" src/components/` → empty ✓
+- `grep -rn "theme === 'light' ?" src/components/` → empty ✓
+- `grep -rn "'#003087'\|'#E8540A'\|'#0f0f1e'\|'#1a1a2e'" src/components/` → empty ✓
+- `npx vite build` → ✓ built in 1.35s, 0 errors
+
+**Files changed:** 22 component files + PRD.md
+
+**Learnings for future iterations:**
+- Previous per-task migrations replaced hex values inside const C objects but never removed the const C indirection. The final sweep catches all these lingering objects.
+- `grep` exit code 1 = no matches (pass), not failure — chain checks with `;` not `&&` to see all results even when some return empty.
+- For template literals like `1px solid ${C.border}`, replace the whole template literal with a plain string FIRST, before doing replace_all on C.border — avoids redundant `${'var(...)'}` patterns.
+- Step3Bookmarklet.jsx bookmarklet strings contain hex CSS inside JS string literals (no surrounding single quotes) — these do NOT match the `'#hex'` grep pattern and should NOT be changed (bookmarklet code, out of scope).
+- Dashboard.jsx METRICS uses `color:` values for chart line/bar colors — these ARE brand tokens (blue/orange) and should be migrated to var() even though they look like semantic chart colors.
+---
+
+## Iteration MassReclass-1 - Task 1: Create migration 020_mass_reclass.sql
+- Created supabase/migrations/020_mass_reclass.sql
+- All SQL wrapped in BEGIN/COMMIT transaction
+- DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT for source CHECK ('pip', 'manual', 'bulk')
+- ALTER TABLE ADD COLUMN IF NOT EXISTS batch_id uuid on ct_cases and case_events
+- Partial indexes on batch_id (WHERE batch_id IS NOT NULL) for both tables
+- bulk_reclassify_cases(jsonb) RPC: loops over p_case_refs array, inserts ct_cases + case_events rows per entry, returns (batch_id, case_count)
+- undo_mass_reclass_batch(uuid) RPC: deletes case_events then ct_cases by batch_id + user_id, returns deleted row count
+- GRANT EXECUTE on both functions to authenticated role
+- Acceptance: node -e file exists and non-empty → ok ✓
+- Branch: feat/mass-reclass created off main
+
+Files changed:
+  supabase/migrations/020_mass_reclass.sql (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - Migration 019 was the last; 020 is correct next number (always ls supabase/migrations/ first)
+  - Davis applies migration manually via Supabase SQL Editor — do NOT run supabase db push
+  - RPC uses SECURITY DEFINER + auth.uid() guard so anon key cannot call it from the bookmarklet; only authenticated PiP session can invoke bulk_reclassify_cases
+  - batch_id on both tables enables surgical undo without needing a separate undo_log table
+---
