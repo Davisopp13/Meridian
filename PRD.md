@@ -294,7 +294,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
   - If any of these files show changes, halt and log the violation to progress.txt. Do NOT attempt to revert — let Davis review.
   - Test: Write the check commands into `scripts/check-mass-reclass-scope.sh` and run it. Exit 0 means all protected files are clean.
 
-- [ ] **Task 9: Final build + commit summary**
+- [x] **Task 9: Final build + commit summary**
   - Run `npx vite build 2>&1 | tail -20`. Must complete without errors.
   - Run `git log --oneline HEAD~8..HEAD`. Log the full commit list to progress.txt under a "Mass Reclass: final commits" heading.
   - Append to progress.txt a "Davis: manual steps to ship" section listing:

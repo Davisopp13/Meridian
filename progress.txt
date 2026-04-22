@@ -4761,3 +4761,40 @@ Learnings for future iterations:
   - Script uses set -e so any unexpected git failure also causes non-zero exit
   - The 7-commit window (HEAD~7) covers the 7 mass-reclass commits (tasks 1-7) on this branch
 ---
+
+## Iteration 37 (mass-reclass) - Task 9: Final build + commit summary
+
+### Mass Reclass: final commits
+```
+1567030 mass-reclass: [task 8] verify protected files unchanged + add scope check script
+b46a3c6 mass-reclass: [task 7] wire useMassReclass + MassReclassModal into MplApp.jsx
+021db0a mass-reclass: [task 6] create MassReclassModal.jsx
+23eed7c mass-reclass: [task 5] create useMassReclass.js hook
+f58dbf8 mass-reclass: [task 4] extend usePendingTriggers to route MERIDIAN_MASS_RECLASS
+e6b5df8 mass-reclass: [task 3] implement list-view DOM scrape in meridian-trigger.js
+2aaf50e mass-reclass: [task 2] add list-view detection to meridian-trigger.js
+47a342c mass-reclass: [task 1] create migration 020_mass_reclass.sql
+```
+
+### Davis: manual steps to ship
+
+1. Review commits on the `feat/mass-reclass` branch.
+2. Apply `supabase/migrations/020_mass_reclass.sql` via Supabase SQL Editor.
+3. Verify RPCs exist:
+   ```sql
+   SELECT proname FROM pg_proc WHERE proname IN ('bulk_reclassify_cases', 'undo_mass_reclass_batch');
+   ```
+   Should return 2 rows.
+4. Push branch, open PR, merge when ready.
+5. End-to-end test: check 3 cases in an SF list view, click Meridian bookmarklet, confirm in PiP modal, verify 3 `ct_cases` rows with `source='bulk'` and matching `batch_id`.
+
+Files changed:
+  PRD.md (Task 9 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -20` → ✓ built in 1.32s (0 errors)
+  - `git log --oneline HEAD~8..HEAD` → 8 commits listed above
+
+Learnings for future iterations:
+  - All 9 tasks of the mass-reclass PRD are complete. No further iterations needed on this branch.
+---
