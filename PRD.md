@@ -112,7 +112,7 @@ Things the codebase already has that this PRD builds on:
 
 ### Phase 1 — Capture (bookmarklet + widget)
 
-- [ ] **Task 1.1: Scrape `sf_case_id` in the bookmarklet**
+- [x] **Task 1.1: Scrape `sf_case_id` in the bookmarklet**
 
   Open `src/components/onboarding/Step3Bookmarklet.jsx`. Locate `buildCtBmHref(userId)` (line 17). Inside the IIFE string, the shadow-DOM walker already captures account ID. Add case ID capture alongside it.
 

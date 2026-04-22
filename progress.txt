@@ -3919,3 +3919,37 @@ Learnings for future iterations:
   - Final build check is a clean `npm run build` — 0 errors is the only criterion
   - All 22 Admin Panel tasks completed; the panel is feature-complete pending Davis applying migrations 010 and 011
 ---
+
+## Iteration SF-1 - Task 0.1 (SF Direct Link PRD): Migration — add sf_case_id to ct_cases and case_events
+- Created supabase/migrations/015_sf_case_id.sql with ADD COLUMN IF NOT EXISTS sf_case_id TEXT on both ct_cases and case_events
+- Added CHECK constraints ct_cases_sf_case_id_shape and case_events_sf_case_id_shape (pattern ^500[a-zA-Z0-9]{12,15}$)
+- Added partial index idx_case_events_sf_case_id WHERE sf_case_id IS NOT NULL
+- Added GRANT SELECT, INSERT, UPDATE on both tables
+- Note: PRD specified 007_sf_case_id.sql but 007 was already taken by 007_migration_source_id.sql; used 015 (next in sequence)
+
+Files changed:
+  supabase/migrations/015_sf_case_id.sql (created)
+  PRD.md (Task 0.1 marked [x])
+
+Learnings for future iterations:
+  - Migration numbering: always ls migrations/ first to confirm next available number — PRD numbering is aspirational, may be stale
+  - DO NOT run migrations — Davis applies them manually in Supabase SQL editor
+  - Acceptance grep checks use the actual filename, not the PRD-specified one
+---
+
+## Iteration SF-2 - Task 1.1 (SF Direct Link PRD): Scrape sf_case_id in the bookmarklet
+- Added `cID=''` to the walker's variable declarations alongside `aN`, `typeVal`, `subtypeVal`
+- Added Case ID scraping block in the shadow-DOM walker (mirrors account ID block):
+  - `if(!cID&&n.tagName==='A'){var hrefC=n.getAttribute('href');if(hrefC&&hrefC.startsWith('/lightning/r/Case/500')){var ci=hrefC.match(/500[a-zA-Z0-9]{12,15}/);if(ci&&ci[0])cID=ci[0]}}`
+- Extended MERIDIAN_PAYLOAD to include `sfCaseId:cID` alongside `userId` and `relayFrame`
+- `npx vite build` passes — 2515 modules, 0 errors, 0 warnings, built in 1.54s
+
+Files changed:
+  src/components/onboarding/Step3Bookmarklet.jsx (3 edits to the bookmarklet string on line 18)
+  PRD.md (Task 1.1 marked [x])
+
+Learnings for future iterations:
+  - The entire bookmarklet is a single-line minified string on line 18; `grep -c` returns 1 even for multiple occurrences — use `grep -o | wc -l` to count actual occurrences
+  - Escaping was not an issue here: the new code uses only single quotes (already the pattern in the string) and no backticks or template expressions beyond the existing `${userId}`
+  - Pattern to add a sibling ID scrape in the walker: copy the account ID block, rename href→hrefC, ai→ci, 001→500, aN→cID — all in one go with no other changes needed
+---
