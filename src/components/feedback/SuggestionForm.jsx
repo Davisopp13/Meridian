@@ -7,16 +7,6 @@ import {
 } from '../../lib/api.js';
 import AttachmentUploader from './AttachmentUploader.jsx';
 
-const C = {
-  border:    'var(--border)',
-  cardBg:    'var(--card-bg-subtle)',
-  textPri:   'var(--text-pri)',
-  textSec:   'var(--text-sec)',
-  textDim:   'var(--text-dim)',
-  bg:        'var(--bg-card)',
-  orange:    '#E8540A',
-};
-
 const TYPES = [
   { value: 'bug',         label: 'Bug' },
   { value: 'feature',     label: 'Feature request' },
@@ -35,11 +25,11 @@ const BODY_PLACEHOLDERS = {
 
 const inputStyle = {
   width: '100%',
-  background: C.cardBg,
-  border: `1px solid ${C.border}`,
+  background: 'var(--card-bg-subtle)',
+  border: '1px solid var(--border)',
   borderRadius: 6,
   padding: '8px 10px',
-  color: C.textPri,
+  color: 'var(--text-pri)',
   fontSize: 14,
   boxSizing: 'border-box',
   outline: 'none',
@@ -47,7 +37,7 @@ const inputStyle = {
 
 const labelStyle = {
   display: 'block',
-  color: C.textSec,
+  color: 'var(--text-sec)',
   fontSize: 12,
   fontWeight: 600,
   marginBottom: 5,
@@ -173,11 +163,11 @@ export default function SuggestionForm({ user, onSubmitted }) {
               alignItems: 'center',
               gap: 5,
               cursor: 'pointer',
-              color: C.textSec,
+              color: 'var(--text-sec)',
               fontSize: 14,
               padding: '4px 10px',
-              background: type === t.value ? 'rgba(232,84,10,0.12)' : C.cardBg,
-              border: `1px solid ${type === t.value ? 'rgba(232,84,10,0.4)' : C.border}`,
+              background: type === t.value ? 'rgba(232,84,10,0.12)' : 'var(--card-bg-subtle)',
+              border: `1px solid ${type === t.value ? 'rgba(232,84,10,0.4)' : 'var(--border)'}`,
               borderRadius: 6,
             }}>
               <input
@@ -204,7 +194,7 @@ export default function SuggestionForm({ user, onSubmitted }) {
           placeholder="Brief summary"
           style={inputStyle}
         />
-        <div style={{ color: C.textDim, fontSize: 11, marginTop: 3, textAlign: 'right' }}>
+        <div style={{ color: 'var(--text-dim)', fontSize: 11, marginTop: 3, textAlign: 'right' }}>
           {title.length}/120
         </div>
       </div>
@@ -219,7 +209,7 @@ export default function SuggestionForm({ user, onSubmitted }) {
           placeholder={BODY_PLACEHOLDERS[type]}
           style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }}
         />
-        <div style={{ color: C.textDim, fontSize: 11, marginTop: 3, textAlign: 'right' }}>
+        <div style={{ color: 'var(--text-dim)', fontSize: 11, marginTop: 3, textAlign: 'right' }}>
           {body.length}/4000
         </div>
       </div>
@@ -278,7 +268,8 @@ export default function SuggestionForm({ user, onSubmitted }) {
         type="submit"
         disabled={submitting}
         style={{
-          background: submitting ? 'rgba(232,84,10,0.5)' : C.orange,
+          background: 'var(--color-mmark)',
+          opacity: submitting ? 0.5 : 1,
           color: '#fff',
           border: 'none',
           borderRadius: 7,

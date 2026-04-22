@@ -29,15 +29,6 @@ function relativeTime(ts) {
   return new Date(ts).toLocaleDateString();
 }
 
-const C = {
-  row:     'var(--card-bg-subtle)',
-  rowHov:  'var(--bg-card)',
-  border:  'var(--border)',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-};
-
 export default function SuggestionRow({ suggestion, onClick, showSubmitter }) {
   const [hovered, setHovered] = useState(false);
 
@@ -53,8 +44,8 @@ export default function SuggestionRow({ suggestion, onClick, showSubmitter }) {
         alignItems: 'center',
         gap: 10,
         padding: '10px 14px',
-        background: hovered ? C.rowHov : C.row,
-        border: `1px solid ${C.border}`,
+        background: hovered ? 'var(--bg-card)' : 'var(--card-bg-subtle)',
+        border: '1px solid var(--border)',
         borderRadius: 8,
         cursor: onClick ? 'pointer' : 'default',
         transition: 'background 120ms',
@@ -67,7 +58,7 @@ export default function SuggestionRow({ suggestion, onClick, showSubmitter }) {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
-          color: C.textPri,
+          color: 'var(--text-pri)',
           fontSize: 14,
           fontWeight: 500,
           whiteSpace: 'nowrap',
@@ -77,14 +68,14 @@ export default function SuggestionRow({ suggestion, onClick, showSubmitter }) {
           {suggestion.title}
         </div>
         {showSubmitter && submitterName && (
-          <div style={{ color: C.textSec, fontSize: 12, marginTop: 2 }}>
+          <div style={{ color: 'var(--text-sec)', fontSize: 12, marginTop: 2 }}>
             {submitterName}
           </div>
         )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <span style={{ color: C.textDim, fontSize: 12 }}>
+        <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
           {relativeTime(suggestion.created_at)}
         </span>
         <SuggestionStatusBadge status={suggestion.status} />

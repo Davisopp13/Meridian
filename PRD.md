@@ -230,7 +230,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Focus on the top-level `const C` definitions only — migrate those to token refs.
   - **Acceptance:** `grep -rn "const C = {" src/components/admin/ src/components/AdminTab.jsx` = 0. Build passes.
 
-- [ ] **Task 2.10: Feedback surface — everything under `src/components/feedback/`**
+- [x] **Task 2.10: Feedback surface — everything under `src/components/feedback/`**
   - `SuggestionRow.jsx`, `SuggestionForm.jsx`, `AttachmentUploader.jsx`, `SuggestionDetailPanel.jsx`, `CategoryPromotionModal.jsx` — all have local `const C`.
   - `FeedbackTab.jsx` also has one.
   - **Acceptance:** `grep -rn "const C = {" src/components/feedback/ src/components/FeedbackTab.jsx` = 0. Build passes.

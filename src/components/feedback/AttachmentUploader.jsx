@@ -1,13 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { validateFile, compressImage, sanitizeFilename } from '../../lib/attachments.js';
 
-const C = {
-  border:  'var(--border)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-  cardBg:  'var(--card-bg-subtle)',
-};
-
 export default function AttachmentUploader({ onChange }) {
   const [state, setState] = useState('empty'); // empty | processing | ready | error
   const [errorMsg, setErrorMsg] = useState('');
@@ -90,25 +83,25 @@ export default function AttachmentUploader({ onChange }) {
             type="button"
             onClick={() => inputRef.current?.click()}
             style={{
-              background: C.cardBg,
-              border: `1px dashed ${C.border}`,
+              background: 'var(--card-bg-subtle)',
+              border: '1px dashed var(--border)',
               borderRadius: 6,
               padding: '7px 14px',
-              color: C.textSec,
+              color: 'var(--text-sec)',
               fontSize: 13,
               cursor: 'pointer',
             }}
           >
             Attach screenshot (optional)
           </button>
-          <div style={{ color: C.textDim, fontSize: 11, marginTop: 4 }}>
+          <div style={{ color: 'var(--text-dim)', fontSize: 11, marginTop: 4 }}>
             JPEG, PNG, WebP, or GIF. Up to 5MB. One image per bug.
           </div>
         </div>
       )}
 
       {state === 'processing' && (
-        <div style={{ color: C.textSec, fontSize: 13 }}>Preparing image...</div>
+        <div style={{ color: 'var(--text-sec)', fontSize: 13 }}>Preparing image...</div>
       )}
 
       {state === 'ready' && (
@@ -116,21 +109,21 @@ export default function AttachmentUploader({ onChange }) {
           <img
             src={previewUrl}
             alt="preview"
-            style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, border: `1px solid ${C.border}` }}
+            style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }}
           />
           <div style={{ flex: 1 }}>
-            <div style={{ color: C.textSec, fontSize: 12 }}>{filename}</div>
-            <div style={{ color: C.textDim, fontSize: 11 }}>{sizeKb} KB</div>
+            <div style={{ color: 'var(--text-sec)', fontSize: 12 }}>{filename}</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: 11 }}>{sizeKb} KB</div>
           </div>
           <button
             type="button"
             onClick={handleRemove}
             style={{
               background: 'none',
-              border: `1px solid ${C.border}`,
+              border: '1px solid var(--border)',
               borderRadius: 5,
               padding: '3px 10px',
-              color: C.textSec,
+              color: 'var(--text-sec)',
               fontSize: 12,
               cursor: 'pointer',
             }}
@@ -150,11 +143,11 @@ export default function AttachmentUploader({ onChange }) {
               if (inputRef.current) inputRef.current.value = '';
             }}
             style={{
-              background: C.cardBg,
-              border: `1px dashed ${C.border}`,
+              background: 'var(--card-bg-subtle)',
+              border: '1px dashed var(--border)',
               borderRadius: 6,
               padding: '7px 14px',
-              color: C.textSec,
+              color: 'var(--text-sec)',
               fontSize: 13,
               cursor: 'pointer',
             }}

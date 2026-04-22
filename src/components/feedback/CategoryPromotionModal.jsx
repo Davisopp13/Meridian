@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { promoteSuggestion } from '../../lib/api.js';
 
-const C = {
-  overlay:  'rgba(0,0,0,0.55)',
-  bg:       'var(--bg-card)',
-  border:   'var(--border)',
-  textPri:  'var(--text-pri)',
-  textSec:  'var(--text-sec)',
-};
-
 export default function CategoryPromotionModal({ suggestion, onConfirm, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
@@ -32,7 +24,7 @@ export default function CategoryPromotionModal({ suggestion, onConfirm, onCancel
       onClick={onCancel}
       style={{
         position: 'fixed', inset: 0,
-        background: C.overlay,
+        background: 'rgba(0,0,0,0.55)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 1000,
       }}
@@ -40,8 +32,8 @@ export default function CategoryPromotionModal({ suggestion, onConfirm, onCancel
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: C.bg,
-          border: `1px solid ${C.border}`,
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border)',
           borderRadius: 10,
           padding: '24px 28px',
           maxWidth: 440,
@@ -49,7 +41,7 @@ export default function CategoryPromotionModal({ suggestion, onConfirm, onCancel
           boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         }}
       >
-        <p style={{ color: C.textPri, fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>
+        <p style={{ color: 'var(--text-pri)', fontSize: 15, lineHeight: 1.5, marginBottom: 20 }}>
           Promote &ldquo;{suggestion.title}&rdquo; to live {typeLabel} under{' '}
           <strong>{suggestion.haulage_type}</strong>? This will insert it into the live
           taxonomy. Agents will see it in their widget on next refresh.
@@ -64,8 +56,8 @@ export default function CategoryPromotionModal({ suggestion, onConfirm, onCancel
             onClick={onCancel}
             disabled={loading}
             style={{
-              padding: '7px 16px', borderRadius: 6, border: `1px solid ${C.border}`,
-              background: 'transparent', color: C.textSec, cursor: 'pointer', fontSize: 14,
+              padding: '7px 16px', borderRadius: 6, border: '1px solid var(--border)',
+              background: 'transparent', color: 'var(--text-sec)', cursor: 'pointer', fontSize: 14,
             }}
           >
             Cancel

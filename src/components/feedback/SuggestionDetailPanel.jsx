@@ -15,16 +15,6 @@ const STATUS_LABEL = {
   shipped: 'Shipped', wont_fix: "Won't fix",
 };
 
-const C = {
-  bg:      'var(--bg-card)',
-  border:  'var(--border)',
-  divider: 'var(--divider, var(--border))',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-  input:   'var(--card-bg-subtle)',
-};
-
 function fmt(ts) {
   if (!ts) return '—';
   return new Date(ts).toLocaleString('en-US', {
@@ -103,8 +93,8 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
   return (
     <>
       <div style={{
-        background: C.bg,
-        border: `1px solid ${C.border}`,
+        background: 'var(--bg-card)',
+        border: `1px solid ${'var(--border)'}`,
         borderRadius: 10,
         padding: '20px 24px',
         marginBottom: 10,
@@ -117,13 +107,13 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
           style={{
             position: 'absolute', top: 14, right: 14,
             background: 'transparent', border: 'none',
-            color: C.textDim, fontSize: 18, cursor: 'pointer', lineHeight: 1,
+            color: 'var(--text-dim)', fontSize: 18, cursor: 'pointer', lineHeight: 1,
           }}
         >✕</button>
 
         {/* Title + badge */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, paddingRight: 28 }}>
-          <h3 style={{ color: C.textPri, fontSize: 16, fontWeight: 600, margin: 0, flex: 1 }}>
+          <h3 style={{ color: 'var(--text-pri)', fontSize: 16, fontWeight: 600, margin: 0, flex: 1 }}>
             {suggestion.title}
           </h3>
           <SuggestionStatusBadge status={status} />
@@ -131,7 +121,7 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
 
         {/* Body */}
         <p style={{
-          color: C.textSec, fontSize: 14, lineHeight: 1.6,
+          color: 'var(--text-sec)', fontSize: 14, lineHeight: 1.6,
           whiteSpace: 'pre-wrap', marginBottom: 16,
         }}>
           {suggestion.body}
@@ -144,15 +134,15 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
           </div>
         )}
 
-        <div style={{ borderTop: `1px solid ${C.divider}`, paddingTop: 14, marginBottom: 16 }}>
+        <div style={{ borderTop: `1px solid ${'var(--divider, var(--border))'}`, paddingTop: 14, marginBottom: 16 }}>
           {/* Submitter */}
           {submitter && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
-              <span style={{ color: C.textDim, fontSize: 13, minWidth: 100 }}>Submitted by</span>
-              <span style={{ color: C.textSec, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-dim)', fontSize: 13, minWidth: 100 }}>Submitted by</span>
+              <span style={{ color: 'var(--text-sec)', fontSize: 13 }}>
                 {submitter.full_name || submitter.email}
                 {submitter.full_name && submitter.email && (
-                  <span style={{ color: C.textDim }}> · {submitter.email}</span>
+                  <span style={{ color: 'var(--text-dim)' }}> · {submitter.email}</span>
                 )}
               </span>
             </div>
@@ -160,40 +150,40 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
 
           {/* Timestamps */}
           <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
-            <span style={{ color: C.textDim, fontSize: 13, minWidth: 100 }}>Submitted</span>
-            <span style={{ color: C.textSec, fontSize: 13 }}>{fmt(suggestion.created_at)}</span>
+            <span style={{ color: 'var(--text-dim)', fontSize: 13, minWidth: 100 }}>Submitted</span>
+            <span style={{ color: 'var(--text-sec)', fontSize: 13 }}>{fmt(suggestion.created_at)}</span>
           </div>
           {suggestion.updated_at !== suggestion.created_at && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
-              <span style={{ color: C.textDim, fontSize: 13, minWidth: 100 }}>Updated</span>
-              <span style={{ color: C.textSec, fontSize: 13 }}>{fmt(suggestion.updated_at)}</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: 13, minWidth: 100 }}>Updated</span>
+              <span style={{ color: 'var(--text-sec)', fontSize: 13 }}>{fmt(suggestion.updated_at)}</span>
             </div>
           )}
 
           {/* Category/subcategory extras */}
           {(suggestion.type === 'category' || suggestion.type === 'subcategory') && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
-              <span style={{ color: C.textDim, fontSize: 13, minWidth: 100 }}>Haulage type</span>
-              <span style={{ color: C.textSec, fontSize: 13 }}>{suggestion.haulage_type}</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: 13, minWidth: 100 }}>Haulage type</span>
+              <span style={{ color: 'var(--text-sec)', fontSize: 13 }}>{suggestion.haulage_type}</span>
             </div>
           )}
           {suggestion.type === 'subcategory' && parentCatName && (
             <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
-              <span style={{ color: C.textDim, fontSize: 13, minWidth: 100 }}>Parent category</span>
-              <span style={{ color: C.textSec, fontSize: 13 }}>{parentCatName}</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: 13, minWidth: 100 }}>Parent category</span>
+              <span style={{ color: 'var(--text-sec)', fontSize: 13 }}>{parentCatName}</span>
             </div>
           )}
         </div>
 
         {/* Status picker */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', color: C.textDim, fontSize: 12, marginBottom: 6 }}>Status</label>
+          <label style={{ display: 'block', color: 'var(--text-dim)', fontSize: 12, marginBottom: 6 }}>Status</label>
           <select
             value={status}
             onChange={e => handleStatusChange(e.target.value)}
             style={{
-              background: C.input, border: `1px solid ${C.border}`,
-              borderRadius: 6, color: C.textPri, fontSize: 14,
+              background: 'var(--card-bg-subtle)', border: `1px solid ${'var(--border)'}`,
+              borderRadius: 6, color: 'var(--text-pri)', fontSize: 14,
               padding: '6px 10px', cursor: 'pointer',
             }}
           >
@@ -205,7 +195,7 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
 
         {/* Admin notes */}
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', color: C.textDim, fontSize: 12, marginBottom: 6 }}>Admin notes</label>
+          <label style={{ display: 'block', color: 'var(--text-dim)', fontSize: 12, marginBottom: 6 }}>Admin notes</label>
           <textarea
             value={adminNotes}
             onChange={e => setAdminNotes(e.target.value)}
@@ -213,8 +203,8 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
             placeholder="Internal notes visible only to admins…"
             style={{
               width: '100%', boxSizing: 'border-box',
-              background: C.input, border: `1px solid ${C.border}`,
-              borderRadius: 6, color: C.textPri, fontSize: 14,
+              background: 'var(--card-bg-subtle)', border: `1px solid ${'var(--border)'}`,
+              borderRadius: 6, color: 'var(--text-pri)', fontSize: 14,
               padding: '8px 10px', resize: 'vertical',
             }}
           />
@@ -224,7 +214,7 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
               disabled={saving}
               style={{
                 padding: '6px 14px', borderRadius: 6, border: 'none',
-                background: '#E8540A', color: '#fff',
+                background: 'var(--color-mmark)', color: '#fff',
                 cursor: saving ? 'not-allowed' : 'pointer',
                 fontSize: 13, opacity: saving ? 0.7 : 1,
               }}
@@ -240,15 +230,15 @@ export default function SuggestionDetailPanel({ suggestion, onClose, onUpdated }
               onClick={handleCopyForClaude}
               style={{
                 padding: '6px 14px', borderRadius: 6,
-                border: `1px solid ${C.border}`,
-                background: 'transparent', color: C.textPri,
+                border: `1px solid ${'var(--border)'}`,
+                background: 'transparent', color: 'var(--text-pri)',
                 cursor: 'pointer', fontSize: 13,
               }}
             >
               Copy for Claude
             </button>
             {copyMsg && (
-              <span style={{ fontSize: 12, color: C.textDim }}>
+              <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
                 {copyMsg}
               </span>
             )}
