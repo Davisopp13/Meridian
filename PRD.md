@@ -1,493 +1,273 @@
-# Meridian SF Direct Link PRD
+# CC Prompt: Fix case_events ↔ ct_cases join via session_id
 
-## Project Overview
+## Context
 
-Make every case number in Meridian's UI a **one-click link to the live case in Salesforce**. Today, `case_number` renders as a static monospace label; tomorrow, it reveals a small external-link icon on row hover (matching CT 1.0's documented pattern — *"SF link icon on case # only appears on hover — less visual noise at rest"*) that opens the case in a new tab.
+The Meridian activity log shows every row as `Resolved · Manual` with no case number, even though `ct_cases` has correctly-written rows with `case_number` and `sf_case_id` populated. Root cause: the widget writes `ct_cases` and `case_events` as two independent inserts, both with `session_id: null`. There's no link between them, so the Supabase relational join in `useActivityData` (`ct_cases(...)`) returns null, which falls through to `'Manual'` in the render.
 
-The important constraint: Salesforce routes by **record Id** (a 15- or 18-character alphanumeric starting with `500` for the Case object), not by the 8-digit display `CaseNumber`. So the real work is split into three layers:
+Both inserts write to Supabase fine — the data is there. The join is the problem.
 
-1. **Capture** the SF case record Id at log time via the existing bookmarklet relay scrape.
-2. **Persist** it through the widget → Supabase data layer on every relevant table.
-3. **Render** a deep-link icon in the UI surfaces that show case numbers.
+The SF Direct Link PRD also surfaced this: even though the bookmarklet now scrapes `sf_case_id` and the widget writes it to both tables, the UI can't see it on `case_events` rows because `useActivityData.js` was supposed to read it from the join (which is broken).
 
-Success = clicking the icon next to `130971881` in Meridian's Activity Log opens `https://hlag.lightning.force.com/lightning/r/Case/500AbC…/view` in a new tab, scoped only to cases logged **after this PRD ships**. Historical entries (no `sf_case_id`) render without the icon — they're not broken, just not linkable until backfill lands as a follow-up.
+## The Fix
 
----
+Use `session_id` as the join key between `ct_cases` and `case_events` rows that describe the same case session. Generate one UUID per case start in the widget, write it on every insert that belongs to that session. Update the data hook to join on it.
 
-## Architecture & Key Decisions
+**Why session_id over sequential inserts with case_id FK:**
+The widget currently fires `ct_cases` and `case_events` inserts independently — if one fails, the other still lands. That's deliberate resilience. Sequentializing (insert `ct_cases` first, await, then insert `case_events` with `case_id`) would regress this by making a `ct_cases` failure block the log. `session_id` keeps both inserts independent and gives us a clean join key. It's also the column already named for this purpose.
 
-Do not question or change these. They're established by the audit + prior architecture work.
+## Files to change
 
-- **Salesforce identifiers:** Case `Id` is 15 or 18 chars, starts with prefix `500`. Scrape pattern: `/500[a-zA-Z0-9]{12,15}/`. The same shadow-DOM walker the bookmarklet already uses for `001…` account IDs (`Step3Bookmarklet.jsx` line 18) is the model.
-- **URL pattern:** `https://hlag.lightning.force.com/lightning/r/Case/{sf_case_id}/view`. Host is the Hapag-Lloyd Lightning instance; do not hardcode anywhere except `src/lib/salesforce.js`.
-- **Rendering pattern:** Match CT 1.0 — icon hidden at rest, appears on row hover in a fixed-width slot so layout doesn't shift. Modeled after the existing edit pencil (✎) in `ActivityLog.jsx` line 714.
-- **Token consolidation PRD must land first.** This PRD references new CSS tokens (`--focus-ring`, `--motion-fast`) that the token PRD introduces. If for some reason the token PRD hasn't run, this one will fail build. Do not attempt without it.
-- **Backfill is out of scope.** Pre-existing `ct_cases` and `case_events` rows have `sf_case_id = NULL` and will simply not render the icon. A separate track will map historical case_numbers → SF IDs via Power Query or direct SF API.
-- **No new dependencies.** Use Lucide (`ExternalLink` icon) — already in use in `Dashboard.jsx`.
-- **Inline styles stay.** House pattern. Don't refactor.
-- **Privacy:** `sf_case_id` is a Salesforce internal identifier, not PII. Fine to store and transmit via RLS-protected rows.
+1. **`supabase/migrations/016_session_id_fk.sql`** (new) — ensure `session_id` columns exist on both tables with an index for the join.
+2. **`public/ct-widget.js`** — generate a session UUID when a case session starts; write it to `ct_cases` and every `case_events` insert in that session.
+3. **`src/hooks/useActivityData.js`** — change the join key and pull `case_number` + `sf_case_id` correctly. Also fix the two fields Ralph *claimed* it added but didn't.
 
 ---
 
-## Environment & Setup
+## Step 1 — Write the migration (DO NOT run it; Davis runs manually)
 
-Ralph should assume:
-- Working directory: the local `Meridian 1.0` checkout.
-- The **token consolidation PRD has already run and committed** (`var(--focus-ring)` and `var(--motion-fast)` exist in `src/index.css`).
-- Supabase project `wluynppocsoqjdbmwass` is live; Davis runs migrations manually via the Supabase SQL editor.
-- Primary build check: `npx vite build`.
-- Widget changes (`public/ct-widget.js`) take effect without a Vite rebuild since they ship as static files.
+Create `supabase/migrations/016_session_id_fk.sql`:
 
----
+```sql
+-- ============================================================
+-- 016_session_id_fk.sql
+-- Ensures session_id exists as a TEXT column on both ct_cases
+-- and case_events so the widget can use it as a join key between
+-- independent inserts describing the same case session.
+-- Idempotent.
+-- ============================================================
 
-## Pre-existing Context
+-- Add session_id if missing. TEXT (not UUID) because we want the
+-- widget to generate it client-side via crypto.randomUUID() without
+-- requiring a uuid-ossp cast round-trip.
+ALTER TABLE public.ct_cases
+  ADD COLUMN IF NOT EXISTS session_id TEXT;
 
-Things the codebase already has that this PRD builds on:
+ALTER TABLE public.case_events
+  ADD COLUMN IF NOT EXISTS session_id TEXT;
 
-- The bookmarklet (`buildCtBmHref` in `Step3Bookmarklet.jsx`) **already walks the SF shadow DOM** and scrapes the account ID via pattern `/001[a-zA-Z0-9]{12,15}/`. The Case ID scrape is a near-identical addition.
-- The widget (`public/ct-widget.js`) **already posts `ct_cases`** with rich metadata (`case_type`, `case_subtype`, `duration_s`, etc.). Adding `sf_case_id` is one line per relevant insert.
-- The `ct_calls` table schema **already has a `case_id` column** (line 308 of `ct-widget.js` writes `case_id: null` today). The naming is inconsistent with what we want — Ralph will add `sf_case_id` as a new column on `ct_cases` and `case_events`, and leave `ct_calls.case_id` alone for now (separate concern — it's a FK, not an SF ID).
-- `ActivityLog.jsx` has a **hover-only edit pencil at the end of every row** (line 714) that's the exact interaction pattern to mirror for the SF link icon.
+-- Indexes for the join. Partial (WHERE NOT NULL) keeps them lean —
+-- historical rows with session_id = NULL are not linkable anyway.
+CREATE INDEX IF NOT EXISTS idx_ct_cases_session_id
+  ON public.ct_cases (session_id)
+  WHERE session_id IS NOT NULL;
 
----
+CREATE INDEX IF NOT EXISTS idx_case_events_session_id
+  ON public.case_events (session_id)
+  WHERE session_id IS NOT NULL;
 
-## Tasks
+-- Grants, in case a DROP SCHEMA CASCADE has stripped them historically.
+GRANT SELECT, INSERT, UPDATE ON public.ct_cases TO anon, authenticated, service_role;
+GRANT SELECT, INSERT, UPDATE ON public.case_events TO anon, authenticated, service_role;
+```
 
-### Phase 0 — Data layer
-
-- [x] **Task 0.1: Migration — add `sf_case_id` to `ct_cases` and `case_events`**
-
-  Create `supabase/migrations/007_sf_case_id.sql`:
-
-  ```sql
-  -- 007_sf_case_id.sql
-  -- Adds Salesforce Case record Id column to enable deep-linking from Meridian
-  -- into the live SF case. Nullable because pre-existing rows don't have it,
-  -- and because non-SF pages (MPL) don't produce case IDs.
-
-  ALTER TABLE public.ct_cases
-    ADD COLUMN IF NOT EXISTS sf_case_id TEXT;
-
-  ALTER TABLE public.case_events
-    ADD COLUMN IF NOT EXISTS sf_case_id TEXT;
-
-  -- Basic shape check — SF Case IDs start with '500' and are 15 or 18 chars.
-  -- Enforced as CHECK rather than a type because we want NULLs to pass freely.
-  ALTER TABLE public.ct_cases
-    DROP CONSTRAINT IF EXISTS ct_cases_sf_case_id_shape,
-    ADD CONSTRAINT ct_cases_sf_case_id_shape
-      CHECK (
-        sf_case_id IS NULL
-        OR sf_case_id ~ '^500[a-zA-Z0-9]{12,15}$'
-      );
-
-  ALTER TABLE public.case_events
-    DROP CONSTRAINT IF EXISTS case_events_sf_case_id_shape,
-    ADD CONSTRAINT case_events_sf_case_id_shape
-      CHECK (
-        sf_case_id IS NULL
-        OR sf_case_id ~ '^500[a-zA-Z0-9]{12,15}$'
-      );
-
-  -- Index on case_events for the common lookup:
-  -- "give me this agent's recent activity with SF links resolvable"
-  CREATE INDEX IF NOT EXISTS idx_case_events_sf_case_id
-    ON public.case_events (sf_case_id)
-    WHERE sf_case_id IS NOT NULL;
-
-  -- Grants, in case a DROP SCHEMA CASCADE has stripped them historically.
-  GRANT SELECT, INSERT, UPDATE ON public.ct_cases TO anon, authenticated, service_role;
-  GRANT SELECT, INSERT, UPDATE ON public.case_events TO anon, authenticated, service_role;
-  ```
-
-  **Do NOT run this migration from Ralph.** Davis runs it manually in the Supabase SQL editor, then pastes the summary output back. Ralph's job is to write the file and commit it.
-
-  **Acceptance:**
-  - File exists: `ls supabase/migrations/007_sf_case_id.sql`
-  - `grep -c "ADD COLUMN IF NOT EXISTS sf_case_id" supabase/migrations/007_sf_case_id.sql` returns `2`.
-  - `grep -c "ADD CONSTRAINT" supabase/migrations/007_sf_case_id.sql` returns `2`.
-  - Commit: `migration: add sf_case_id to ct_cases and case_events`.
+Note: If `session_id` already exists on either table (from the original schema), `ADD COLUMN IF NOT EXISTS` is a no-op. That's fine.
 
 ---
 
-### Phase 1 — Capture (bookmarklet + widget)
+## Step 2 — Update `public/ct-widget.js` to generate and pass session_id
 
-- [x] **Task 1.1: Scrape `sf_case_id` in the bookmarklet**
+The widget currently writes `session_id: null` in three places (lines 243, 283, 314 approximately). We need to:
 
-  Open `src/components/onboarding/Step3Bookmarklet.jsx`. Locate `buildCtBmHref(userId)` (line 17). Inside the IIFE string, the shadow-DOM walker already captures account ID. Add case ID capture alongside it.
+1. Add a `sessionId` field to the state object.
+2. Generate a new UUID whenever a case session starts.
+3. Clear it whenever a case session ends (same places `state.caseNumber = ''` is cleared).
+4. Use `state.sessionId` instead of `null` in all three `case_events` inserts.
+5. Also write `session_id: state.sessionId` to the `ct_cases` inserts in `handleResolved` and `handleReclass` (these currently don't write it at all).
 
-  Find this block (inside the bookmarklet string, currently inside the `w()` walker):
+### 2a. Add to state
 
-  ```js
-  if (!aN && n.tagName === 'A') {
-    var href = n.getAttribute('href');
-    if (href && href.startsWith('/lightning/r/Account/001')) {
-      var ai = href.match(/001[a-zA-Z0-9]{12,15}/);
-      if (ai && ai[0]) aN = ai[0];
-    }
+Find the `state` object declaration (around line 45). Add `sessionId: '',` alongside `caseNumber`, `sfCaseId`, etc.
+
+### 2b. Add a helper near the top of the IIFE (before action handlers)
+
+```js
+function newSessionId() {
+  // crypto.randomUUID is available in every browser that supports Document PiP
+  // (the hard requirement for Meridian anyway).
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
   }
-  ```
+  // Fallback — extremely unlikely to hit, but harmless if we do
+  return 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+}
+```
 
-  Add a sibling block for Case IDs:
+### 2c. Populate sessionId when a session starts
 
-  ```js
-  if (!cID && n.tagName === 'A') {
-    var hrefC = n.getAttribute('href');
-    if (hrefC && hrefC.startsWith('/lightning/r/Case/500')) {
-      var ci = hrefC.match(/500[a-zA-Z0-9]{12,15}/);
-      if (ci && ci[0]) cID = ci[0];
-    }
-  }
-  ```
+A "session starts" whenever `state.caseNumber` transitions from empty to non-empty. Three places:
 
-  Initialize `cID` next to `aN` at the top of the walker (where `var aN='', typeVal='', subtypeVal='';` is declared): change to `var aN='', cID='', typeVal='', subtypeVal='';`.
-
-  **Pass `cID` to the widget.** The existing code passes `MERIDIAN_PAYLOAD` to the widget via relay; extend the payload. Find where the widget is invoked after trigger response — the payload already carries `userId` and `relayFrame`. Inject `sfCaseId: cID` into that payload so the widget sees it on launch.
-
-  The bookmarklet code is a minified IIFE string. Be careful with escaping: single quotes inside the string must stay escaped. If the resulting string breaks the JS template literal, roll the change back and log in `progress.txt` — this task may need CC's hand rather than Ralph's.
-
-  **Acceptance:**
-  - `grep -c "500\[a-zA-Z0-9\]" src/components/onboarding/Step3Bookmarklet.jsx` returns at least `1`.
-  - `grep -c "sfCaseId\|cID" src/components/onboarding/Step3Bookmarklet.jsx` returns at least `2`.
-  - `npx vite build` passes.
-
-- [x] **Task 1.2: Receive and persist `sf_case_id` in the widget**
-
-  Open `public/ct-widget.js`. At line 4 (the MERIDIAN_PAYLOAD doc comment), update to reflect the new field:
-
-  ```js
-  // MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId }
-  ```
-
-  At line 45, where `state` is declared, add `sfCaseId: ''`:
-
-  ```js
-  state = {
-    userId:       '',
-    caseNumber:   '',
-    caseType:     '',
-    caseSubtype:  '',
-    accountId:    '',
-    sfCaseId:     '',   // ← new
-    // … rest of state …
-  }
-  ```
-
-  Find the initial payload hydration block (line 484):
-
-  ```js
-  if (MERIDIAN_PAYLOAD.caseNumber) {
-    state.caseNumber  = MERIDIAN_PAYLOAD.caseNumber;
-  ```
-
-  Add a sibling line:
-
-  ```js
-  if (MERIDIAN_PAYLOAD.sfCaseId) {
-    state.sfCaseId  = MERIDIAN_PAYLOAD.sfCaseId;
-  }
-  ```
-
-  Also find the re-trigger handler around line 495 (`if (payload && payload.caseNumber)`) and add the same for `sfCaseId`.
-
-  In `handleResolved()` (line 224) and `handleReclass()` (line 264):
-  - Change the `relayPost('ct_cases', { … })` call to include `sf_case_id: state.sfCaseId || null,` alongside the existing `case_type`, `case_subtype`, etc.
-  - Change the `relayPost('case_events', { … })` call to include `sf_case_id: state.sfCaseId || null,` alongside `type`.
-
-  In `handleCall()` (line 304), add the same `sf_case_id` to the `case_events` insert (not `ct_calls` — `ct_calls.case_id` is a different column, leave it alone).
-
-  In `handleStartCase()` (line 330), after setting `state.caseNumber = m[1]`, note that the SF Case ID is NOT scraped here from `document.title` — it's only available via the bookmarklet's shadow-DOM walker. If `state.sfCaseId` is already set from the original payload, keep it. If not, leave blank and the activity just won't be linkable. This is fine.
-
-  In `handleDismissCase()` and the reset blocks inside `handleResolved`/`handleReclass` (lines 252, 292), reset `state.sfCaseId = ''` alongside the other case fields.
-
-  **Acceptance:**
-  - `grep -c "sfCaseId\|sf_case_id" public/ct-widget.js` returns at least `12`.
-  - No compilation via Vite is needed (static file), but the file must still be valid JS: `node -c public/ct-widget.js` returns exit 0.
-  - Manual smoke test (Davis will do this): open a SF case, click bookmarklet, confirm widget opens. Resolve the case. Query Supabase: `select case_number, sf_case_id from ct_cases order by ended_at desc limit 1;` — should show both values.
-
----
-
-### Phase 2 — Render
-
-- [x] **Task 2.1: Add `src/lib/salesforce.js` — single source of SF URL truth**
-
-  Create `src/lib/salesforce.js`:
-
-  ```js
-  // Single source of truth for Salesforce deep links.
-  // Any time we want to open a case or account in SF, we route through this module.
-  // The host is hardcoded here and nowhere else — when SF migrates (sandboxes,
-  // org changes, etc.), there's exactly one line to update.
-
-  const SF_HOST = 'https://hlag.lightning.force.com';
-
-  /**
-   * Build a deep link to a Salesforce Case record by its 15/18-char Id.
-   * Returns null if id is falsy or malformed — callers should treat a null
-   * return as "no link available" and skip rendering the link affordance.
-   */
-  export function caseUrl(sfCaseId) {
-    if (!sfCaseId) return null;
-    if (!/^500[a-zA-Z0-9]{12,15}$/.test(sfCaseId)) return null;
-    return `${SF_HOST}/lightning/r/Case/${sfCaseId}/view`;
-  }
-
-  /**
-   * Build a deep link to a Salesforce Account record by its 15/18-char Id.
-   * Mirrors caseUrl — future-friendly for when we surface account context.
-   */
-  export function accountUrl(sfAccountId) {
-    if (!sfAccountId) return null;
-    if (!/^001[a-zA-Z0-9]{12,15}$/.test(sfAccountId)) return null;
-    return `${SF_HOST}/lightning/r/Account/${sfAccountId}/view`;
-  }
-  ```
-
-  **Acceptance:**
-  - File exists with two exported functions.
-  - `grep -c "^export function" src/lib/salesforce.js` returns `2`.
-  - `npx vite build` passes.
-
-- [x] **Task 2.2: Add `src/components/CaseLink.jsx` — one component, every surface**
-
-  Create `src/components/CaseLink.jsx`:
-
-  ```jsx
-  import { ExternalLink } from 'lucide-react';
-  import { caseUrl } from '../lib/salesforce.js';
-
-  /**
-   * Renders a small external-link icon next to a case number.
-   * - If sfCaseId is missing or malformed, renders nothing (graceful).
-   * - If showOnHover is true (the default), the icon is invisible at rest
-   *   and revealed when the parent row is hovered. Parent must set the
-   *   CSS class `case-link-host` OR pass showOnHover={false}.
-   * - Clicking opens the case in a new tab; stopPropagation on click so
-   *   the parent row's click handler (if any) doesn't also fire.
-   */
-  export default function CaseLink({ sfCaseId, showOnHover = true, size = 12 }) {
-    const href = caseUrl(sfCaseId);
-    if (!href) return null;
-
-    const baseStyle = {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 20,
-      height: 20,
-      marginLeft: 6,
-      borderRadius: 3,
-      color: 'var(--text-dim)',
-      opacity: showOnHover ? 0 : 1,
-      transition: 'opacity var(--motion-fast), color var(--motion-fast), background var(--motion-fast)',
-      flexShrink: 0,
-      cursor: 'pointer',
-      textDecoration: 'none',
-    };
-
-    return (
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="case-link-icon"
-        title="Open in Salesforce"
-        aria-label="Open case in Salesforce"
-        style={baseStyle}
-        onClick={(e) => e.stopPropagation()}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'var(--color-mmark)';
-          e.currentTarget.style.background = 'var(--hover-surface)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'var(--text-dim)';
-          e.currentTarget.style.background = 'transparent';
-        }}
-      >
-        <ExternalLink size={size} strokeWidth={2} />
-      </a>
-    );
-  }
-  ```
-
-  **Acceptance:**
-  - File exists.
-  - Default export is a component named `CaseLink`.
-  - `grep -n "from 'lucide-react'" src/components/CaseLink.jsx` returns 1.
-  - `npx vite build` passes.
-
-- [x] **Task 2.3: Add the `case-link-host` hover reveal CSS rule**
-
-  Open `src/index.css`. At the bottom, add:
-
-  ```css
-  /* Case link icon — appears only when its parent row is hovered.
-     Parent must carry `case-link-host` class, or `showOnHover` must be false. */
-  .case-link-host .case-link-icon {
-    opacity: 0;
-  }
-  .case-link-host:hover .case-link-icon,
-  .case-link-host:focus-within .case-link-icon {
-    opacity: 1;
-  }
-  ```
-
-  **Acceptance:**
-  - `grep -c "case-link-host\|case-link-icon" src/index.css` returns at least `4`.
-  - `npx vite build` passes.
-
-- [x] **Task 2.4: Wire `CaseLink` into `ActivityLog.jsx` row**
-
-  Open `src/components/ActivityLog.jsx`.
-
-  First, **extend the data layer** to carry `sf_case_id`:
-  - Find where `useActivityData` is consumed and where `case_events` rows are normalized into the `entry` shape. The normalization step (if not already mapping `sf_case_id`) needs to include it so `entry.sf_case_id` is available to the render.
-  - The mock entries around lines 28–100 don't need to change (they're for dev render), but add a few of them with a realistic `sf_case_id` like `'500abc123def4567890'` for visual verification.
-
-  Second, **render** the link:
-  - Find the case number render block around line 669–681. Replace:
-
-    ```jsx
-    <div style={{ width: 96, flexShrink: 0, overflow: 'hidden' }}>
-      <span style={{...}}>{entry.case_number || 'Manual'}</span>
-    </div>
-    ```
-
-  - With:
-
-    ```jsx
-    <div style={{ width: 116, flexShrink: 0, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
-      <span style={{...}}>{entry.case_number || 'Manual'}</span>
-      {entry.case_number && <CaseLink sfCaseId={entry.sf_case_id} />}
-    </div>
-    ```
-
-  - Note: width changes from 96 → 116 to accommodate the 20px icon slot. Adjust neighboring widths only if visual inspection shows misalignment.
-
-  - Add `import CaseLink from './CaseLink.jsx';` at the top.
-
-  - On the **row wrapper `<div>`** (the outermost element of each activity row, currently the element that hosts the `onMouseEnter` that toggles the edit icon's visibility), add `className="case-link-host"` to opt into the hover reveal. If the row already has a className, append it.
-
-  Also update the **edit modal header** render around line 357–361: where `#{entry.case_number}` is displayed, pass the icon too but with `showOnHover={false}` since the modal isn't a row-hover context:
-
-  ```jsx
-  {entry.case_number && (
-    <>
-      <span style={{ color: MC.textMuted, fontSize: 12, fontFamily: 'monospace' }}>
-        #{entry.case_number}
-      </span>
-      <CaseLink sfCaseId={entry.sf_case_id} showOnHover={false} />
-    </>
-  )}
-  ```
-
-  **Acceptance:**
-  - `grep -c "CaseLink\|case-link-host" src/components/ActivityLog.jsx` returns at least `3`.
-  - `grep -c "sf_case_id" src/components/ActivityLog.jsx` returns at least `2`.
-  - `npx vite build` passes.
-  - Visual check: hovering a row with `sf_case_id` reveals the icon; rows without one show no icon; layout width does not shift on hover.
-
-- [x] **Task 2.5: Wire `CaseLink` into the recent-activity preview in `Dashboard.jsx` (if applicable)**
-
-  Check whether `Dashboard.jsx` renders case numbers directly. If it does, apply the same treatment. If it only delegates to `<ActivityLog />`, this task is a no-op — mark complete after confirming.
-
-  ```bash
-  grep -n "case_number\|caseNumber" src/components/Dashboard.jsx
-  ```
-
-  If the grep returns nothing, mark the task done with a note in `progress.txt`: `Task 2.5 no-op — Dashboard delegates to ActivityLog.`
-
-  **Acceptance:**
-  - Either: Dashboard imports `CaseLink` and renders it everywhere a case number appears; or `progress.txt` notes the no-op.
-  - `npx vite build` passes.
-
----
-
-### Phase 3 — Query + verification
-
-- [x] **Task 3.1: Ensure the activity data hook selects `sf_case_id`**
-
-  Open `src/hooks/useActivityData.js` (or wherever the activity feed's Supabase query lives). Find the `.select(...)` call against `case_events` and `ct_cases`. Confirm `sf_case_id` is in the selection; if using `select('*')` it's automatic; if the fields are enumerated, add it.
-
-  **Acceptance:**
-  - `grep -n "sf_case_id\|select(" src/hooks/useActivityData.js` shows `sf_case_id` is either explicitly selected or the query is `select('*')`.
-  - `npx vite build` passes.
-
-- [x] **Task 3.2: Final grep + build sweep**
-
-  ```bash
-  # CaseLink is imported from the lib, not reinvented elsewhere
-  grep -rn "lightning/r/Case/500\|lightning/r/Case/\${" src/ --include="*.jsx" --include="*.js" | grep -v "src/lib/salesforce.js"
-  # ↑ Expect zero matches. The only place that hardcodes the URL is salesforce.js.
-
-  # No leftover hardcoded SF hosts
-  grep -rn "hlag.lightning.force.com" src/ --include="*.jsx" --include="*.js" | grep -v "src/lib/salesforce.js"
-  # ↑ Expect zero matches.
-
-  # CaseLink used in at least two surfaces
-  grep -rn "<CaseLink " src/components/ --include="*.jsx" | wc -l
-  # ↑ Expect ≥ 2.
-
-  # Build
-  npx vite build
-  ```
-
-  If any grep returns unexpected matches, open the file and migrate to use `caseUrl(…)` from the lib. If build fails, debug the last task's change.
-
-  **Acceptance:** all three grep checks produce expected output. Build passes. Commit with message: `feat: SF direct-link icon on case numbers (data + render layers)`.
-
----
-
-## Out of Scope
-
-These are deliberately excluded so this PRD stays small and reviewable:
-
-- ❌ Backfilling `sf_case_id` on historical `ct_cases` / `case_events` rows. Those render without the icon for now; that's fine. A future track (probably Power Query + Salesforce Objects connector) will map `case_number` → SF record Id and backfill.
-- ❌ MPL entries. Processes don't have a Salesforce case by definition. Leave `mpl_entries` alone.
-- ❌ Calls surface (`ct_calls.case_id`). It's a different concern and the column is already wired to a different purpose. Do not touch.
-- ❌ Changing the widget's **visual** rendering of the case number. The bar still shows the display number; only the downstream Supabase write changes.
-- ❌ CT 1.0 row parity — this PRD does not modify `src/ct/` or legacy CT 1.0 code. Only Meridian ActivityLog and downstream.
-- ❌ Account deep links. The `accountUrl` helper in `salesforce.js` is infrastructure for a future track, not exercised here.
-- ❌ Tests. Meridian doesn't have a unit-test suite; grep + build + manual smoke is the verification standard established by prior PRDs.
-- ❌ Copy updates, tooltips beyond the `title="Open in Salesforce"` attribute, keyboard-shortcut surfacing.
-
----
-
-## Testing Strategy
-
-**Per-task:**
-- `grep` acceptance in each task.
-- `npx vite build` passes cleanly.
-- For widget tasks: `node -c public/ct-widget.js` (syntax-only check).
-
-**End-to-end (Davis runs manually after all tasks commit):**
-
-1. Run migration 007 in Supabase SQL editor; confirm output shows `ALTER TABLE … ADD COLUMN` without errors.
-2. Confirm `\d ct_cases` and `\d case_events` in `psql` (or the Supabase table editor) both show a new `sf_case_id text` column.
-3. In a Salesforce case page, click the CT bookmarklet. Widget should appear as before. Resolve the case.
-4. Query Supabase:
-   ```sql
-   select case_number, sf_case_id
-   from ct_cases
-   order by ended_at desc
-   limit 3;
+1. **Inside the initial MERIDIAN_PAYLOAD hydration block** (around line 484, where `state.caseNumber = MERIDIAN_PAYLOAD.caseNumber` is set). Immediately after setting caseNumber, add:
+   ```js
+   state.sessionId = newSessionId();
    ```
-   The most-recent row should show a `500…` value in `sf_case_id`. Older rows will have NULL.
-5. Open Meridian's Activity Log. Hover the row for the case just logged — the external-link icon appears at the right of the case number. Hover the icon, cursor becomes pointer, color shifts to Hapag Orange.
-6. Click the icon. A new tab opens to `https://hlag.lightning.force.com/lightning/r/Case/500…/view` and renders the case. ✅
-7. Hover a row with no `sf_case_id` (historical) — no icon appears. ✅
-8. Tab through the Activity Log with keyboard — focus ring appears on rows and on the icon when it's revealed.
+
+2. **Inside the `_meridianRefresh` handler** (around line 495, where `state.caseNumber = payload.caseNumber` is set). Same treatment:
+   ```js
+   state.sessionId = newSessionId();
+   ```
+
+3. **Inside `handleStartCase`** (around line 330, where a case is started from document.title scrape):
+   ```js
+   function handleStartCase() {
+     var m = document.title.match(/(\d{8,})/);
+     if (m) {
+       state.caseNumber = m[1];
+       state.sessionId  = newSessionId();  // ← add this
+       state.elapsed    = 0;
+       state.isAwaiting = false;
+       startTimer();
+       render();
+     } else {
+       showWidgetToast('No case detected on this page');
+     }
+   }
+   ```
+
+### 2d. Use session_id in every insert
+
+Find every `case_events` insert in handleResolved, handleReclass, handleCall. Each currently has `session_id: null`. Change to:
+```js
+session_id: state.sessionId || null,
+```
+
+Find every `ct_cases` insert in handleResolved and handleReclass. They currently don't have a `session_id` field at all. Add it alongside `case_number`, `sf_case_id`, etc.:
+```js
+session_id: state.sessionId || null,
+```
+
+### 2e. Clear sessionId on reset
+
+Find every place `state.caseNumber = ''` is cleared (reset blocks in handleResolved, handleReclass, handleDismissCase — around lines 252, 292, 345). Add alongside:
+```js
+state.sessionId = '';
+```
+
+### 2f. Verify
+
+```bash
+grep -c "sessionId\|session_id" public/ct-widget.js
+# Expect ≥ 12 matches. (state declaration, newSessionId function, 3 populate sites,
+# 3-4 insert sites, 3 clear sites.)
+
+node -c public/ct-widget.js
+# Expect exit 0.
+```
 
 ---
 
-## Notes for Ralph
+## Step 3 — Update `src/hooks/useActivityData.js`
 
-- **Task 1.1 is the hairiest task.** The bookmarklet is a single-line minified IIFE inside a template literal. Escaping is brittle. If the string breaks, roll back and log for Davis — don't try to be clever. The file must remain parseable by JS.
-- **Do NOT run any SQL.** Migration files are committed, not executed. Davis handles every database change manually.
-- **The edit-modal surface (Task 2.4) uses `showOnHover={false}`.** This is deliberate. Inside a modal, the icon is always visible because there's no row-hover context.
-- **Column widths are fragile.** The activity row uses fixed-width zones for alignment (see CT 1.0 design note: *"Fixed-width zones — type label is 110px, case # is 96px, so every row aligns perfectly"*). When the case# slot grows from 96 → 116 to accommodate the icon, visually verify the rest of the row still aligns. If it doesn't, don't fight it — put the icon in a separate dedicated slot instead.
-- **If Task 3.1 reveals that `useActivityData` selects specific fields instead of `*`**, the absence of `sf_case_id` will silently render no icons even on new entries. This is the most likely cause of "feature looks broken but build passes."
-- **Commit per-task.** Davis wants rollback granularity.
-- **If any task fails or feels wrong, log it in `progress.txt` and move on.** Ralph shipping four of five tasks correctly is better than five of five with a broken one.
+This is where the false Ralph log hurt us. Two things need fixing:
+
+1. The `.select(...)` call doesn't pull `sf_case_id` from `case_events`, doesn't pull `sf_case_id` from `ct_cases` subselect, and the join isn't matching any rows.
+2. `normalizeCaseEvent` doesn't surface `sf_case_id` at all.
+
+### 3a. Change the select
+
+Current (line ~87):
+```js
+.select('id, user_id, type, rfc, timestamp, session_id, ct_cases(id, case_number, duration_s)')
+```
+
+We need two changes:
+- Add `sf_case_id` to the top-level (`case_events.sf_case_id` — migration 015 added this column).
+- Add `sf_case_id` to the `ct_cases` subselect (migration 015 also added it there).
+
+But here's the key: **the relational join syntax `ct_cases(...)` joins on whatever FK Postgres knows about**. Since the widget hasn't been setting session_id, the join has returned `null` for every row. After Step 2 ships and new rows arrive with session_id populated, we want the join to use `session_id` explicitly.
+
+Supabase/PostgREST supports hinting the join with a FK name or column. The cleanest option here is to use an **explicit embedded resource** via the `!inner` or `!left` syntax with the column name, like:
+```js
+.select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, ct_cases!session_id(case_number, duration_s, sf_case_id)')
+```
+
+If that syntax errors (PostgREST is picky), fall back to a **two-query pattern**: select `case_events` first, then batch-fetch the matching `ct_cases` by `session_id IN (...)` and merge in JS. Document whichever you land on in a comment.
+
+### 3b. Fix normalizeCaseEvent
+
+Current:
+```js
+function normalizeCaseEvent(row) {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    type: TYPE_LABEL[row.type] || row.type,
+    rawType: row.type,
+    src: 'case',
+    session_id: row.session_id || null,
+    case_number: row.ct_cases?.case_number || null,
+    case_id: row.ct_cases?.id || null,
+    category: '',
+    dur: row.ct_cases?.duration_s || 0,
+    rfc: row.rfc || false,
+    ts: new Date(row.timestamp || row.created_at),
+  };
+}
+```
+
+Target — surface `sf_case_id` with a two-source fallback (row first, then joined ct_cases):
+```js
+function normalizeCaseEvent(row) {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    type: TYPE_LABEL[row.type] || row.type,
+    rawType: row.type,
+    src: 'case',
+    session_id: row.session_id || null,
+    case_number: row.ct_cases?.case_number || null,
+    case_id: row.ct_cases?.id || null,
+    sf_case_id: row.sf_case_id || row.ct_cases?.sf_case_id || null,  // ← add this
+    category: '',
+    dur: row.ct_cases?.duration_s || 0,
+    rfc: row.rfc || false,
+    ts: new Date(row.timestamp || row.created_at),
+  };
+}
+```
+
+### 3c. Verify
+
+```bash
+grep -c "sf_case_id" src/hooks/useActivityData.js
+# Expect ≥ 2 (one in select, one in normalize)
+
+grep -c "session_id" src/hooks/useActivityData.js
+# Expect ≥ 2 (already there + no change, but make sure grep passes)
+
+npx vite build
+# Expect clean build, 0 errors
+```
 
 ---
+
+## Out of scope
+
+- Backfilling `session_id` onto historical rows (they stay orphaned; that's fine).
+- Removing the `Manual` fallback render in `ActivityLog.jsx` line 679 — we still need it for MPL entries and historical cases.
+- Modifying `handleCall` to also write `ct_cases` — it currently doesn't create a ct_cases row and we're not changing that.
+- Any changes to the MPL pipeline.
+- Any new UI features. This is a pure plumbing fix.
+
+---
+
+## End-to-end verification (Davis runs manually after all changes commit)
+
+1. Run migration 016 in Supabase SQL editor. Expect "Success. No rows returned."
+2. Reinstall the bookmarklet from Meridian (so the new widget code picks up `newSessionId()`).
+3. Open an SF case, click bookmarklet, resolve.
+4. Run:
+   ```sql
+   select ce.type, ce.session_id, ce.sf_case_id, cc.case_number, cc.sf_case_id as cc_sf
+   from case_events ce
+   left join ct_cases cc on cc.session_id = ce.session_id
+   where ce.timestamp > now() - interval '5 minutes'
+   order by ce.timestamp desc;
+   ```
+   Expect: the most recent `case_events` row has a non-null `session_id` and the join returns a matching `ct_cases` row with `case_number` populated.
+5. Refresh Meridian dashboard. The activity row should now display the case number (e.g. `135013902`) instead of `Manual`, and on hover the SF link icon should appear.
+6. Click the icon → opens the live case in Salesforce.
+
+## Notes
+
+- If Step 3a's `ct_cases!session_id(...)` syntax doesn't work in PostgREST, commit the two-query fallback instead. Don't waste time debugging FK hints — the two-query approach is just as correct and ships today.
+- Commit each of the three steps as a separate commit so Davis has rollback granularity: `migration: add session_id index on ct_cases/case_events`, `widget: generate session_id per case session`, `fix: useActivityData join on session_id + surface sf_case_id`.

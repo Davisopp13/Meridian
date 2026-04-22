@@ -82,10 +82,11 @@ export function useActivityData({ userId, userIds, rangeDays }) {
 
     const cutoff = getCutoff(rangeDays);
 
+    // Two independent queries — case_events and mpl_entries in parallel
     const [caseResult, mplResult] = await Promise.all([
       supabase
         .from('case_events')
-        .select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, ct_cases(id, case_number, duration_s, sf_case_id)')
+        .select('id, user_id, type, rfc, timestamp, session_id, sf_case_id')
         .in('user_id', resolvedIds)
         .gte('timestamp', cutoff.toISOString()),
       supabase
@@ -103,7 +104,29 @@ export function useActivityData({ userId, userIds, rangeDays }) {
       return;
     }
 
-    const caseEntries = (caseResult.data || []).map(normalizeCaseEvent);
+    // Batch-fetch ct_cases by session_id and merge in JS.
+    // We join this way (rather than via PostgREST embedded resource) because
+    // the two inserts are independent — there is no FK constraint, only an index.
+    const sessionIds = (caseResult.data || []).map(r => r.session_id).filter(Boolean);
+    const casesBySessionId = {};
+    if (sessionIds.length > 0) {
+      const { data: casesData } = await supabase
+        .from('ct_cases')
+        .select('id, case_number, duration_s, sf_case_id, session_id')
+        .in('session_id', sessionIds);
+      if (casesData) {
+        for (const c of casesData) {
+          if (c.session_id) casesBySessionId[c.session_id] = c;
+        }
+      }
+    }
+
+    const enrichedCaseRows = (caseResult.data || []).map(row => ({
+      ...row,
+      ct_cases: row.session_id ? (casesBySessionId[row.session_id] || null) : null,
+    }));
+
+    const caseEntries = enrichedCaseRows.map(normalizeCaseEvent);
     const mplEntries  = (mplResult.data  || []).map(normalizeMplEntry);
 
     const merged = [...caseEntries, ...mplEntries].sort((a, b) => b.ts - a.ts);

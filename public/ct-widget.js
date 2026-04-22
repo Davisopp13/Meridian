@@ -47,6 +47,7 @@
     caseSubtype:  '',
     accountId:    '',
     sfCaseId:     '',
+    sessionId:    '',
     elapsed:      0,
     timerRunning: false,
     timerId:      null,
@@ -173,6 +174,13 @@
     return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
   }
 
+  function newSessionId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+  }
+
   // ── Hydrate stats from Supabase on load ────────────────────────────────
   function fetchTodayStats() {
     if (!state.userId || !state.relay) return;
@@ -237,12 +245,13 @@
       is_rfc:      false,
       source:      'pip',
       sf_case_id:  state.sfCaseId || null,
+      session_id:  state.sessionId || null,
       entry_date:  getTodayNY(),
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
     }).then(function () {
       relayPost('case_events', {
-        session_id: null,
+        session_id: state.sessionId || null,
         user_id:    state.userId,
         type:       'resolved',
         excluded:   false,
@@ -257,6 +266,7 @@
       state.caseSubtype = '';
       state.accountId   = '';
       state.sfCaseId    = '';
+      state.sessionId   = '';
       state.stats.resolved++;
       showWidgetToast('\u2713 Resolved \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -280,12 +290,13 @@
       is_rfc:      false,
       source:      'pip',
       sf_case_id:  state.sfCaseId || null,
+      session_id:  state.sessionId || null,
       entry_date:  getTodayNY(),
       started_at:  new Date(now.getTime() - state.elapsed * 1000).toISOString(),
       ended_at:    now.toISOString(),
     }).then(function () {
       relayPost('case_events', {
-        session_id: null,
+        session_id: state.sessionId || null,
         user_id:    state.userId,
         type:       'reclassified',
         excluded:   false,
@@ -300,6 +311,7 @@
       state.caseSubtype = '';
       state.accountId   = '';
       state.sfCaseId    = '';
+      state.sessionId   = '';
       state.stats.reclass++;
       showWidgetToast('\u21a9 Reclassified \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -318,7 +330,7 @@
       notes:      null,
     }).then(function () {
       relayPost('case_events', {
-        session_id: null,
+        session_id: state.sessionId || null,
         user_id:    state.userId,
         type:       'call',
         excluded:   false,
@@ -339,6 +351,7 @@
     var m = document.title.match(/(\d{8,})/);
     if (m) {
       state.caseNumber = m[1];
+      state.sessionId  = newSessionId();
       state.elapsed    = 0;
       state.isAwaiting = false;
       startTimer();
@@ -355,6 +368,7 @@
     state.caseSubtype = '';
     state.accountId   = '';
     state.sfCaseId    = '';
+    state.sessionId   = '';
     state.elapsed     = 0;
     state.isAwaiting  = false;
     render();
@@ -496,6 +510,7 @@
     state.caseSubtype = MERIDIAN_PAYLOAD.caseSubtype || '';
     state.accountId   = MERIDIAN_PAYLOAD.accountId   || '';
     state.sfCaseId    = MERIDIAN_PAYLOAD.sfCaseId    || '';
+    state.sessionId   = newSessionId();
     startTimer();
     render();
   }
@@ -512,6 +527,7 @@
       state.caseSubtype = payload.caseSubtype || '';
       state.accountId   = payload.accountId   || '';
       state.sfCaseId    = payload.sfCaseId    || '';
+      state.sessionId   = newSessionId();
       if (!state.timerRunning) {
         state.elapsed = 0;
         startTimer();
