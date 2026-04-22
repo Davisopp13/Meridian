@@ -4741,3 +4741,23 @@ Learnings for future iterations:
   - useMassReclass returns flat props (modalState, cases, batchId, error, openModal, confirm, undo, close) — no modalProps wrapper object
   - PiP content in buildMplBar() is a closure over component state; wrapping in a fragment is sufficient to add the modal overlay without any structural changes
   - MassReclassModal uses position:fixed which is relative to the PiP window viewport — correct overlay behavior
+
+## Iteration 36 (mass-reclass) - Task 8: Verify no changes to protected files
+- Created scripts/check-mass-reclass-scope.sh — executable bash script that runs three git diff --stat checks
+- Checks: public/ct-widget.js, public/meridian-relay.html, src/ct/CtApp.jsx against HEAD~7..HEAD
+- Script exits 0 on success, 1 if any file shows diff output
+- Ran script: all three checks passed ("OK: ... untouched")
+
+Files changed:
+  scripts/check-mass-reclass-scope.sh (created)
+  PRD.md (Task 8 marked [x])
+
+Tests passed:
+  - bash scripts/check-mass-reclass-scope.sh → exit 0
+  - git diff --stat HEAD~7..HEAD for all three protected files → empty (no output)
+
+Learnings for future iterations:
+  - git diff --stat with empty output means no changes — that's the passing condition, NOT an error
+  - Script uses set -e so any unexpected git failure also causes non-zero exit
+  - The 7-commit window (HEAD~7) covers the 7 mass-reclass commits (tasks 1-7) on this branch
+---

@@ -286,7 +286,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
 
 ### Phase 5: Regression Guard
 
-- [ ] **Task 8: Verify no changes to protected files**
+- [x] **Task 8: Verify no changes to protected files**
   - Run these checks and fail the task if any produce output:
     - `git diff --stat HEAD~7..HEAD -- public/ct-widget.js` — must be empty (widget file untouched).
     - `git diff --stat HEAD~7..HEAD -- public/meridian-relay.html` — must be empty (relay untouched).
