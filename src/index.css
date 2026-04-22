@@ -88,3 +88,13 @@ body.widget-mode {
   width: 100%;
   height: 100vh;
 }
+
+/* Case link icon — appears only when its parent row is hovered.
+   Parent must carry `case-link-host` class, or `showOnHover` must be false. */
+.case-link-host .case-link-icon {
+  opacity: 0;
+}
+.case-link-host:hover .case-link-icon,
+.case-link-host:focus-within .case-link-icon {
+  opacity: 1;
+}

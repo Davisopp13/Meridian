@@ -316,7 +316,7 @@ Things the codebase already has that this PRD builds on:
   - `grep -n "from 'lucide-react'" src/components/CaseLink.jsx` returns 1.
   - `npx vite build` passes.
 
-- [ ] **Task 2.3: Add the `case-link-host` hover reveal CSS rule**
+- [x] **Task 2.3: Add the `case-link-host` hover reveal CSS rule**
 
   Open `src/index.css`. At the bottom, add:
 
