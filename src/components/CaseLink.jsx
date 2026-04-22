@@ -14,19 +14,22 @@ export default function CaseLink({ sfCaseId, showOnHover = true, size = 12 }) {
     marginLeft: 6,
     borderRadius: 3,
     color: 'var(--text-dim)',
-    opacity: showOnHover ? 0 : 1,
     transition: 'opacity var(--motion-fast), color var(--motion-fast), background var(--motion-fast)',
     flexShrink: 0,
     cursor: 'pointer',
     textDecoration: 'none',
   };
 
+  const className = showOnHover
+    ? 'case-link-icon case-link-icon--hover'
+    : 'case-link-icon';
+
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="case-link-icon"
+      className={className}
       title="Open in Salesforce"
       aria-label="Open case in Salesforce"
       style={baseStyle}

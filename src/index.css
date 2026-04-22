@@ -139,12 +139,16 @@ body.widget-mode {
   font-family: var(--font-family);
 }
 
-/* Case link icon — appears only when its parent row is hovered.
-   Parent must carry `case-link-host` class, or `showOnHover` must be false. */
-.case-link-host .case-link-icon {
+/* Case link icon — default visible.
+   With `--hover` modifier: hidden until parent `.case-link-host` is hovered/focused.
+   No inline opacity on the element — this stylesheet owns visibility entirely. */
+.case-link-icon {
+  opacity: 1;
+}
+.case-link-host .case-link-icon--hover {
   opacity: 0;
 }
-.case-link-host:hover .case-link-icon,
-.case-link-host:focus-within .case-link-icon {
+.case-link-host:hover .case-link-icon--hover,
+.case-link-host:focus-within .case-link-icon--hover {
   opacity: 1;
 }
