@@ -4198,3 +4198,46 @@ Learnings for future iterations:
   - `#E8540A` hex may appear both in const C AND directly in JSX inline style spreads — grep the whole file before editing
   - Only replace ease transitions with motion tokens; leave custom cubic-bezier hover animations (they have specific timing intent)
 ---
+
+## Iteration Token-2.2 - Task 2.2 (Token Consolidation PRD): Migrate SignIn.jsx and auth/SignIn.jsx
+- src/components/SignIn.jsx: updated const C — bg→var(--bg-deep), card→var(--bg-card), border→var(--border), textPri→var(--text-pri), textSec→var(--text-dim), accent→var(--color-mmark), blue→var(--color-mbtn). Also fixed inline `rgba(255,255,255,0.06)` on input → var(--hover-surface).
+- src/components/auth/SignIn.jsx: no const C, all inline values. Migrated: '#0f0f1e'→var(--bg-deep), '#1a1a2e'→var(--bg-card), border rgba→var(--border), text rgba(0.93)→var(--text-pri), text rgba(0.45)→var(--text-dim), input bg rgba(0.06)→var(--hover-surface), '#003087'→var(--color-mbtn), '#E8540A'→var(--color-mmark), transition→var(--motion-fast). Left disabled state `rgba(0,48,135,0.5)` and `rgba(255,255,255,0.35)` as-is (no token for opacity-derived disabled states).
+- Acceptance checks:
+  - `grep -n "#003087|#E8540A|#0f0f1e|#1a1a2e" src/components/SignIn.jsx src/components/auth/SignIn.jsx` → 0 matches ✓
+  - `npx vite build` → ✓ built in 1.35s, 0 errors
+
+Files changed:
+  src/components/SignIn.jsx (const C + one inline rgba)
+  src/components/auth/SignIn.jsx (all inline values)
+  PRD.md (Task 2.2 marked [x])
+
+Learnings for future iterations:
+  - auth/SignIn.jsx had no const C — values were all inline; replace_all is useful for repeated patterns like input styles
+  - Disabled-state rgba(0,48,135,0.5) (blue at 50% opacity) has no token; leave as-is — the grep check targets only hex literals not rgba
+  - rgba(255,255,255,0.35) (subtler dim) has no token either — leave as-is; closest would be var(--text-dim) at 0.45 but exact values differ
+---
+
+## Iteration Token-2.3 - Task 2.3 (Token Consolidation PRD): Migrate auth/SignUp.jsx
+- No const C in this file — all values inline, same pattern as auth/SignIn.jsx from Task 2.2
+- Migrated inputStyle: rgba(0.06)→var(--hover-surface), rgba(0.12)→var(--border), rgba(0.93)→var(--text-pri)
+- Migrated labelStyle: rgba(0.45)→var(--text-dim)
+- Outer div: '#0f0f1e'→var(--bg-deep)
+- Card div: '#1a1a2e'→var(--bg-card), rgba(0.12)→var(--border)
+- Confirm view: h2 rgba(0.93)→var(--text-pri), p rgba(0.45)→var(--text-dim), strong rgba(0.8)→var(--text-sec), link #E8540A→var(--color-mmark)
+- Form view: h1 rgba(0.93)→var(--text-pri), p rgba(0.45)→var(--text-dim)
+- Button: '#003087'→var(--color-mbtn), transition 'all 150ms'→'all var(--motion-fast)'
+- Footer: rgba(0.35)→var(--text-dim), #E8540A→var(--color-mmark)
+- Left as-is: disabled state rgba(0,48,135,0.5) (no token), error block colors (semantic reds), #fff on button text
+- grep -n "#003087|#E8540A|#0f0f1e|#1a1a2e" → 0 matches ✓
+- npx vite build → ✓ built in 1.45s, 0 errors
+
+Files changed:
+  src/components/auth/SignUp.jsx (inline hex/rgba → token vars)
+  PRD.md (Task 2.3 marked [x])
+
+Learnings for future iterations:
+  - auth/SignUp.jsx had no const C — all inline replacements, same approach as auth/SignIn.jsx
+  - rgba(0.8) has no exact token; var(--text-sec) (0.75) is the best match per translation table logic
+  - rgba(0.35) has no exact token; var(--text-dim) (0.45) is the best dim match
+  - Disabled-state rgba(0,48,135,0.5) intentionally left as-is (no opacity-derived button token)
+---

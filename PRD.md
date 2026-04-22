@@ -193,7 +193,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Both files have local `const C`. Migrate both.
   - **Acceptance:** `grep -n "#003087\|#E8540A\|#0f0f1e\|#1a1a2e" src/components/SignIn.jsx src/components/auth/SignIn.jsx` = 0. Build passes.
 
-- [ ] **Task 2.3: `src/components/auth/SignUp.jsx`**
+- [x] **Task 2.3: `src/components/auth/SignUp.jsx`**
   - **Acceptance:** no hex in file. Build passes.
 
 - [ ] **Task 2.4: Onboarding trio — `Step1Profile.jsx`, `Step2Team.jsx`, `Step3Bookmarklet.jsx`**

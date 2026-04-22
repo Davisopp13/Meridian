@@ -47,45 +47,45 @@ export default function SignUp({ onSwitchToSignIn }) {
 
   const inputStyle = {
     width: '100%', height: 48, padding: '0 16px',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.12)',
-    borderRadius: 10, color: 'rgba(255,255,255,0.93)',
+    background: 'var(--hover-surface)',
+    border: '1px solid var(--border)',
+    borderRadius: 10, color: 'var(--text-pri)',
     fontSize: 15, outline: 'none', boxSizing: 'border-box',
   }
 
   const labelStyle = {
     display: 'block', fontSize: 11, fontWeight: 700,
-    color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase',
+    color: 'var(--text-dim)', textTransform: 'uppercase',
     letterSpacing: '0.08em', marginBottom: 6,
   }
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#0f0f1e',
+      minHeight: '100vh', background: 'var(--bg-deep)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
         width: '100%', maxWidth: 440,
-        background: '#1a1a2e',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
         borderRadius: 16, padding: 40,
         boxSizing: 'border-box',
       }}>
         {view === 'confirm' ? (
           <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{ fontSize: 40, marginBottom: 16 }}>✉️</div>
-            <h2 style={{ color: 'rgba(255,255,255,0.93)', fontSize: 20, fontWeight: 800, marginBottom: 8, margin: '0 0 8px' }}>
+            <h2 style={{ color: 'var(--text-pri)', fontSize: 20, fontWeight: 800, marginBottom: 8, margin: '0 0 8px' }}>
               Check your email
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+            <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
               We sent a confirmation link to{' '}
-              <strong style={{ color: 'rgba(255,255,255,0.8)' }}>{email}</strong>.
+              <strong style={{ color: 'var(--text-sec)' }}>{email}</strong>.
               Click the link to activate your account, then come back here to sign in.
             </p>
             <span
               onClick={onSwitchToSignIn}
               style={{
-                display: 'inline-block', marginTop: 24, color: '#E8540A',
+                display: 'inline-block', marginTop: 24, color: 'var(--color-mmark)',
                 cursor: 'pointer', fontWeight: 700, fontSize: 14,
               }}
             >
@@ -96,10 +96,10 @@ export default function SignUp({ onSwitchToSignIn }) {
           <>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
               <img src="/meridian-mark-192.png" style={{ width: 64, height: 64, borderRadius: 10, marginBottom: 24 }} alt="Meridian" />
-              <h1 style={{ margin: 0, color: 'rgba(255,255,255,0.93)', fontSize: 22, fontWeight: 800, textAlign: 'center' }}>
+              <h1 style={{ margin: 0, color: 'var(--text-pri)', fontSize: 22, fontWeight: 800, textAlign: 'center' }}>
                 Create your account
               </h1>
-              <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.45)', fontSize: 13, textAlign: 'center' }}>
+              <p style={{ margin: '8px 0 0', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
                 Hapag-Lloyd IDT &amp; Customer Service
               </p>
             </div>
@@ -166,21 +166,21 @@ export default function SignUp({ onSwitchToSignIn }) {
               style={{
                 width: '100%', height: 48, borderRadius: 10, border: 'none',
                 background: loading || !fullName || !email || !password || !confirmPassword
-                  ? 'rgba(0,48,135,0.5)' : '#003087',
+                  ? 'rgba(0,48,135,0.5)' : 'var(--color-mbtn)',
                 color: '#fff', fontSize: 15, fontWeight: 700,
                 cursor: loading || !fullName || !email || !password || !confirmPassword
                   ? 'not-allowed' : 'pointer',
-                transition: 'all 150ms',
+                transition: 'all var(--motion-fast)',
               }}
             >
               {loading ? 'Creating account…' : 'Create Account'}
             </button>
 
-            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
+            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-dim)' }}>
               Already have an account?{' '}
               <span
                 onClick={onSwitchToSignIn}
-                style={{ color: '#E8540A', cursor: 'pointer', fontWeight: 700 }}
+                style={{ color: 'var(--color-mmark)', cursor: 'pointer', fontWeight: 700 }}
               >
                 Sign in
               </span>
