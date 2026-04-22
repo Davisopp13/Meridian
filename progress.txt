@@ -4670,3 +4670,28 @@ Learnings for future iterations:
   - The `shouldDelete` flag pattern is clean for selectively deferring the standard delete-after-consume without restructuring the whole function
   - Task 5 is next: create useMassReclass.js hook with openModal/confirm/undo/close actions
 ---
+
+## Iteration mass-reclass-5 - Task 5 (Mass Reclass PRD): Create useMassReclass.js hook
+- Created src/hooks/useMassReclass.js exporting default hook `useMassReclass()`
+- State shape: { modalState, cases, batchId, error, triggerRowId } initialized to INITIAL_STATE
+- Uses useState + stateRef (useRef tracking current state) to avoid stale closures in async callbacks
+- Exposed actions: openModal(cases, triggerRowId), confirm(), undo(), close()
+- confirm(): sets submitting, calls supabase.rpc('bulk_reclassify_cases', { p_case_refs: cases }), on success extracts data[0].batch_id, on error populates error message
+- undo(): calls supabase.rpc('undo_mass_reclass_batch', { p_batch_id: batchId }), resets to idle
+- close(): deletes pending_triggers row by triggerRowId (if set), resets to idle
+- RPC returns TABLE so data is an array; data[0].batch_id is the batch UUID
+
+Files changed:
+  src/hooks/useMassReclass.js (created)
+  PRD.md (Task 5 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.30s (0 errors)
+  - `grep -c "bulk_reclassify_cases|undo_mass_reclass_batch" src/hooks/useMassReclass.js` → 2 (>= 2)
+
+Learnings for future iterations:
+  - stateRef pattern (useRef mirroring useState value) lets async callback functions read fresh state without needing stale closure deps
+  - bulk_reclassify_cases RPC returns TABLE so supabase.rpc() returns data as array; extract data[0].batch_id
+  - close() defers the pending_triggers delete (not confirm()) because the trigger row must stay alive while modal is open (per Task 4 design)
+  - Task 6 is next: create MassReclassModal.jsx with confirming/submitting/success/error visual states
+---

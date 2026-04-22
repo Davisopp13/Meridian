@@ -238,7 +238,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
   - Test: `npx vite build 2>&1 | tail -10` contains no errors.
   - Test: `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` prints `>= 3`.
 
-- [ ] **Task 5: Create `useMassReclass.js` hook**
+- [x] **Task 5: Create `useMassReclass.js` hook**
   - Create `src/hooks/useMassReclass.js` exporting a default hook that manages mass-reclass modal state.
   - State shape:
     ```js
