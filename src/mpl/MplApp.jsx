@@ -12,6 +12,8 @@ import AuthScreen from '../components/auth/AuthScreen.jsx'
 import { PipErrorBoundary } from '../components/PipErrorBoundary.jsx'
 import MplLaunchError from '../components/MplLaunchError.jsx'
 import { getMplSizeForState, getMplBarWidth } from '../lib/constants.js'
+import useMassReclass from '../hooks/useMassReclass.js'
+import MassReclassModal from '../components/MassReclassModal.jsx'
 
 // ── Widget mode detection ──────────────────────────────────────────────────
 const isMplWidget = new URLSearchParams(window.location.search).get('mode') === 'mpl-widget'
@@ -43,6 +45,9 @@ export default function MplApp() {
 
   // ── Stats ──────────────────────────────────────────────────────────────
   const { processes: processCount, refetch } = useStats()
+
+  // ── Mass reclass ───────────────────────────────────────────────────────
+  const massReclass = useMassReclass()
 
   // ── Refs ──────────────────────────────────────────────────────────────
   const processTimers = useRef({})  // { [id]: intervalId }
@@ -373,6 +378,7 @@ export default function MplApp() {
 
   usePendingTriggers(user?.id, {
     handleCaseStart: () => {},
+    onMassReclass: (cases, triggerRowId) => massReclass.openModal(cases, triggerRowId),
     handleProcessStart: () => {
       const now = Date.now()
       if (now - lastProcessStartRef.current < 2000) {
@@ -564,35 +570,46 @@ export default function MplApp() {
   // ── buildMplBar — JSX rendered into PiP window ────────────────────────
   function buildMplBar() {
     return (
-      <MplPipBar
-        processes={processes}
-        categories={categories}
-        showSwimlane={showSwimlane}
-        swimlaneOpen={swimlaneOpen}
-        chipStripProcessId={chipStripProcessId}
-        quickLogOpen={quickLogOpen}
-        onToggleSwimlane={handleToggleSwimlane}
-        processCount={processCount}
-        onOpenDashboard={handleOpenDashboard}
-        onStart={handleStart}
-        onQuickLog={handleQuickLog}
-        onConfirmProcess={handleConfirmProcess}
-        onCancelProcess={handleCancelProcess}
-        onLogProcess={handleProcessLog}
-        onChipStripConfirm={handleChipStripConfirm}
-        onChipStripCancel={handleChipStripCancel}
-        onQuickLogConfirm={handleQuickLogConfirm}
-        onQuickLogCancel={handleQuickLogCancel}
-        onMinimize={handleMinimize}
-        onRestore={handleRestore}
-        isMinimized={isMinimized}
-        connectionStatus={connectionStatus}
-        pipToast={pipToast}
-        recoveredProcesses={recoveredProcesses}
-        onRecoveryResume={handleRecoveryResume}
-        onRecoveryLogNow={handleRecoveryLogNow}
-        onRecoveryDiscard={handleRecoveryDiscard}
-      />
+      <>
+        <MplPipBar
+          processes={processes}
+          categories={categories}
+          showSwimlane={showSwimlane}
+          swimlaneOpen={swimlaneOpen}
+          chipStripProcessId={chipStripProcessId}
+          quickLogOpen={quickLogOpen}
+          onToggleSwimlane={handleToggleSwimlane}
+          processCount={processCount}
+          onOpenDashboard={handleOpenDashboard}
+          onStart={handleStart}
+          onQuickLog={handleQuickLog}
+          onConfirmProcess={handleConfirmProcess}
+          onCancelProcess={handleCancelProcess}
+          onLogProcess={handleProcessLog}
+          onChipStripConfirm={handleChipStripConfirm}
+          onChipStripCancel={handleChipStripCancel}
+          onQuickLogConfirm={handleQuickLogConfirm}
+          onQuickLogCancel={handleQuickLogCancel}
+          onMinimize={handleMinimize}
+          onRestore={handleRestore}
+          isMinimized={isMinimized}
+          connectionStatus={connectionStatus}
+          pipToast={pipToast}
+          recoveredProcesses={recoveredProcesses}
+          onRecoveryResume={handleRecoveryResume}
+          onRecoveryLogNow={handleRecoveryLogNow}
+          onRecoveryDiscard={handleRecoveryDiscard}
+        />
+        <MassReclassModal
+          state={massReclass.modalState}
+          cases={massReclass.cases}
+          batchId={massReclass.batchId}
+          error={massReclass.error}
+          onConfirm={massReclass.confirm}
+          onUndo={massReclass.undo}
+          onClose={massReclass.close}
+        />
+      </>
     )
   }
 

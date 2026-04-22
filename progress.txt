@@ -4544,3 +4544,257 @@ Learnings for future iterations:
   - The `animation` shorthand is correctly handled by the longhand `animation-duration` override
   - No DevTools visual check was performed (no browser available in CLI context); verification was code-analysis only
 ---
+
+## Iteration Token-3.3 - Task 3.3: Grep assertion pass — final check
+
+**What was found and fixed:**
+
+- `const C = {}` still present in 9 components despite previous migrations — all values were already var() refs but the indirection object was never removed. Fixed by removing const C block and inlining var() strings directly.
+  - Files: Navbar.jsx, SignIn.jsx, Dashboard.jsx, SettingsPage.jsx, DashboardTable.jsx, InsightsEmptyState.jsx, Step1Profile.jsx, Step2Team.jsx, Step3Bookmarklet.jsx
+
+- `theme === 'light'` ternary in InsightsTabs.jsx — removed useTheme import, replaced ternaries with `var(--tab-active-bg)` / `var(--hover-surface)` / `var(--tab-active-fg)` / `var(--text-dim)`.
+
+- Hardcoded `'#E8540A'` in 11 files → `'var(--color-mmark)'`:
+  - ActivityLog.jsx (TYPE_STYLE Awaiting + MC.orange)
+  - AgentHandleTimePanel.jsx (hover color + totalActivity cell)
+  - AgentFilterStrip.jsx (active chip bg + hover text color)
+  - AgentRow.jsx (COLORS.totalActivity)
+  - PendingTriggerBanner.jsx (pulse dot + launch button)
+  - admin/CategoriesPanel.jsx, TeamsPanel.jsx, UsersPanel.jsx (error text)
+  - admin/UserRow.jsx (badge color)
+  - MinimizedStrip.jsx (case number + swap dot + case text)
+  - MplLaunchError.jsx (retry button bg)
+
+- Hardcoded `'#003087'` in 2 files → `'var(--color-mbtn)'`:
+  - Dashboard.jsx METRICS (casesAndCalls chart color)
+  - feedback/SuggestionStatusBadge.jsx (in_progress status badge bg)
+
+- Hardcoded `'#1a1a2e'` in SettingsPage.jsx → `'var(--bg-card)'` (dark theme preview swatch)
+
+**Grep results (all pass):**
+- `grep -rln "const C = {" src/components/ | wc -l` → 0 ✓
+- `grep -rn "var(--text-primary)\|var(--text-secondary)" src/` → empty ✓
+- `grep -rn "fontFamily.*Segoe\|fontFamily.*Inter" src/components/` → empty ✓
+- `grep -rn "theme === 'light' ?" src/components/` → empty ✓
+- `grep -rn "'#003087'\|'#E8540A'\|'#0f0f1e'\|'#1a1a2e'" src/components/` → empty ✓
+- `npx vite build` → ✓ built in 1.35s, 0 errors
+
+**Files changed:** 22 component files + PRD.md
+
+**Learnings for future iterations:**
+- Previous per-task migrations replaced hex values inside const C objects but never removed the const C indirection. The final sweep catches all these lingering objects.
+- `grep` exit code 1 = no matches (pass), not failure — chain checks with `;` not `&&` to see all results even when some return empty.
+- For template literals like `1px solid ${C.border}`, replace the whole template literal with a plain string FIRST, before doing replace_all on C.border — avoids redundant `${'var(...)'}` patterns.
+- Step3Bookmarklet.jsx bookmarklet strings contain hex CSS inside JS string literals (no surrounding single quotes) — these do NOT match the `'#hex'` grep pattern and should NOT be changed (bookmarklet code, out of scope).
+- Dashboard.jsx METRICS uses `color:` values for chart line/bar colors — these ARE brand tokens (blue/orange) and should be migrated to var() even though they look like semantic chart colors.
+---
+
+## Iteration MassReclass-1 - Task 1: Create migration 020_mass_reclass.sql
+- Created supabase/migrations/020_mass_reclass.sql
+- All SQL wrapped in BEGIN/COMMIT transaction
+- DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT for source CHECK ('pip', 'manual', 'bulk')
+- ALTER TABLE ADD COLUMN IF NOT EXISTS batch_id uuid on ct_cases and case_events
+- Partial indexes on batch_id (WHERE batch_id IS NOT NULL) for both tables
+- bulk_reclassify_cases(jsonb) RPC: loops over p_case_refs array, inserts ct_cases + case_events rows per entry, returns (batch_id, case_count)
+- undo_mass_reclass_batch(uuid) RPC: deletes case_events then ct_cases by batch_id + user_id, returns deleted row count
+- GRANT EXECUTE on both functions to authenticated role
+- Acceptance: node -e file exists and non-empty → ok ✓
+- Branch: feat/mass-reclass created off main
+
+Files changed:
+  supabase/migrations/020_mass_reclass.sql (created)
+  PRD.md (Task 1 marked [x])
+
+Learnings for future iterations:
+  - Migration 019 was the last; 020 is correct next number (always ls supabase/migrations/ first)
+  - Davis applies migration manually via Supabase SQL Editor — do NOT run supabase db push
+  - RPC uses SECURITY DEFINER + auth.uid() guard so anon key cannot call it from the bookmarklet; only authenticated PiP session can invoke bulk_reclassify_cases
+  - batch_id on both tables enables surgical undo without needing a separate undo_log table
+---
+
+## Iteration N - Task 2: List-view detection in meridian-trigger.js
+- Added list-view detection branch to the existing SF code path in meridian-trigger.js
+- Detection uses URL check (`/lightning/o/Case/list`) OR plain DOM querySelectorAll for `tr[data-row-key-value]` starting with '500'
+- If list view detected: calls `handleListViewContext(relay, userId, showToast)` and returns (skips single-case widget flow)
+- Added stub `handleListViewContext` function (shows info toast); Task 3 replaces with real implementation
+- Both tests pass: `node -c` → syntax ok; `grep -c "handleListViewContext"` → 2 (≥ 2 required)
+
+Files changed:
+  public/meridian-trigger.js (list-view detection branch + stub function)
+  PRD.md (Task 2 marked [x])
+
+Learnings for future iterations:
+  - function declarations inside the IIFE are hoisted, so `handleListViewContext` can be called before its declaration in source order
+  - Task 3 will replace the stub with walkShadow + collectSelectedCases + full handleListViewContext; the DOM check also gets enhanced to use walkShadow for shadow-DOM traversal
+  - Decision (from PRD Task 3 note): cases array is stuffed into `case_number` field as JSON string to reuse existing pending_triggers schema without a migration
+---
+
+## Iteration mass-reclass-3 - Task 3 (Mass Reclass PRD): Implement list-view DOM scrape in meridian-trigger.js
+- Added `walkShadow(root, visitor)` function at the top of the IIFE (after var declarations), using an iterative stack approach to traverse both light DOM and shadow roots
+- Added `collectSelectedCases()` function: calls walkShadow on document.documentElement, collects `tr[data-row-key-value]` elements starting with '500', checks `.checked` on the inner checkbox, extracts sf_case_id from data-row-key-value, extracts case_number via primary `th[data-label="Case Number"] span[title]` and fallback `/^\d{8,}$/` scan
+- Replaced the stub `handleListViewContext` with a full implementation: calls collectSelectedCases(), shows 'Select cases' toast if empty, else builds pending_triggers payload with type='MERIDIAN_MASS_RECLASS', stores cases array JSON in case_number field, sends via SUPABASE_INSERT_TRIGGER relay message, listens for response with 10s timeout cleanup
+- Decision note preserved: cases array is stuffed into `case_number` field (JSON text) to reuse existing pending_triggers schema without a migration. PiP-side handler parses it back out.
+
+Files changed:
+  public/meridian-trigger.js
+
+Tests passed:
+  - `node -c public/meridian-trigger.js` → syntax ok
+  - `grep -c "walkShadow\|collectSelectedCases\|handleListViewContext" public/meridian-trigger.js` → 7 (>= 6)
+
+Learnings for future iterations:
+  - walkShadow uses an iterative stack (not recursion) to avoid call-stack overflows on large DOMs
+  - node.getAttribute guard (`if (!node.getAttribute) return`) is required since non-Element nodes (Text, Comment) don't have getAttribute
+  - The `data-row-key-value` attribute holds the SF Case ID even when `aria-selected="false"` — never trust aria-selected
+  - collectSelectedCases returns an empty array if no checked rows — handleListViewContext checks length > 0 before firing relay
+  - Task 4 is next: extend usePendingTriggers.js to route MERIDIAN_MASS_RECLASS events to a new onMassReclass handler
+---
+
+## Iteration mass-reclass-4 - Task 4 (Mass Reclass PRD): Extend usePendingTriggers.js to route mass_reclass
+- Added `else if (trigger.type === 'MERIDIAN_MASS_RECLASS')` branch to `consumeTrigger` in usePendingTriggers.js
+- Branch parses `trigger.case_number` as JSON; if parsing fails or array is empty, logs warning and lets `shouldDelete = true` (immediate delete)
+- If valid non-empty array: calls `handlersRef.current.onMassReclass(cases, trigger.id)` and sets `shouldDelete = false` (deferred — useMassReclass.close() will delete the row later)
+- Added `shouldDelete` boolean flag controlling the existing delete-after-consume logic — only delete immediately if the trigger was NOT dispatched to a deferred handler
+- Updated JSDoc to include `onMassReclass?: Function` in the handlers parameter type
+
+Files changed:
+  src/hooks/usePendingTriggers.js
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.34s (0 errors)
+  - `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` → 6 (>= 3)
+
+Learnings for future iterations:
+  - For mass_reclass, trigger row deletion is deferred (shouldDelete=false) so the row persists while the modal is open; useMassReclass.close() calls the delete
+  - For invalid/empty cases, delete the trigger row immediately (shouldDelete stays true) to avoid stuck rows
+  - The `shouldDelete` flag pattern is clean for selectively deferring the standard delete-after-consume without restructuring the whole function
+  - Task 5 is next: create useMassReclass.js hook with openModal/confirm/undo/close actions
+---
+
+## Iteration mass-reclass-5 - Task 5 (Mass Reclass PRD): Create useMassReclass.js hook
+- Created src/hooks/useMassReclass.js exporting default hook `useMassReclass()`
+- State shape: { modalState, cases, batchId, error, triggerRowId } initialized to INITIAL_STATE
+- Uses useState + stateRef (useRef tracking current state) to avoid stale closures in async callbacks
+- Exposed actions: openModal(cases, triggerRowId), confirm(), undo(), close()
+- confirm(): sets submitting, calls supabase.rpc('bulk_reclassify_cases', { p_case_refs: cases }), on success extracts data[0].batch_id, on error populates error message
+- undo(): calls supabase.rpc('undo_mass_reclass_batch', { p_batch_id: batchId }), resets to idle
+- close(): deletes pending_triggers row by triggerRowId (if set), resets to idle
+- RPC returns TABLE so data is an array; data[0].batch_id is the batch UUID
+
+Files changed:
+  src/hooks/useMassReclass.js (created)
+  PRD.md (Task 5 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.30s (0 errors)
+  - `grep -c "bulk_reclassify_cases|undo_mass_reclass_batch" src/hooks/useMassReclass.js` → 2 (>= 2)
+
+Learnings for future iterations:
+  - stateRef pattern (useRef mirroring useState value) lets async callback functions read fresh state without needing stale closure deps
+  - bulk_reclassify_cases RPC returns TABLE so supabase.rpc() returns data as array; extract data[0].batch_id
+  - close() defers the pending_triggers delete (not confirm()) because the trigger row must stay alive while modal is open (per Task 4 design)
+  - Task 6 is next: create MassReclassModal.jsx with confirming/submitting/success/error visual states
+---
+
+## Iteration [mass-reclass-6] - Task 6: Create MassReclassModal.jsx
+- Created src/components/MassReclassModal.jsx
+- Four visual states: confirming (case list + Cancel/Reclassify N cases buttons), submitting (spinner + message, no buttons), success (CountdownBody with live 10-second useEffect/setInterval countdown + Undo/Dismiss), error (error message + Close/Retry)
+- CountdownBody as internal component; auto-calls onClose when secondsLeft hits 0
+- Overlay pattern: position fixed, inset 0, semi-transparent backdrop + blur (matches BookmarkletModal pattern)
+- Card width 360px, uses CSS variables throughout (--bg-card, --border, --text-pri, --text-sec, --color-reclass)
+- Spinner via CSS @keyframes mrm-spin injected via <style> tag (inline styles only, no external CSS)
+- Scrollable case list in confirming state (maxHeight 240px, overflowY auto)
+- Props: { state, cases, batchId, error, onConfirm, onUndo, onClose }
+
+Files changed:
+  src/components/MassReclassModal.jsx (created)
+  PRD.md (Task 6 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.30s (0 errors)
+  - `grep -c "cases.length|onConfirm|onUndo" src/components/MassReclassModal.jsx` → 8 (>= 3)
+
+Learnings for future iterations:
+  - No RFCPrompt component exists — BookmarkletModal is the closest modal reference in this codebase
+  - CountdownBody needs onClose in its dep array (eslint), but auto-close on countdown=0 works cleanly with useEffect keyed on secondsLeft
+  - Task 7 is next: wire useMassReclass + MassReclassModal into MplApp.jsx
+---
+---
+
+## Iteration 35 (mass-reclass) - Task 7: Wire useMassReclass + MassReclassModal into MplApp.jsx
+- Modified src/mpl/MplApp.jsx
+- Added imports: `useMassReclass` from hooks, `MassReclassModal` from components
+- Called `const massReclass = useMassReclass()` after `useStats()` near other hook calls
+- Added `onMassReclass: (cases, triggerRowId) => massReclass.openModal(cases, triggerRowId)` to the `usePendingTriggers` handlers object (alongside existing handleCaseStart/handleProcessStart)
+- Wrapped `buildMplBar()` return in a fragment: `<>...</>` containing `<MplPipBar .../>` followed by `<MassReclassModal state={massReclass.modalState} cases={massReclass.cases} batchId={massReclass.batchId} error={massReclass.error} onConfirm={massReclass.confirm} onUndo={massReclass.undo} onClose={massReclass.close} />`
+- MassReclassModal renders null when state='idle', so no visual impact on normal operation
+
+Files changed:
+  src/mpl/MplApp.jsx (modified)
+  PRD.md (Task 7 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.32s (0 errors)
+  - `grep -c "MassReclassModal|useMassReclass|onMassReclass" src/mpl/MplApp.jsx` → 5 (>= 3)
+
+Learnings for future iterations:
+  - useMassReclass returns flat props (modalState, cases, batchId, error, openModal, confirm, undo, close) — no modalProps wrapper object
+  - PiP content in buildMplBar() is a closure over component state; wrapping in a fragment is sufficient to add the modal overlay without any structural changes
+  - MassReclassModal uses position:fixed which is relative to the PiP window viewport — correct overlay behavior
+
+## Iteration 36 (mass-reclass) - Task 8: Verify no changes to protected files
+- Created scripts/check-mass-reclass-scope.sh — executable bash script that runs three git diff --stat checks
+- Checks: public/ct-widget.js, public/meridian-relay.html, src/ct/CtApp.jsx against HEAD~7..HEAD
+- Script exits 0 on success, 1 if any file shows diff output
+- Ran script: all three checks passed ("OK: ... untouched")
+
+Files changed:
+  scripts/check-mass-reclass-scope.sh (created)
+  PRD.md (Task 8 marked [x])
+
+Tests passed:
+  - bash scripts/check-mass-reclass-scope.sh → exit 0
+  - git diff --stat HEAD~7..HEAD for all three protected files → empty (no output)
+
+Learnings for future iterations:
+  - git diff --stat with empty output means no changes — that's the passing condition, NOT an error
+  - Script uses set -e so any unexpected git failure also causes non-zero exit
+  - The 7-commit window (HEAD~7) covers the 7 mass-reclass commits (tasks 1-7) on this branch
+---
+
+## Iteration 37 (mass-reclass) - Task 9: Final build + commit summary
+
+### Mass Reclass: final commits
+```
+1567030 mass-reclass: [task 8] verify protected files unchanged + add scope check script
+b46a3c6 mass-reclass: [task 7] wire useMassReclass + MassReclassModal into MplApp.jsx
+021db0a mass-reclass: [task 6] create MassReclassModal.jsx
+23eed7c mass-reclass: [task 5] create useMassReclass.js hook
+f58dbf8 mass-reclass: [task 4] extend usePendingTriggers to route MERIDIAN_MASS_RECLASS
+e6b5df8 mass-reclass: [task 3] implement list-view DOM scrape in meridian-trigger.js
+2aaf50e mass-reclass: [task 2] add list-view detection to meridian-trigger.js
+47a342c mass-reclass: [task 1] create migration 020_mass_reclass.sql
+```
+
+### Davis: manual steps to ship
+
+1. Review commits on the `feat/mass-reclass` branch.
+2. Apply `supabase/migrations/020_mass_reclass.sql` via Supabase SQL Editor.
+3. Verify RPCs exist:
+   ```sql
+   SELECT proname FROM pg_proc WHERE proname IN ('bulk_reclassify_cases', 'undo_mass_reclass_batch');
+   ```
+   Should return 2 rows.
+4. Push branch, open PR, merge when ready.
+5. End-to-end test: check 3 cases in an SF list view, click Meridian bookmarklet, confirm in PiP modal, verify 3 `ct_cases` rows with `source='bulk'` and matching `batch_id`.
+
+Files changed:
+  PRD.md (Task 9 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -20` → ✓ built in 1.32s (0 errors)
+  - `git log --oneline HEAD~8..HEAD` → 8 commits listed above
+
+Learnings for future iterations:
+  - All 9 tasks of the mass-reclass PRD are complete. No further iterations needed on this branch.
+---
