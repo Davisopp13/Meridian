@@ -134,10 +134,9 @@
     }
 
     var id = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    var payload = {
+    var row = {
       user_id: userId,
       type: 'MERIDIAN_MASS_RECLASS',
-      action: 'mass_reclass',
       page_url: window.location.href,
       case_number: JSON.stringify(cases)
     };
@@ -158,7 +157,7 @@
       relay: 'MERIDIAN_TRIGGER',
       id: id,
       action: 'SUPABASE_INSERT_TRIGGER',
-      payload: payload
+      payload: { body: row }
     }, '*');
 
     setTimeout(function() {
