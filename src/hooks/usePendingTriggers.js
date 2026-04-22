@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase.js'
  * the appropriate handler and deletes the consumed row.
  *
  * @param {string|null} userId - Current authenticated user's ID
- * @param {{ handleCaseStart: Function, handleProcessStart: Function }} handlers
+ * @param {{ handleCaseStart: Function, handleProcessStart: Function, onMassReclass?: Function }} handlers
  */
 export function usePendingTriggers(userId, handlers) {
   const handlersRef = useRef(handlers)
@@ -22,6 +22,8 @@ export function usePendingTriggers(userId, handlers) {
 
       console.log('[Meridian] Processing trigger:', trigger.type, trigger)
 
+      let shouldDelete = true
+
       try {
         if (trigger.type === 'MERIDIAN_CASE_START' && trigger.case_number) {
           handlersRef.current.handleCaseStart({
@@ -32,19 +34,36 @@ export function usePendingTriggers(userId, handlers) {
           })
         } else if (trigger.type === 'MERIDIAN_PROCESS_START') {
           handlersRef.current.handleProcessStart()
+        } else if (trigger.type === 'MERIDIAN_MASS_RECLASS') {
+          let cases
+          try {
+            cases = JSON.parse(trigger.case_number)
+          } catch (parseErr) {
+            console.warn('[Meridian] MERIDIAN_MASS_RECLASS: failed to parse case_number JSON:', parseErr)
+          }
+          if (Array.isArray(cases) && cases.length > 0) {
+            if (handlersRef.current.onMassReclass) {
+              handlersRef.current.onMassReclass(cases, trigger.id)
+              shouldDelete = false
+            }
+          } else {
+            console.warn('[Meridian] MERIDIAN_MASS_RECLASS: empty or invalid cases, deleting trigger row')
+          }
         }
       } catch (err) {
         console.error('[Meridian] Error handling trigger:', err)
       }
 
-      // Delete the consumed trigger row
-      try {
-        await supabase
-          .from('pending_triggers')
-          .delete()
-          .eq('id', trigger.id)
-      } catch (err) {
-        console.error('[Meridian] Error deleting consumed trigger:', err)
+      // Delete the consumed trigger row (deferred for mass_reclass — handler calls close())
+      if (shouldDelete) {
+        try {
+          await supabase
+            .from('pending_triggers')
+            .delete()
+            .eq('id', trigger.id)
+        } catch (err) {
+          console.error('[Meridian] Error deleting consumed trigger:', err)
+        }
       }
     }
 

@@ -4649,3 +4649,24 @@ Learnings for future iterations:
   - collectSelectedCases returns an empty array if no checked rows — handleListViewContext checks length > 0 before firing relay
   - Task 4 is next: extend usePendingTriggers.js to route MERIDIAN_MASS_RECLASS events to a new onMassReclass handler
 ---
+
+## Iteration mass-reclass-4 - Task 4 (Mass Reclass PRD): Extend usePendingTriggers.js to route mass_reclass
+- Added `else if (trigger.type === 'MERIDIAN_MASS_RECLASS')` branch to `consumeTrigger` in usePendingTriggers.js
+- Branch parses `trigger.case_number` as JSON; if parsing fails or array is empty, logs warning and lets `shouldDelete = true` (immediate delete)
+- If valid non-empty array: calls `handlersRef.current.onMassReclass(cases, trigger.id)` and sets `shouldDelete = false` (deferred — useMassReclass.close() will delete the row later)
+- Added `shouldDelete` boolean flag controlling the existing delete-after-consume logic — only delete immediately if the trigger was NOT dispatched to a deferred handler
+- Updated JSDoc to include `onMassReclass?: Function` in the handlers parameter type
+
+Files changed:
+  src/hooks/usePendingTriggers.js
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.34s (0 errors)
+  - `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` → 6 (>= 3)
+
+Learnings for future iterations:
+  - For mass_reclass, trigger row deletion is deferred (shouldDelete=false) so the row persists while the modal is open; useMassReclass.close() calls the delete
+  - For invalid/empty cases, delete the trigger row immediately (shouldDelete stays true) to avoid stuck rows
+  - The `shouldDelete` flag pattern is clean for selectively deferring the standard delete-after-consume without restructuring the whole function
+  - Task 5 is next: create useMassReclass.js hook with openModal/confirm/undo/close actions
+---

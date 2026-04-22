@@ -227,7 +227,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
 
 ### Phase 3: Pending-Trigger Routing
 
-- [ ] **Task 4: Extend `usePendingTriggers.js` to route mass_reclass**
+- [x] **Task 4: Extend `usePendingTriggers.js` to route mass_reclass**
   - Modify `src/hooks/usePendingTriggers.js`. The hook currently subscribes to inserts on `pending_triggers` and dispatches based on the `type` field (existing types: `MERIDIAN_CASE_START`, etc.).
   - Add a new case for `type === 'MERIDIAN_MASS_RECLASS'`. When matched:
     - Parse `row.case_number` as JSON into an array `cases`.
