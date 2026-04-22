@@ -1,65 +1,61 @@
 import { useState } from 'react';
 
-export default function DashboardStatCard({ label, value, color, icon, active, onClick }) {
+/**
+ * DashboardStatCard — calm metric tile with 3px accent bar.
+ * `icon` prop is accepted but ignored (kept for backward compat).
+ */
+export default function DashboardStatCard({ label, value, color, active, onClick }) {
   const [hovered, setHovered] = useState(false);
-  const [pressed, setPressed] = useState(false);
 
   const isActive = active || hovered;
 
   const cardStyle = {
     minWidth: 150,
     flex: 1,
-    height: 130,
-    borderRadius: 16,
-    background: color,
-    opacity: isActive ? 1 : 0.9,
-    border: `2px solid ${isActive ? 'rgba(255,255,255,0.6)' : 'transparent'}`,
-    padding: 16,
+    height: 90,
+    borderRadius: 10,
+    background: 'var(--bg-card)',
+    border: `1px solid ${isActive ? 'var(--border)' : 'var(--divider)'}`,
+    padding: '14px 16px',
     cursor: 'pointer',
-    position: 'relative',
-    overflow: 'hidden',
     display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
     boxSizing: 'border-box',
-    boxShadow: `0 8px 16px ${color}40`,
-    transform: pressed ? 'scale(0.97)' : hovered ? 'scale(1.02) translateY(-2px)' : 'scale(1)',
-    transition: 'all var(--motion-fast)',
+    transition: 'border-color var(--motion-fast)',
   };
 
-  const topRowStyle = {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 4,
+  const accentStyle = {
+    width: 3,
+    height: 32,
+    borderRadius: 1.5,
+    background: color,
+    flexShrink: 0,
+  };
+
+  const metaStyle = {
+    flex: 1,
+    minWidth: 0,
   };
 
   const labelStyle = {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 800,
+    fontSize: 10.5,
+    fontWeight: 500,
     textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    lineHeight: 1.3,
-    flex: 1,
-    wordBreak: 'break-word',
-    transition: 'color 0.2s',
-  };
-
-  const iconStyle = {
-    fontSize: 18,
-    flexShrink: 0,
-    lineHeight: 1,
-    color: '#fff',
-    transition: 'color 0.2s',
+    letterSpacing: '0.1em',
+    color: 'var(--text-dim)',
+    marginBottom: 3,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   };
 
   const valueStyle = {
-    color: '#fff',
-    fontSize: 42,
-    fontWeight: 800,
+    fontSize: 22,
+    fontWeight: 500,
+    letterSpacing: '-0.02em',
+    color: 'var(--text-pri)',
     lineHeight: 1,
-    transition: 'color 0.2s',
   };
 
   return (
@@ -67,17 +63,13 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
       style={cardStyle}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => { setHovered(false); setPressed(false); }}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onTouchStart={() => setPressed(true)}
-      onTouchEnd={() => setPressed(false)}
+      onMouseLeave={() => setHovered(false)}
     >
-      <div style={topRowStyle}>
-        <span style={labelStyle}>{label}</span>
-        <span style={iconStyle}>{icon}</span>
+      <div style={accentStyle} />
+      <div style={metaStyle}>
+        <div style={labelStyle}>{label}</div>
+        <div style={valueStyle}>{value}</div>
       </div>
-      <div style={valueStyle}>{value}</div>
     </div>
   );
 }
