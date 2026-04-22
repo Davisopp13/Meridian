@@ -8,7 +8,7 @@ const TYPE_STYLE = {
   Reclassified: { color: '#dc2626', bg: 'rgba(220,38,38,0.12)',   border: 'rgba(220,38,38,0.28)' },
   Call:         { color: '#0284c7', bg: 'rgba(2,132,199,0.12)',   border: 'rgba(2,132,199,0.28)' },
   Process:      { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)',  border: 'rgba(96,165,250,0.28)' },
-  Awaiting:     { color: '#E8540A', bg: 'rgba(232,84,10,0.12)',   border: 'rgba(232,84,10,0.28)' },
+  Awaiting:     { color: 'var(--color-mmark)', bg: 'rgba(232,84,10,0.12)',   border: 'rgba(232,84,10,0.28)' },
   'Not a Case': { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.28)' },
 };
 
@@ -172,7 +172,7 @@ const MC = {
   bgInput: '#141720',
   border: 'rgba(255,255,255,0.07)',
   borderFocus: 'rgba(232,84,10,0.5)',
-  orange: '#E8540A',
+  orange: 'var(--color-mmark)',
   orangeBg: 'rgba(232,84,10,0.12)',
   orangeBorder: 'rgba(232,84,10,0.28)',
   green: '#16a34a',

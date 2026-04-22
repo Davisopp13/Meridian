@@ -143,7 +143,7 @@ export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
                           cursor: 'pointer',
                           textDecoration: 'none',
                         }}
-                        onMouseEnter={e => { e.currentTarget.style.color = '#E8540A'; e.currentTarget.style.textDecoration = 'underline'; }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-mmark)'; e.currentTarget.style.textDecoration = 'underline'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-pri)'; e.currentTarget.style.textDecoration = 'none'; }}
                       >
                         {agent?.full_name || agent?.email || agentId}
@@ -156,7 +156,7 @@ export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#dc2626' }}>{stats.reclass ?? 0}</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#0d9488' }}>{stats.calls ?? 0}</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#60a5fa' }}>{stats.processes ?? 0}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: '#E8540A' }}>{stats.totalActivity ?? 0}</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: 14, fontWeight: 600, color: 'var(--color-mmark)' }}>{stats.totalActivity ?? 0}</td>
                   <td style={casesPerHourStyle}>{casesPerHour > 0 ? casesPerHour.toFixed(1) : '—'}</td>
                 </tr>
               ))}

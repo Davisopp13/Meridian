@@ -3,16 +3,6 @@ import { supabase } from '../lib/supabase.js'
 import { getUserSettings } from '../lib/constants.js'
 import { useTheme } from '../context/ThemeContext.jsx'
 
-const C = {
-  bg: 'var(--bg-deep)',
-  card: 'var(--bg-card)',
-  border: 'var(--border)',
-  divider: 'var(--border)',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-sec)',
-  textDim: 'var(--text-dim)',
-  accent: 'var(--color-mmark)',
-}
 
 const STAT_OPTIONS = [
   { key: 'resolved',  label: '✓ Resolved' },
@@ -38,11 +28,11 @@ const PIP_POSITIONS = [
 function SectionHeading({ title, description }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: C.textPri, marginBottom: 4 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-pri)', marginBottom: 4 }}>
         {title}
       </div>
       {description && (
-        <div style={{ fontSize: 11, color: C.textSec, lineHeight: 1.5 }}>{description}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-sec)', lineHeight: 1.5 }}>{description}</div>
       )}
     </div>
   )
@@ -52,7 +42,7 @@ function Section({ children }) {
   return (
     <div style={{
       padding: '24px 0',
-      borderBottom: `1px solid ${C.divider}`,
+      borderBottom: '1px solid var(--border)',
     }}>
       {children}
     </div>
@@ -73,8 +63,8 @@ function CheckRow({ label, checked, onChange, disabled }) {
         width: 18,
         height: 18,
         borderRadius: 4,
-        border: `1.5px solid ${checked ? C.accent : 'rgba(255,255,255,0.2)'}`,
-        background: checked ? C.accent : 'transparent',
+        border: `1.5px solid ${checked ? 'var(--color-mmark)' : 'rgba(255,255,255,0.2)'}`,
+        background: checked ? 'var(--color-mmark)' : 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -90,7 +80,7 @@ function CheckRow({ label, checked, onChange, disabled }) {
         onChange={onChange}
         style={{ display: 'none' }}
       />
-      <span style={{ fontSize: 13, color: C.textPri }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--text-pri)' }}>{label}</span>
     </label>
   )
 }
@@ -109,7 +99,7 @@ function RadioRow({ label, checked, onChange, disabled, badge }) {
         width: 18,
         height: 18,
         borderRadius: '50%',
-        border: `1.5px solid ${checked ? C.accent : 'rgba(255,255,255,0.2)'}`,
+        border: `1.5px solid ${checked ? 'var(--color-mmark)' : 'rgba(255,255,255,0.2)'}`,
         background: 'transparent',
         display: 'flex',
         alignItems: 'center',
@@ -118,7 +108,7 @@ function RadioRow({ label, checked, onChange, disabled, badge }) {
         transition: 'all 0.15s ease',
       }}>
         {checked && (
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.accent }} />
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-mmark)' }} />
         )}
       </div>
       <input
@@ -128,12 +118,12 @@ function RadioRow({ label, checked, onChange, disabled, badge }) {
         onChange={onChange}
         style={{ display: 'none' }}
       />
-      <span style={{ fontSize: 13, color: C.textPri }}>{label}</span>
+      <span style={{ fontSize: 13, color: 'var(--text-pri)' }}>{label}</span>
       {badge && (
         <span style={{
           fontSize: 10,
           fontWeight: 600,
-          color: C.textDim,
+          color: 'var(--text-dim)',
           background: 'rgba(255,255,255,0.06)',
           border: '1px solid rgba(255,255,255,0.1)',
           borderRadius: 4,
@@ -153,8 +143,8 @@ function Toggle({ checked, onChange }) {
         width: 40,
         height: 22,
         borderRadius: 11,
-        background: checked ? C.accent : 'rgba(255,255,255,0.1)',
-        border: `1.5px solid ${checked ? C.accent : 'rgba(255,255,255,0.15)'}`,
+        background: checked ? 'var(--color-mmark)' : 'rgba(255,255,255,0.1)',
+        border: `1.5px solid ${checked ? 'var(--color-mmark)' : 'rgba(255,255,255,0.15)'}`,
         cursor: 'pointer',
         position: 'relative',
         transition: 'all 0.2s ease',
@@ -197,7 +187,7 @@ function PipPositionDiagram({ selected, onSelect }) {
               width: 14,
               height: 10,
               borderRadius: 2,
-              background: selected === p.key ? C.accent : 'rgba(255,255,255,0.15)',
+              background: selected === p.key ? 'var(--color-mmark)' : 'rgba(255,255,255,0.15)',
               position: 'absolute',
               [p.row === 0 ? 'top' : 'bottom']: 5,
               [p.col === 0 ? 'left' : 'right']: 5,
@@ -319,7 +309,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
 
   const pageStyle = {
     minHeight: '100vh',
-    background: C.bg,
+    background: 'var(--bg-deep)',
   }
 
   const containerStyle = {
@@ -332,14 +322,14 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
   const pageTitleStyle = {
     fontSize: 22,
     fontWeight: 700,
-    color: C.textPri,
+    color: 'var(--text-pri)',
     marginBottom: 4,
     letterSpacing: '-0.02em',
   }
 
   const pageSubtitleStyle = {
     fontSize: 13,
-    color: C.textSec,
+    color: 'var(--text-sec)',
     marginBottom: 32,
   }
 
@@ -349,7 +339,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
     padding: '0 32px',
     borderRadius: 10,
     border: 'none',
-    background: saving ? 'rgba(232,84,10,0.5)' : C.accent,
+    background: saving ? 'rgba(232,84,10,0.5)' : 'var(--color-mmark)',
     color: '#fff',
     fontSize: 14,
     fontWeight: 700,
@@ -366,7 +356,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
             style={{
               background: 'none',
               border: 'none',
-              color: C.textSec,
+              color: 'var(--text-sec)',
               fontSize: 13,
               cursor: 'pointer',
               padding: '0 0 16px',
@@ -446,7 +436,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
           />
           <div style={{ display: 'flex', gap: 12 }}>
             {[
-              { value: 'dark',  label: 'Dark',  previewBg: '#1a1a2e', previewBorder: undefined },
+              { value: 'dark',  label: 'Dark',  previewBg: 'var(--bg-card)', previewBorder: undefined },
               { value: 'light', label: 'Light', previewBg: '#f1f5f9', previewBorder: '1px solid rgba(0,0,0,0.1)' },
             ].map(({ value, label, previewBg, previewBorder }) => {
               const active = theme === value
@@ -461,9 +451,9 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
                     gap: 8,
                     padding: '12px 16px',
                     borderRadius: 10,
-                    border: active ? `2px solid ${C.accent}` : '2px solid rgba(255,255,255,0.1)',
+                    border: active ? `2px solid ${'var(--color-mmark)'}` : '2px solid rgba(255,255,255,0.1)',
                     cursor: 'pointer',
-                    background: C.card,
+                    background: 'var(--bg-card)',
                     minWidth: 80,
                   }}
                 >
@@ -474,7 +464,7 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
                     background: previewBg,
                     border: previewBorder,
                   }} />
-                  <span style={{ fontSize: 12, color: C.textPri }}>{label}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-pri)' }}>{label}</span>
                 </div>
               )
             })}
@@ -494,15 +484,15 @@ export default function SettingsPage({ user, profile, onBack, onRefreshProfile }
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 13, color: C.textPri }}>Show confirmation toast after logging</div>
-                <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Brief overlay confirms when a case or process is logged</div>
+                <div style={{ fontSize: 13, color: 'var(--text-pri)' }}>Show confirmation toast after logging</div>
+                <div style={{ fontSize: 11, color: 'var(--text-sec)', marginTop: 2 }}>Brief overlay confirms when a case or process is logged</div>
               </div>
               <Toggle checked={toastOnLog} onChange={() => setToastOnLog(v => !v)} />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 13, color: C.textPri }}>Play sound on bookmarklet trigger</div>
-                <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>Audio cue when a new case or process starts</div>
+                <div style={{ fontSize: 13, color: 'var(--text-pri)' }}>Play sound on bookmarklet trigger</div>
+                <div style={{ fontSize: 11, color: 'var(--text-sec)', marginTop: 2 }}>Audio cue when a new case or process starts</div>
               </div>
               <Toggle checked={sound} onChange={() => setSound(v => !v)} />
             </div>

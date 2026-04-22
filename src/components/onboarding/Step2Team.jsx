@@ -1,12 +1,5 @@
 import { useState } from 'react';
 
-const C = {
-  bg:      'var(--bg-card)',
-  bgDeep:  'var(--bg-deep)',
-  textSec: 'var(--text-dim)',
-  border:  'var(--border)',
-};
-
 export default function Step2Team({ onNext, onBack }) {
   const [selected, setSelected] = useState(null);
 
@@ -23,8 +16,8 @@ export default function Step2Team({ onNext, onBack }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bgDeep, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-      <div style={{ width: '100%', maxWidth: 480, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 16, padding: 40 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+      <div style={{ width: '100%', maxWidth: 480, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 40 }}>
         {/* Logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <img src="/meridian-mark-192.png" alt="Meridian" style={{ width: 64, height: 64, borderRadius: 12 }} />
@@ -34,7 +27,7 @@ export default function Step2Team({ onNext, onBack }) {
         <h1 style={{ margin: 0, color: '#fff', fontSize: 24, fontWeight: 800, textAlign: 'center' }}>
           Your Team
         </h1>
-        <p style={{ margin: '8px 0 32px', color: C.textSec, fontSize: 14, textAlign: 'center' }}>
+        <p style={{ margin: '8px 0 32px', color: 'var(--text-dim)', fontSize: 14, textAlign: 'center' }}>
           This determines which process categories you see
         </p>
 
@@ -50,7 +43,7 @@ export default function Step2Team({ onNext, onBack }) {
                   flex: 1,
                   height: 110,
                   borderRadius: 12,
-                  border: `2px solid ${isSelected ? t.accent : C.border}`,
+                  border: `2px solid ${isSelected ? t.accent : 'var(--border)'}`,
                   background: isSelected ? `rgba(${hexToRgb(t.accent)},0.12)` : 'var(--card-bg-subtle)',
                   cursor: 'pointer',
                   display: 'flex',
@@ -64,7 +57,7 @@ export default function Step2Team({ onNext, onBack }) {
                 <span style={{ fontSize: 32, fontWeight: 800, color: isSelected ? t.accent : '#fff' }}>
                   {t.label}
                 </span>
-                <span style={{ fontSize: 12, color: C.textSec }}>
+                <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>
                   {t.sublabel}
                 </span>
               </div>
@@ -97,7 +90,7 @@ export default function Step2Team({ onNext, onBack }) {
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <span
             onClick={onBack}
-            style={{ color: C.textSec, fontSize: 13, cursor: 'pointer' }}
+            style={{ color: 'var(--text-dim)', fontSize: 13, cursor: 'pointer' }}
           >
             ← Back
           </span>

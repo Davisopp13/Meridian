@@ -1,15 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 
-const C = {
-    bg: 'var(--bg-navbar)',
-    border: 'var(--border)',
-    textPri: 'var(--text-pri)',
-    textSec: 'var(--text-sec)',
-    mBtn: 'var(--color-mbtn)',
-    mMark: 'var(--color-mmark)',
-};
-
 // Helper to extract initials
 function getInitials(name) {
     if (!name) return '?';
@@ -26,10 +17,10 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
 
     const containerStyle = {
         height: 72,
-        background: C.bg,
+        background: 'var(--bg-navbar)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -76,7 +67,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         height: 40,
         padding: '0 14px 0 6px',
         borderRadius: 20,
-        border: `1px solid ${showUserMenu ? 'rgba(255, 255, 255, 0.25)' : C.border}`,
+        border: `1px solid ${showUserMenu ? 'rgba(255, 255, 255, 0.25)' : 'var(--border)'}`,
         background: showUserMenu ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
         display: 'flex',
         alignItems: 'center',
@@ -93,7 +84,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         background: 'rgba(30, 30, 52, 0.95)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
-        border: `1px solid ${C.border}`,
+        border: '1px solid var(--border)',
         borderRadius: 12,
         padding: '6px',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
@@ -105,7 +96,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         padding: '10px 14px',
         border: 'none',
         background: 'transparent',
-        color: C.textPri,
+        color: 'var(--text-pri)',
         fontSize: 13,
         fontWeight: 500,
         cursor: 'pointer',
@@ -122,7 +113,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         width: 28,
         height: 28,
         borderRadius: '50%',
-        background: `linear-gradient(135deg, ${C.mBtn}, #1e40af)`,
+        background: `linear-gradient(135deg, ${'var(--color-mbtn)'}, #1e40af)`,
         color: '#fff',
         fontSize: 12,
         fontWeight: 700,
@@ -133,7 +124,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
     };
 
     const usernameStyle = {
-        color: C.textPri,
+        color: 'var(--text-pri)',
         fontSize: 13,
         fontWeight: 500,
     };
@@ -142,9 +133,9 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
         height: 40,
         padding: '0 18px',
         borderRadius: 10,
-        border: `1px solid ${C.border}`,
+        border: '1px solid var(--border)',
         background: 'rgba(255, 255, 255, 0.05)',
-        color: C.textPri,
+        color: 'var(--text-pri)',
         fontSize: 13,
         fontWeight: 600,
         cursor: 'pointer',
@@ -205,7 +196,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
 
     const hoverOff = (e) => {
         e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-        e.currentTarget.style.borderColor = C.border;
+        e.currentTarget.style.borderColor = 'var(--border)';
     };
 
     return (
@@ -221,8 +212,8 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                     style={{
                         ...secondaryBtnStyle,
                         background: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                        borderColor: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.5)' : C.border,
-                        color: activeView === 'feedback' ? C.mMark : C.textPri,
+                        borderColor: activeView === 'feedback' ? 'rgba(232, 84, 10, 0.5)' : 'var(--border)',
+                        color: activeView === 'feedback' ? 'var(--color-mmark)' : 'var(--text-pri)',
                     }}
                     onMouseOver={(e) => {
                         if (activeView !== 'feedback') {
@@ -233,7 +224,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                     onMouseOut={(e) => {
                         if (activeView !== 'feedback') {
                             e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                            e.currentTarget.style.borderColor = C.border;
+                            e.currentTarget.style.borderColor = 'var(--border)';
                         }
                     }}
                 >
@@ -247,8 +238,8 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                         style={{
                             ...secondaryBtnStyle,
                             background: activeView === 'admin' ? 'rgba(232, 84, 10, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                            borderColor: activeView === 'admin' ? 'rgba(232, 84, 10, 0.5)' : C.border,
-                            color: activeView === 'admin' ? C.mMark : C.textPri,
+                            borderColor: activeView === 'admin' ? 'rgba(232, 84, 10, 0.5)' : 'var(--border)',
+                            color: activeView === 'admin' ? 'var(--color-mmark)' : 'var(--text-pri)',
                         }}
                         onMouseOver={(e) => {
                             if (activeView !== 'admin') {
@@ -259,7 +250,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                         onMouseOut={(e) => {
                             if (activeView !== 'admin') {
                                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                e.currentTarget.style.borderColor = C.border;
+                                e.currentTarget.style.borderColor = 'var(--border)';
                             }
                         }}
                     >
@@ -274,8 +265,8 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                         style={{
                             ...secondaryBtnStyle,
                             background: activeView === 'insights' ? 'rgba(96, 165, 250, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                            borderColor: activeView === 'insights' ? 'rgba(96, 165, 250, 0.5)' : C.border,
-                            color: activeView === 'insights' ? '#60a5fa' : C.textPri,
+                            borderColor: activeView === 'insights' ? 'rgba(96, 165, 250, 0.5)' : 'var(--border)',
+                            color: activeView === 'insights' ? '#60a5fa' : 'var(--text-pri)',
                         }}
                         onMouseOver={(e) => {
                             if (activeView !== 'insights') {
@@ -286,7 +277,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                         onMouseOut={(e) => {
                             if (activeView !== 'insights') {
                                 e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                e.currentTarget.style.borderColor = C.border;
+                                e.currentTarget.style.borderColor = 'var(--border)';
                             }
                         }}
                     >
@@ -329,7 +320,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                             onMouseOut={(e) => {
                                 if (!showUserMenu) {
                                     e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                    e.currentTarget.style.borderColor = C.border;
+                                    e.currentTarget.style.borderColor = 'var(--border)';
                                 }
                             }}
                         >
@@ -339,7 +330,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                             <span style={usernameStyle}>{profile.full_name.toLowerCase()}</span>
                             <span style={{
                                 fontSize: 10,
-                                color: C.textSec,
+                                color: 'var(--text-sec)',
                                 marginLeft: 2,
                                 transition: 'transform var(--motion-fast)',
                                 transform: showUserMenu ? 'rotate(180deg)' : 'none',
@@ -367,7 +358,7 @@ export default function Navbar({ user, profile, onLaunchPip, onLaunchCt, onLaunc
                                     </button>
                                     <div style={{
                                         height: 1,
-                                        background: C.border,
+                                        background: 'var(--border)',
                                         margin: '4px 8px',
                                     }} />
                                     <button

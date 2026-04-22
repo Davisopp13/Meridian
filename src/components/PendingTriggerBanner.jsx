@@ -90,7 +90,7 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
       <div style={{ position: 'relative', width: 10, height: 10, flexShrink: 0 }}>
         <div style={{
           width: 10, height: 10, borderRadius: '50%',
-          background: '#E8540A',
+          background: 'var(--color-mmark)',
           animation: 'meridian-pulse 1.5s ease-in-out infinite',
         }} />
       </div>
@@ -109,7 +109,7 @@ export default function PendingTriggerBanner({ trigger, onLaunch, onDismiss }) {
       <button
         onClick={onLaunch}
         style={{
-          background: '#E8540A',
+          background: 'var(--color-mmark)',
           color: '#fff',
           border: 'none',
           borderRadius: 8,

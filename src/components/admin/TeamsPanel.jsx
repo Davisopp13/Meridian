@@ -45,7 +45,7 @@ export default function TeamsPanel({ user, profile }) {
   if (error) {
     return (
       <div style={{ padding: '32px 20px', textAlign: 'center' }}>
-        <p style={{ color: '#E8540A', marginBottom: 12, fontSize: 14 }}>
+        <p style={{ color: 'var(--color-mmark)', marginBottom: 12, fontSize: 14 }}>
           Failed to load teams: {error.message || 'Unknown error'}
         </p>
         <button

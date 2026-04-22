@@ -21,12 +21,12 @@ function Chip({ label, title, active, onClick }) {
     marginBottom: 6,
   };
   const activeStyle = {
-    background: '#E8540A',
+    background: 'var(--color-mmark)',
     color: '#fff',
   };
   const inactiveStyle = {
     background: hovered ? 'rgba(232,84,10,0.15)' : 'rgba(255,255,255,0.08)',
-    color: hovered ? '#E8540A' : 'var(--text-sec)',
+    color: hovered ? 'var(--color-mmark)' : 'var(--text-sec)',
   };
   return (
     <button

@@ -23,7 +23,7 @@ const badgeStyle = {
   display: 'inline-block',
   padding: '2px 8px',
   background: 'rgba(232,84,10,0.15)',
-  color: '#E8540A',
+  color: 'var(--color-mmark)',
   borderRadius: 10,
   fontSize: 11,
   fontWeight: 600,

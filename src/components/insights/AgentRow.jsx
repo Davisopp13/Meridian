@@ -4,7 +4,7 @@ const COLORS = {
   calls: '#0d9488',
   notACase: '#6b7280',
   processes: '#60a5fa',
-  totalActivity: '#E8540A',
+  totalActivity: 'var(--color-mmark)',
 };
 
 const cellStyle = {

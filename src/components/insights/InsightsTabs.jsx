@@ -1,5 +1,3 @@
-import { useTheme } from '../../context/ThemeContext.jsx';
-
 const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'activity', label: 'Activity Log' },
@@ -7,8 +5,6 @@ const TABS = [
 ];
 
 export default function InsightsTabs({ activeTab, onTabChange }) {
-  const { theme } = useTheme();
-
   function tabStyle(active) {
     return {
       height: 40,
@@ -18,8 +14,8 @@ export default function InsightsTabs({ activeTab, onTabChange }) {
       cursor: 'pointer',
       fontSize: 13,
       fontWeight: active ? 700 : 500,
-      background: active ? 'var(--color-mmark)' : (theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)'),
-      color: active ? '#fff' : (theme === 'light' ? '#475569' : 'rgba(255,255,255,0.55)'),
+      background: active ? 'var(--tab-active-bg)' : 'var(--hover-surface)',
+      color: active ? 'var(--tab-active-fg)' : 'var(--text-dim)',
       transition: 'background 150ms, color 150ms',
     };
   }

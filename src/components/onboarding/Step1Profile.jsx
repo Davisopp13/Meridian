@@ -1,20 +1,11 @@
 import { useState } from 'react'
 
-const C = {
-  bg:      'var(--bg-deep)',
-  cardBg:  'var(--bg-card)',
-  border:  'var(--border)',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-dim)',
-  mBtn:    'var(--color-mbtn)',
-}
-
 export default function Step1Profile({ user, onNext }) {
   const [name, setName] = useState(user?.email?.split('@')[0] ?? '')
 
   const pageStyle = {
     minHeight: '100vh',
-    background: C.bg,
+    background: 'var(--bg-deep)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -24,8 +15,8 @@ export default function Step1Profile({ user, onNext }) {
   const cardStyle = {
     width: '100%',
     maxWidth: 480,
-    background: C.cardBg,
-    border: `1px solid ${C.border}`,
+    background: 'var(--bg-card)',
+    border: '1px solid var(--border)',
     borderRadius: 16,
     padding: 40,
   }
@@ -39,7 +30,7 @@ export default function Step1Profile({ user, onNext }) {
   }
 
   const headingStyle = {
-    color: C.textPri,
+    color: 'var(--text-pri)',
     fontSize: 24,
     fontWeight: 800,
     textAlign: 'center',
@@ -47,7 +38,7 @@ export default function Step1Profile({ user, onNext }) {
   }
 
   const subheadingStyle = {
-    color: C.textSec,
+    color: 'var(--text-dim)',
     fontSize: 14,
     textAlign: 'center',
     margin: '0 0 32px',
@@ -55,7 +46,7 @@ export default function Step1Profile({ user, onNext }) {
 
   const labelStyle = {
     display: 'block',
-    color: C.textSec,
+    color: 'var(--text-dim)',
     fontSize: 12,
     fontWeight: 600,
     textTransform: 'uppercase',
@@ -68,9 +59,9 @@ export default function Step1Profile({ user, onNext }) {
     width: '100%',
     height: 48,
     background: 'var(--hover-surface)',
-    border: `1px solid ${C.border}`,
+    border: '1px solid var(--border)',
     borderRadius: 10,
-    color: C.textPri,
+    color: 'var(--text-pri)',
     fontSize: 15,
     padding: '0 16px',
     outline: 'none',
@@ -82,7 +73,7 @@ export default function Step1Profile({ user, onNext }) {
     display: 'block',
     width: '100%',
     height: 48,
-    background: C.mBtn,
+    background: 'var(--color-mbtn)',
     color: '#fff',
     fontSize: 15,
     fontWeight: 700,
@@ -103,8 +94,8 @@ export default function Step1Profile({ user, onNext }) {
           style={inputStyle}
           value={name}
           onChange={e => setName(e.target.value)}
-          onFocus={e => { e.target.style.borderColor = C.mBtn }}
-          onBlur={e => { e.target.style.borderColor = C.border }}
+          onFocus={e => { e.target.style.borderColor = 'var(--color-mbtn)' }}
+          onBlur={e => { e.target.style.borderColor = 'var(--border)' }}
           placeholder="Your name"
           autoFocus
         />

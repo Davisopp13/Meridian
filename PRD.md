@@ -289,7 +289,7 @@ After each file, run `npx vite build` — it must pass before moving on.
 
   **Acceptance:** visual check in DevTools with "emulate prefers-reduced-motion: reduce" — animations do not fire.
 
-- [ ] **Task 3.3: Grep assertion pass — final check**
+- [x] **Task 3.3: Grep assertion pass — final check**
 
   Run this block. Every line must return zero unless noted.
 

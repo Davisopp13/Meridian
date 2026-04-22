@@ -1,16 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 
-const C = {
-  bg:      'var(--bg-deep)',
-  card:    'var(--bg-card)',
-  border:  'var(--border)',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-dim)',
-  accent:  'var(--color-mmark)',
-  blue:    'var(--color-mbtn)',
-}
-
 export default function SignIn() {
   const [email, setEmail] = useState('')
   const [sent, setSent] = useState(false)
@@ -32,42 +22,42 @@ export default function SignIn() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: C.bg,
+      minHeight: '100vh', background: 'var(--bg-deep)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
-        background: C.card, border: `1px solid ${C.border}`, borderRadius: 16,
+        background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16,
         padding: '40px 36px', width: 360, boxSizing: 'border-box',
       }}>
         {/* Logo mark */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 28 }}>
           <div style={{
             width: 32, height: 32, borderRadius: 8,
-            background: C.blue, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--color-mbtn)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <div style={{ width: 14, height: 14, borderRadius: '50%', background: C.accent }} />
+            <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--color-mmark)' }} />
           </div>
-          <span style={{ color: C.textPri, fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em' }}>
+          <span style={{ color: 'var(--text-pri)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em' }}>
             Meridian
           </span>
         </div>
 
         {sent ? (
           <>
-            <p style={{ color: C.textPri, fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>
+            <p style={{ color: 'var(--text-pri)', fontSize: 16, fontWeight: 600, margin: '0 0 8px' }}>
               Check your email
             </p>
-            <p style={{ color: C.textSec, fontSize: 14, margin: 0, lineHeight: 1.5 }}>
-              We sent a sign-in link to <strong style={{ color: C.textPri }}>{email}</strong>.
+            <p style={{ color: 'var(--text-dim)', fontSize: 14, margin: 0, lineHeight: 1.5 }}>
+              We sent a sign-in link to <strong style={{ color: 'var(--text-pri)' }}>{email}</strong>.
               Click it to continue.
             </p>
           </>
         ) : (
           <>
-            <p style={{ color: C.textPri, fontSize: 16, fontWeight: 600, margin: '0 0 6px' }}>
+            <p style={{ color: 'var(--text-pri)', fontSize: 16, fontWeight: 600, margin: '0 0 6px' }}>
               Sign in to Meridian
             </p>
-            <p style={{ color: C.textSec, fontSize: 13, margin: '0 0 24px' }}>
+            <p style={{ color: 'var(--text-dim)', fontSize: 13, margin: '0 0 24px' }}>
               Enter your Hapag-Lloyd email address.
             </p>
             <form onSubmit={handleSubmit}>
@@ -79,8 +69,8 @@ export default function SignIn() {
                 required
                 style={{
                   width: '100%', boxSizing: 'border-box',
-                  background: 'var(--hover-surface)', border: `1px solid ${C.border}`,
-                  borderRadius: 8, padding: '10px 14px', color: C.textPri,
+                  background: 'var(--hover-surface)', border: '1px solid var(--border)',
+                  borderRadius: 8, padding: '10px 14px', color: 'var(--text-pri)',
                   fontSize: 14, outline: 'none', marginBottom: 12,
                 }}
               />
@@ -92,7 +82,7 @@ export default function SignIn() {
                 disabled={loading || !email}
                 style={{
                   width: '100%', padding: '10px 0', borderRadius: 8, border: 'none',
-                  background: loading || !email ? 'rgba(232,84,10,0.4)' : C.accent,
+                  background: loading || !email ? 'rgba(232,84,10,0.4)' : 'var(--color-mmark)',
                   color: '#fff', fontWeight: 600, fontSize: 14, cursor: loading || !email ? 'not-allowed' : 'pointer',
                 }}
               >

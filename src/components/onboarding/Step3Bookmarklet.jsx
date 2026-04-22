@@ -1,15 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase.js';
 
-const C = {
-  bg:      'var(--bg-card)',
-  bgDeep:  'var(--bg-deep)',
-  mBtn:    'var(--color-mbtn)',
-  textPri: 'var(--text-pri)',
-  textSec: 'var(--text-dim)',
-  border:  'var(--border)',
-};
-
 export function buildMplBmHref(userId) {
   return `javascript:(function(){window.open('https://meridian-hlag.vercel.app?mode=mpl-widget','meridian-mpl');var SUPABASE_URL='https://wluynppocsoqjdbmwass.supabase.co';var ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXlucHBvY3NvcWpkYm13YXNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI2NDU4NzIsImV4cCI6MjA4ODIyMTg3Mn0.x9-t_038hz4eJUciA1F9-DWE8UN_V58KE0i43cpOAMk';var USER_ID='${userId}';fetch(SUPABASE_URL+'/rest/v1/pending_triggers',{method:'POST',headers:{'apikey':ANON_KEY,'Authorization':'Bearer '+ANON_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({user_id:USER_ID,type:'MERIDIAN_PROCESS_START',page_url:window.location.href})}).catch(function(err){console.error('[Meridian]',err)});try{var et=document.getElementById('meridian-toast');if(et)et.remove();var t=document.createElement('div');t.id='meridian-toast';t.textContent='\\u2713 Meridian \\u2014 Process widget opened';t.style.cssText='position:fixed;bottom:24px;right:24px;background:#003087;color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;font-family:"Segoe UI",sans-serif;z-index:2147483647;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.3);border-left:3px solid #60a5fa;transition:opacity 300ms';document.body.appendChild(t);setTimeout(function(){t.style.opacity='0'},2200);setTimeout(function(){t.remove()},2500)}catch(e){}})();`;
 }
@@ -36,18 +27,18 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bgDeep, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-      <div style={{ width: '100%', maxWidth: 520, background: C.bg, border: `1px solid ${C.border}`, borderRadius: 16, padding: 40 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-deep)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ width: '100%', maxWidth: 520, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, padding: 40 }}>
         {/* Logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
           <img src="/meridian-mark-192.png" alt="Meridian" style={{ width: 64, height: 64, borderRadius: 12 }} />
         </div>
 
         {/* Heading */}
-        <h1 style={{ color: C.textPri, fontSize: 24, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>
+        <h1 style={{ color: 'var(--text-pri)', fontSize: 24, fontWeight: 800, textAlign: 'center', margin: '0 0 8px' }}>
           Install the Bookmarklet
         </h1>
-        <p style={{ color: C.textSec, fontSize: 14, textAlign: 'center', margin: '0 0 32px' }}>
+        <p style={{ color: 'var(--text-dim)', fontSize: 14, textAlign: 'center', margin: '0 0 32px' }}>
           One click to start tracking from anywhere
         </p>
 
@@ -57,12 +48,12 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
               <div style={{
                 width: 24, height: 24, minWidth: 24, borderRadius: '50%',
-                background: C.mBtn, color: '#fff', fontSize: 12, fontWeight: 700,
+                background: 'var(--color-mbtn)', color: '#fff', fontSize: 12, fontWeight: 700,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {i + 1}
               </div>
-              <span style={{ color: C.textPri, fontSize: 14, lineHeight: '1.5', paddingTop: 3 }}>{text}</span>
+              <span style={{ color: 'var(--text-pri)', fontSize: 14, lineHeight: '1.5', paddingTop: 3 }}>{text}</span>
             </div>
           ))}
         </div>
@@ -93,12 +84,12 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
         {/* Info box */}
         <div style={{
           background: 'var(--card-bg-subtle)',
-          border: `1px solid ${C.border}`,
+          border: '1px solid var(--border)',
           borderRadius: 10,
           padding: '14px 16px',
           marginBottom: 28,
         }}>
-          <p style={{ color: C.textSec, fontSize: 13, margin: 0, lineHeight: '1.5' }}>
+          <p style={{ color: 'var(--text-dim)', fontSize: 13, margin: 0, lineHeight: '1.5' }}>
             Works on Chrome and Edge 116+. The bookmarklet never stores your passwords or personal data.
           </p>
         </div>
@@ -123,7 +114,7 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
           onClick={onComplete}
           disabled={submitting}
           style={{
-            width: '100%', height: 48, background: C.mBtn, color: '#fff',
+            width: '100%', height: 48, background: 'var(--color-mbtn)', color: '#fff',
             fontSize: 15, fontWeight: 700, borderRadius: 10, border: 'none',
             cursor: submitting ? 'not-allowed' : 'pointer',
             opacity: submitting ? 0.65 : 1,
@@ -136,7 +127,7 @@ export default function Step3Bookmarklet({ onComplete, onBack, submitting = fals
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <span
             onClick={onBack}
-            style={{ color: C.textSec, fontSize: 13, cursor: 'pointer' }}
+            style={{ color: 'var(--text-dim)', fontSize: 13, cursor: 'pointer' }}
           >
             ← Back
           </span>

@@ -59,7 +59,7 @@ export default function MplLaunchError({ reason, onRetry }) {
             onClick={onRetry}
             style={{
               padding: '9px 18px',
-              background: '#E8540A',
+              background: 'var(--color-mmark)',
               color: '#fff',
               border: 'none',
               borderRadius: 8,

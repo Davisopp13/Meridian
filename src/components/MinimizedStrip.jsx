@@ -75,7 +75,7 @@ export default function MinimizedStrip({
     zone2Content = (
       <>
         <span style={{
-          color: '#E8540A', fontSize: 10, fontWeight: 500,
+          color: 'var(--color-mmark)', fontSize: 10, fontWeight: 500,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           paddingLeft: 8, flexShrink: 1, minWidth: 0,
         }}>
@@ -145,7 +145,7 @@ export default function MinimizedStrip({
           className="swap-dot-pulse"
           onClick={e => { e.stopPropagation(); onStripSwap?.() }}
           style={{
-            width: 6, height: 6, borderRadius: '50%', background: '#E8540A',
+            width: 6, height: 6, borderRadius: '50%', background: 'var(--color-mmark)',
             flexShrink: 0, marginLeft: 8, cursor: 'pointer',
           }}
         />
@@ -192,7 +192,7 @@ export default function MinimizedStrip({
           }}
         />
         <span style={{
-          color: '#E8540A', fontSize: 10, fontWeight: 500,
+          color: 'var(--color-mmark)', fontSize: 10, fontWeight: 500,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           paddingLeft: 4, flexShrink: 1, minWidth: 0,
         }}>
