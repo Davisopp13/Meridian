@@ -262,7 +262,7 @@ After each file, run `npx vite build` — it must pass before moving on.
 
 ### Phase 3 — Final sweep and verification
 
-- [ ] **Task 3.1: Remove the `backdropFilter: blur(12px)` no-op from `DashboardStatCard.jsx`**
+- [x] **Task 3.1: Remove the `backdropFilter: blur(12px)` no-op from `DashboardStatCard.jsx`**
 
   The stat card has `backdropFilter: 'blur(12px)'` on an opaque solid-color background. It does nothing and adds GPU cost.
 

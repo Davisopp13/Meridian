@@ -13,8 +13,6 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
     borderRadius: 16,
     background: color,
     opacity: isActive ? 1 : 0.9,
-    backdropFilter: 'blur(12px)',
-    WebkitBackdropFilter: 'blur(12px)',
     border: `2px solid ${isActive ? 'rgba(255,255,255,0.6)' : 'transparent'}`,
     padding: 16,
     cursor: 'pointer',
@@ -26,7 +24,7 @@ export default function DashboardStatCard({ label, value, color, icon, active, o
     boxSizing: 'border-box',
     boxShadow: `0 8px 16px ${color}40`,
     transform: pressed ? 'scale(0.97)' : hovered ? 'scale(1.02) translateY(-2px)' : 'scale(1)',
-    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+    transition: 'all var(--motion-fast)',
   };
 
   const topRowStyle = {
