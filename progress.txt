@@ -4109,3 +4109,25 @@ Learnings for future iterations:
   - All SF Direct Link PRD tasks (0.1 through 3.2) are now complete
   - sf_case_id flows from SF DOM scrape → bookmarklet payload → widget state → Supabase writes → useActivityData select → CaseLink render
 ---
+
+## Iteration TokenConsolidation-1 - Task 0.1 (Design Token Consolidation PRD): Extend src/index.css with missing tokens
+- Updated --font-family in :root from 'Inter', system-ui to "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif
+- Added to :root: --bg-navbar, --hover-surface, --hover-surface-soft, --tab-active-bg, --tab-active-fg, --motion-fast, --motion-slow, --focus-ring, --focus-offset
+- Added to [data-theme="light"]: --bg-navbar, --hover-surface, --hover-surface-soft overrides
+- Added focus-visible rules (:focus-visible + element-specific selectors)
+- Added @media (prefers-reduced-motion: reduce) block
+- Added body { font-variant-numeric: tabular-nums; } rule
+- Acceptance checks:
+  - grep -n "motion-fast|focus-ring|hover-surface|tab-active-bg|bg-navbar" src/index.css → 11 matches (≥7 ✓)
+  - grep -n "prefers-reduced-motion|focus-visible|tabular-nums" src/index.css → 9 matches (≥3 ✓)
+  - npx vite build → ✓ built in 1.41s, 0 errors
+
+Files changed:
+  src/index.css (tokens + focus/motion rules added)
+  PRD.md (Task 0.1 marked [x])
+
+Learnings for future iterations:
+  - --font-family token in :root was updated (not just added) since it already existed with Inter value
+  - New tokens appended at bottom of :root block after existing tokens, per PRD "keep existing tokens untouched" instruction
+  - body { font-variant-numeric: tabular-nums; } is a second body rule after the first — valid CSS, adds the numeric variant without touching existing body styles
+---

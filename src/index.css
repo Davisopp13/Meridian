@@ -1,5 +1,6 @@
 :root {
-  --font-family: 'Inter', system-ui, sans-serif;
+  /* Font — canonical, Segoe UI commit */
+  --font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 
   /* Core Colors */
   --bg-deep: #0f0f1e;
@@ -32,6 +33,25 @@
   /* Shadows & Effects */
   --shadow-subtle: 0 4px 12px rgba(0, 0, 0, 0.15);
   --shadow-glow: 0 0 16px rgba(0, 48, 135, 0.3);
+
+  /* Navbar — specific because it's glassy */
+  --bg-navbar: rgba(26, 26, 46, 0.8);
+
+  /* Hover surface (dark mode default) */
+  --hover-surface: rgba(255, 255, 255, 0.06);
+  --hover-surface-soft: rgba(255, 255, 255, 0.03);
+
+  /* Active-tab fill (navy by default — NOT orange) */
+  --tab-active-bg: var(--color-mbtn);
+  --tab-active-fg: #ffffff;
+
+  /* Motion tokens */
+  --motion-fast: 150ms cubic-bezier(0.3, 0, 0.2, 1);
+  --motion-slow: 240ms cubic-bezier(0.3, 0, 0.2, 1);
+
+  /* Focus ring */
+  --focus-ring: 2px solid var(--color-mmark);
+  --focus-offset: 2px;
 }
 
 [data-theme="light"] {
@@ -45,6 +65,9 @@
   --card-bg-subtle: rgba(15, 23, 42, 0.04);
   --shadow-subtle: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-glow: 0 0 16px rgba(0, 48, 135, 0.15);
+  --bg-navbar: rgba(255, 255, 255, 0.85);
+  --hover-surface: rgba(15, 23, 42, 0.06);
+  --hover-surface-soft: rgba(15, 23, 42, 0.03);
 }
 
 body {
@@ -58,6 +81,32 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+  border-radius: 4px;
+}
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+body {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Custom Webkit Scrollbar */
