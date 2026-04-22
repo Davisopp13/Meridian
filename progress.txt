@@ -4000,3 +4000,26 @@ Learnings for future iterations:
   - caseUrl and accountUrl both return null for falsy or malformed IDs — callers skip the link affordance on null
   - SF_HOST constant is defined here and nowhere else — update this one line for sandbox/org changes
 ---
+
+## Iteration SF-5 - Task 2.2 (SF Direct Link PRD): Create src/components/CaseLink.jsx
+- Created src/components/CaseLink.jsx
+- Default export: CaseLink({ sfCaseId, showOnHover = true, size = 12 })
+- Imports ExternalLink from 'lucide-react' and caseUrl from '../lib/salesforce.js'
+- Returns null when caseUrl(sfCaseId) is null (missing/malformed ID)
+- showOnHover=true: opacity 0 at rest, revealed by parent CSS (.case-link-host:hover .case-link-icon)
+- showOnHover=false: opacity 1 always (for modal/non-hover contexts)
+- onMouseEnter/Leave update color (--color-mmark / --text-dim) and background (--hover-surface / transparent) inline
+- onClick stopPropagation prevents parent row click handler from firing
+- Opens target="_blank" with noopener noreferrer
+- `grep -n "from 'lucide-react'" src/components/CaseLink.jsx` returns 1 ✓
+- `npx vite build` passes — ✓ built in 1.36s, 0 errors
+
+Files changed:
+  src/components/CaseLink.jsx (created)
+  PRD.md (Task 2.2 marked [x])
+
+Learnings for future iterations:
+  - CaseLink uses CSS variables (--text-dim, --color-mmark, --hover-surface, --motion-fast) — these work in dashboard host-page context (ThemeContext injects them on <html>)
+  - showOnHover=false is the correct prop for modal/non-row-hover surfaces (Task 2.4 uses it in the edit modal header)
+  - The hover reveal CSS (.case-link-host:hover .case-link-icon) is added in Task 2.3 (src/index.css)
+---

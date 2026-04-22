@@ -248,7 +248,7 @@ Things the codebase already has that this PRD builds on:
   - `grep -c "^export function" src/lib/salesforce.js` returns `2`.
   - `npx vite build` passes.
 
-- [ ] **Task 2.2: Add `src/components/CaseLink.jsx` — one component, every surface**
+- [x] **Task 2.2: Add `src/components/CaseLink.jsx` — one component, every surface**
 
   Create `src/components/CaseLink.jsx`:
 
