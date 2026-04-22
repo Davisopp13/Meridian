@@ -4695,3 +4695,49 @@ Learnings for future iterations:
   - close() defers the pending_triggers delete (not confirm()) because the trigger row must stay alive while modal is open (per Task 4 design)
   - Task 6 is next: create MassReclassModal.jsx with confirming/submitting/success/error visual states
 ---
+
+## Iteration [mass-reclass-6] - Task 6: Create MassReclassModal.jsx
+- Created src/components/MassReclassModal.jsx
+- Four visual states: confirming (case list + Cancel/Reclassify N cases buttons), submitting (spinner + message, no buttons), success (CountdownBody with live 10-second useEffect/setInterval countdown + Undo/Dismiss), error (error message + Close/Retry)
+- CountdownBody as internal component; auto-calls onClose when secondsLeft hits 0
+- Overlay pattern: position fixed, inset 0, semi-transparent backdrop + blur (matches BookmarkletModal pattern)
+- Card width 360px, uses CSS variables throughout (--bg-card, --border, --text-pri, --text-sec, --color-reclass)
+- Spinner via CSS @keyframes mrm-spin injected via <style> tag (inline styles only, no external CSS)
+- Scrollable case list in confirming state (maxHeight 240px, overflowY auto)
+- Props: { state, cases, batchId, error, onConfirm, onUndo, onClose }
+
+Files changed:
+  src/components/MassReclassModal.jsx (created)
+  PRD.md (Task 6 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.30s (0 errors)
+  - `grep -c "cases.length|onConfirm|onUndo" src/components/MassReclassModal.jsx` → 8 (>= 3)
+
+Learnings for future iterations:
+  - No RFCPrompt component exists — BookmarkletModal is the closest modal reference in this codebase
+  - CountdownBody needs onClose in its dep array (eslint), but auto-close on countdown=0 works cleanly with useEffect keyed on secondsLeft
+  - Task 7 is next: wire useMassReclass + MassReclassModal into MplApp.jsx
+---
+---
+
+## Iteration 35 (mass-reclass) - Task 7: Wire useMassReclass + MassReclassModal into MplApp.jsx
+- Modified src/mpl/MplApp.jsx
+- Added imports: `useMassReclass` from hooks, `MassReclassModal` from components
+- Called `const massReclass = useMassReclass()` after `useStats()` near other hook calls
+- Added `onMassReclass: (cases, triggerRowId) => massReclass.openModal(cases, triggerRowId)` to the `usePendingTriggers` handlers object (alongside existing handleCaseStart/handleProcessStart)
+- Wrapped `buildMplBar()` return in a fragment: `<>...</>` containing `<MplPipBar .../>` followed by `<MassReclassModal state={massReclass.modalState} cases={massReclass.cases} batchId={massReclass.batchId} error={massReclass.error} onConfirm={massReclass.confirm} onUndo={massReclass.undo} onClose={massReclass.close} />`
+- MassReclassModal renders null when state='idle', so no visual impact on normal operation
+
+Files changed:
+  src/mpl/MplApp.jsx (modified)
+  PRD.md (Task 7 marked [x])
+
+Tests passed:
+  - `npx vite build 2>&1 | tail -10` → ✓ built in 1.32s (0 errors)
+  - `grep -c "MassReclassModal|useMassReclass|onMassReclass" src/mpl/MplApp.jsx` → 5 (>= 3)
+
+Learnings for future iterations:
+  - useMassReclass returns flat props (modalState, cases, batchId, error, openModal, confirm, undo, close) — no modalProps wrapper object
+  - PiP content in buildMplBar() is a closure over component state; wrapping in a fragment is sufficient to add the modal overlay without any structural changes
+  - MassReclassModal uses position:fixed which is relative to the PiP window viewport — correct overlay behavior

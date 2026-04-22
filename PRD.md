@@ -274,7 +274,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
   - Test: `npx vite build 2>&1 | tail -10` contains no errors.
   - Test: `grep -c "cases.length\|onConfirm\|onUndo" src/components/MassReclassModal.jsx` prints `>= 3`.
 
-- [ ] **Task 7: Wire `useMassReclass` + `MassReclassModal` into `MplApp.jsx`**
+- [x] **Task 7: Wire `useMassReclass` + `MassReclassModal` into `MplApp.jsx`**
   - Modify `src/mpl/MplApp.jsx`. Import `useMassReclass` and `MassReclassModal`.
   - Inside the `MplApp` component:
     - Call `const massReclass = useMassReclass()` near other hook calls.
