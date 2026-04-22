@@ -261,7 +261,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
 
 ### Phase 4: UI
 
-- [ ] **Task 6: Create `MassReclassModal.jsx`**
+- [x] **Task 6: Create `MassReclassModal.jsx`**
   - Create `src/components/MassReclassModal.jsx`. Takes props: `{ state, cases, batchId, error, onConfirm, onUndo, onClose }`.
   - Follow the existing design token system — use CSS variables (`--bg-card`, `--text-pri`, `--text-sec`, `--border`, `--color-accent`, etc.) rather than hardcoded hex. Reference the existing `RFCPrompt` component for styling patterns.
   - Renders as a modal overlay centered in the PiP window when `state !== 'idle'`. Four visual states:
