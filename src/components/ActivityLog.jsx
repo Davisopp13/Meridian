@@ -118,8 +118,8 @@ function formatTime(date) {
 }
 
 // Defined outside ActivityLog to avoid hooks-in-loop
-function FilterTab({ filterKey, label, count, active, onClick, C }) {
-  const ts = TYPE_STYLE[filterKey] || { color: C.textPrimary, bg: 'transparent', border: C.border };
+function FilterTab({ filterKey, label, count, active, onClick }) {
+  const ts = TYPE_STYLE[filterKey] || { color: 'var(--text-pri)', bg: 'transparent', border: 'var(--divider)' };
   return (
     <button
       onClick={() => onClick(filterKey)}
@@ -130,9 +130,9 @@ function FilterTab({ filterKey, label, count, active, onClick, C }) {
         padding: '0 12px',
         height: 32,
         borderRadius: 16,
-        border: `1px solid ${active ? ts.border : C.border}`,
+        border: `1px solid ${active ? ts.border : 'var(--divider)'}`,
         background: active ? ts.bg : 'transparent',
-        color: active ? ts.color : C.textSecondary,
+        color: active ? ts.color : 'var(--text-sec)',
         fontSize: 12,
         fontWeight: 600,
         cursor: 'pointer',
@@ -140,12 +140,12 @@ function FilterTab({ filterKey, label, count, active, onClick, C }) {
         whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ color: active ? ts.color : C.textMuted, fontSize: 10 }}>●</span>
+      <span style={{ color: active ? ts.color : 'var(--text-dim)', fontSize: 10 }}>●</span>
       {label}
       <span
         style={{
           background: 'rgba(255,255,255,0.08)',
-          color: C.textSecondary,
+          color: 'var(--text-sec)',
           borderRadius: 10,
           padding: '1px 6px',
           fontSize: 11,
@@ -617,9 +617,9 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
 }
 
 // Defined outside ActivityLog to avoid hooks-in-loop
-function EntryRow({ entry, onEdit, allowMutations, C }) {
+function EntryRow({ entry, onEdit, allowMutations }) {
   const [hovered, setHovered] = useState(false);
-  const ts = TYPE_STYLE[entry.type] || { color: C.textMuted, bg: 'transparent', border: C.border };
+  const ts = TYPE_STYLE[entry.type] || { color: 'var(--text-dim)', bg: 'transparent', border: 'var(--divider)' };
 
   return (
     <div
@@ -630,8 +630,8 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
         display: 'flex',
         alignItems: 'center',
         height: 36,
-        borderBottom: `1px solid ${C.border}`,
-        background: hovered ? C.bgHover : 'transparent',
+        borderBottom: `1px solid var(--divider)`,
+        background: hovered ? 'var(--hover-surface)' : 'transparent',
         transition: 'background 100ms',
         overflow: 'hidden',
       }}
@@ -665,18 +665,18 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
           {entry.type}
         </span>
         {entry.rfc && (
-          <span style={{ fontSize: 10, color: C.orange, fontWeight: 700, flexShrink: 0 }}>RFC</span>
+          <span style={{ fontSize: 10, color: 'var(--color-mmark)', fontWeight: 700, flexShrink: 0 }}>RFC</span>
         )}
       </div>
 
       {/* Separator */}
-      <span style={{ color: C.textMuted, fontSize: 12, flexShrink: 0, marginRight: 8 }}>·</span>
+      <span style={{ color: 'var(--text-dim)', fontSize: 12, flexShrink: 0, marginRight: 8 }}>·</span>
 
       {/* Case # — 116px (extra 20px for SF link icon slot) */}
       <div style={{ width: 116, flexShrink: 0, display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
         <span
           style={{
-            color: C.textSecondary,
+            color: 'var(--text-sec)',
             fontSize: 12,
             whiteSpace: 'nowrap',
           }}
@@ -687,13 +687,13 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
       </div>
 
       {/* Separator */}
-      <span style={{ color: C.textMuted, fontSize: 12, flexShrink: 0, marginRight: 8 }}>·</span>
+      <span style={{ color: 'var(--text-dim)', fontSize: 12, flexShrink: 0, marginRight: 8 }}>·</span>
 
       {/* Category — flex grow */}
       <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
         <span
           style={{
-            color: C.textSecondary,
+            color: 'var(--text-sec)',
             fontSize: 12,
             whiteSpace: 'nowrap',
             overflow: 'hidden',
@@ -707,12 +707,12 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
 
       {/* Duration */}
       <div style={{ flexShrink: 0, marginLeft: 12, marginRight: 12 }}>
-        <span style={{ color: C.textSecondary, fontSize: 12 }}>{formatDur(entry.dur)}</span>
+        <span style={{ color: 'var(--text-sec)', fontSize: 12 }}>{formatDur(entry.dur)}</span>
       </div>
 
       {/* Time — 68px monospace right-aligned */}
       <div style={{ width: 68, flexShrink: 0, textAlign: 'right', paddingRight: 8 }}>
-        <span style={{ color: C.textMuted, fontSize: 11 }}>
+        <span style={{ color: 'var(--text-dim)', fontSize: 11 }}>
           {formatTime(entry.ts)}
         </span>
       </div>
@@ -732,7 +732,7 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
           }}
           onClick={() => onEdit(entry)}
         >
-          <span style={{ fontSize: 13, color: C.textSecondary }}>✎</span>
+          <span style={{ fontSize: 13, color: 'var(--text-sec)' }}>✎</span>
         </div>
       )}
     </div>
@@ -742,28 +742,6 @@ function EntryRow({ entry, onEdit, allowMutations, C }) {
 export default function ActivityLog({ userId, userIds, allowMutations = true }) {
   const { theme } = useTheme();
   const isLight = theme === 'light';
-  const C = {
-    bg:              isLight ? '#f1f5f9'              : '#0f1117',
-    bgCard:          isLight ? '#ffffff'              : '#1a1d27',
-    bgHover:         isLight ? '#f8fafc'              : '#1e2130',
-    border:          isLight ? 'rgba(0,0,0,0.08)'    : 'rgba(255,255,255,0.07)',
-    orange:          '#E8540A',
-    green:           '#16a34a',
-    greenBg:         'rgba(22,163,74,0.12)',
-    greenBorder:     'rgba(22,163,74,0.28)',
-    red:             '#dc2626',
-    redBg:           'rgba(220,38,38,0.12)',
-    redBorder:       'rgba(220,38,38,0.28)',
-    blue:            '#0284c7',
-    blueBg:          'rgba(2,132,199,0.12)',
-    blueBorder:      'rgba(2,132,199,0.28)',
-    lightBlue:       '#60a5fa',
-    lightBlueBg:     'rgba(96,165,250,0.12)',
-    lightBlueBorder: 'rgba(96,165,250,0.28)',
-    textPrimary:     isLight ? '#0f172a'              : '#f1f5f9',
-    textSecondary:   isLight ? '#475569'              : '#cbd5e1',
-    textMuted:       isLight ? '#64748b'              : '#6b7280',
-  };
 
   const [activeFilters, setActiveFilters] = useState(new Set());
   const [range, setRange] = useState('today');
@@ -820,7 +798,7 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
       borderRadius: 14,
       border: 'none',
       background: active ? 'rgba(255,255,255,0.12)' : 'transparent',
-      color: active ? C.textPrimary : C.textMuted,
+      color: active ? 'var(--text-pri)' : 'var(--text-dim)',
       fontSize: 12,
       fontWeight: active ? 600 : 400,
       cursor: 'pointer',
@@ -831,8 +809,8 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
   return (
     <div
       style={{
-        background: C.bgCard,
-        border: `1px solid ${C.border}`,
+        background: 'var(--bg-card)',
+        border: `1px solid var(--divider)`,
         borderRadius: 12,
         overflow: 'hidden',
       }}
@@ -844,7 +822,7 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '12px 16px',
-          borderBottom: `1px solid ${C.border}`,
+          borderBottom: `1px solid var(--divider)`,
           gap: 12,
           flexWrap: 'wrap',
         }}
@@ -858,9 +836,9 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
               padding: '0 12px',
               height: 32,
               borderRadius: 16,
-              border: `1px solid ${activeFilters.size === 0 ? (isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)') : C.border}`,
+              border: `1px solid ${activeFilters.size === 0 ? (isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)') : 'var(--divider)'}`,
               background: activeFilters.size === 0 ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: activeFilters.size === 0 ? C.textPrimary : C.textMuted,
+              color: activeFilters.size === 0 ? 'var(--text-pri)' : 'var(--text-dim)',
               fontSize: 12,
               fontWeight: activeFilters.size === 0 ? 700 : 400,
               cursor: 'pointer',
@@ -878,7 +856,6 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
               count={typeCounts[f.key] || 0}
               active={activeFilters.has(f.key)}
               onClick={toggleFilter}
-              C={C}
             />
           ))}
 
@@ -890,7 +867,7 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
                 height: 28,
                 border: 'none',
                 background: 'transparent',
-                color: C.textMuted,
+                color: 'var(--text-dim)',
                 fontSize: 11,
                 cursor: 'pointer',
               }}
@@ -930,7 +907,7 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
             style={{
               padding: '32px 16px',
               textAlign: 'center',
-              color: C.textMuted,
+              color: 'var(--text-dim)',
               fontSize: 13,
             }}
           >
@@ -941,7 +918,7 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
             style={{
               padding: '32px 16px',
               textAlign: 'center',
-              color: C.textMuted,
+              color: 'var(--text-dim)',
               fontSize: 13,
             }}
           >
@@ -953,7 +930,7 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
               key={entry.id}
               style={{ opacity: isVisible(entry) ? 1 : 0.15, transition: 'opacity 150ms' }}
             >
-              <EntryRow entry={entry} onEdit={setEditingEntry} allowMutations={allowMutations} C={C} />
+              <EntryRow entry={entry} onEdit={setEditingEntry} allowMutations={allowMutations} />
             </div>
           ))
         )}

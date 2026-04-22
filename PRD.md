@@ -211,7 +211,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Replace active-tab orange with `var(--tab-active-bg)`.
   - **Acceptance:** `grep -n "theme === 'light'" src/components/InsightsTab.jsx` = 0. Build passes.
 
-- [ ] **Task 2.7: `src/components/ActivityLog.jsx`**
+- [x] **Task 2.7: `src/components/ActivityLog.jsx`**
   - Has a `const C` around line 739. Migrate it to token refs.
   - The `TYPE_STYLE` object at the top also has hardcoded hexes but those ARE semantic status colors — leave them as-is for now (they're a documented exception and consistent with the stat card colors in `Dashboard.jsx`).
   - **DO NOT TOUCH** any of the SF Direct Link wiring that was added in the prior PRD: the `import CaseLink from './CaseLink.jsx'`, the `<CaseLink sfCaseId={...} />` calls (there are 2 — one in the row render, one in the edit modal header), the `className="case-link-host"` on the EntryRow wrapper, or the `width: 116` on the case# slot. These are functional, not stylistic.
