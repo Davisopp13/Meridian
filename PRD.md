@@ -189,7 +189,7 @@ After each file, run `npx vite build` — it must pass before moving on.
   - Replace inline `transition: 'all 150ms ease'` with `transition: 'all var(--motion-fast)'`.
   - **Acceptance:** `grep -n "#003087\|#E8540A\|rgba(26" src/components/Navbar.jsx` = 0. Build passes.
 
-- [ ] **Task 2.2: `src/components/SignIn.jsx` and `src/components/auth/SignIn.jsx`**
+- [x] **Task 2.2: `src/components/SignIn.jsx` and `src/components/auth/SignIn.jsx`**
   - Both files have local `const C`. Migrate both.
   - **Acceptance:** `grep -n "#003087\|#E8540A\|#0f0f1e\|#1a1a2e" src/components/SignIn.jsx src/components/auth/SignIn.jsx` = 0. Build passes.
 

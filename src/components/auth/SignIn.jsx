@@ -24,22 +24,22 @@ export default function SignIn({ onSwitchToSignUp }) {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#0f0f1e',
+      minHeight: '100vh', background: 'var(--bg-deep)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div style={{
         width: '100%', maxWidth: 440,
-        background: '#1a1a2e',
-        border: '1px solid rgba(255,255,255,0.12)',
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
         borderRadius: 16, padding: 40,
         boxSizing: 'border-box',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
           <img src="/meridian-mark-192.png" style={{ width: 64, height: 64, borderRadius: 10, marginBottom: 24 }} alt="Meridian" />
-          <h1 style={{ margin: 0, color: 'rgba(255,255,255,0.93)', fontSize: 22, fontWeight: 800, textAlign: 'center' }}>
+          <h1 style={{ margin: 0, color: 'var(--text-pri)', fontSize: 22, fontWeight: 800, textAlign: 'center' }}>
             Sign in to Meridian
           </h1>
-          <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.45)', fontSize: 13, textAlign: 'center' }}>
+          <p style={{ margin: '8px 0 0', color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}>
             Hapag-Lloyd IDT &amp; Customer Service
           </p>
         </div>
@@ -48,7 +48,7 @@ export default function SignIn({ onSwitchToSignUp }) {
         <div style={{ marginBottom: 16 }}>
           <label style={{
             display: 'block', fontSize: 11, fontWeight: 700,
-            color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase',
+            color: 'var(--text-dim)', textTransform: 'uppercase',
             letterSpacing: '0.08em', marginBottom: 6,
           }}>
             Email
@@ -61,9 +61,9 @@ export default function SignIn({ onSwitchToSignUp }) {
             placeholder="you@hapag-lloyd.com"
             style={{
               width: '100%', height: 48, padding: '0 16px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 10, color: 'rgba(255,255,255,0.93)',
+              background: 'var(--hover-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 10, color: 'var(--text-pri)',
               fontSize: 15, outline: 'none', boxSizing: 'border-box',
             }}
           />
@@ -73,7 +73,7 @@ export default function SignIn({ onSwitchToSignUp }) {
         <div style={{ marginBottom: 16 }}>
           <label style={{
             display: 'block', fontSize: 11, fontWeight: 700,
-            color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase',
+            color: 'var(--text-dim)', textTransform: 'uppercase',
             letterSpacing: '0.08em', marginBottom: 6,
           }}>
             Password
@@ -85,9 +85,9 @@ export default function SignIn({ onSwitchToSignUp }) {
             onKeyDown={handleKeyDown}
             style={{
               width: '100%', height: 48, padding: '0 16px',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 10, color: 'rgba(255,255,255,0.93)',
+              background: 'var(--hover-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: 10, color: 'var(--text-pri)',
               fontSize: 15, outline: 'none', boxSizing: 'border-box',
             }}
           />
@@ -108,10 +108,10 @@ export default function SignIn({ onSwitchToSignUp }) {
           disabled={loading || !email || !password}
           style={{
             width: '100%', height: 48, borderRadius: 10, border: 'none',
-            background: loading || !email || !password ? 'rgba(0,48,135,0.5)' : '#003087',
+            background: loading || !email || !password ? 'rgba(0,48,135,0.5)' : 'var(--color-mbtn)',
             color: '#fff', fontSize: 15, fontWeight: 700,
             cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
-            transition: 'all 150ms',
+            transition: 'all var(--motion-fast)',
           }}
         >
           {loading ? 'Signing in…' : 'Sign In'}
@@ -121,7 +121,7 @@ export default function SignIn({ onSwitchToSignUp }) {
           Don't have an account?{' '}
           <span
             onClick={onSwitchToSignUp}
-            style={{ color: '#E8540A', cursor: 'pointer', fontWeight: 700 }}
+            style={{ color: 'var(--color-mmark)', cursor: 'pointer', fontWeight: 700 }}
           >
             Sign up
           </span>

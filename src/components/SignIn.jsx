@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 
 const C = {
-  bg:      '#0f0f1e',
-  card:    '#1a1a2e',
-  border:  'rgba(255,255,255,0.12)',
-  textPri: 'rgba(255,255,255,0.93)',
-  textSec: 'rgba(255,255,255,0.45)',
-  accent:  '#E8540A',
-  blue:    '#003087',
+  bg:      'var(--bg-deep)',
+  card:    'var(--bg-card)',
+  border:  'var(--border)',
+  textPri: 'var(--text-pri)',
+  textSec: 'var(--text-dim)',
+  accent:  'var(--color-mmark)',
+  blue:    'var(--color-mbtn)',
 }
 
 export default function SignIn() {
@@ -79,7 +79,7 @@ export default function SignIn() {
                 required
                 style={{
                   width: '100%', boxSizing: 'border-box',
-                  background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`,
+                  background: 'var(--hover-surface)', border: `1px solid ${C.border}`,
                   borderRadius: 8, padding: '10px 14px', color: C.textPri,
                   fontSize: 14, outline: 'none', marginBottom: 12,
                 }}
