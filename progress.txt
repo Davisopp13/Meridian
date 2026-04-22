@@ -4628,3 +4628,24 @@ Learnings for future iterations:
   - Task 3 will replace the stub with walkShadow + collectSelectedCases + full handleListViewContext; the DOM check also gets enhanced to use walkShadow for shadow-DOM traversal
   - Decision (from PRD Task 3 note): cases array is stuffed into `case_number` field as JSON string to reuse existing pending_triggers schema without a migration
 ---
+
+## Iteration mass-reclass-3 - Task 3 (Mass Reclass PRD): Implement list-view DOM scrape in meridian-trigger.js
+- Added `walkShadow(root, visitor)` function at the top of the IIFE (after var declarations), using an iterative stack approach to traverse both light DOM and shadow roots
+- Added `collectSelectedCases()` function: calls walkShadow on document.documentElement, collects `tr[data-row-key-value]` elements starting with '500', checks `.checked` on the inner checkbox, extracts sf_case_id from data-row-key-value, extracts case_number via primary `th[data-label="Case Number"] span[title]` and fallback `/^\d{8,}$/` scan
+- Replaced the stub `handleListViewContext` with a full implementation: calls collectSelectedCases(), shows 'Select cases' toast if empty, else builds pending_triggers payload with type='MERIDIAN_MASS_RECLASS', stores cases array JSON in case_number field, sends via SUPABASE_INSERT_TRIGGER relay message, listens for response with 10s timeout cleanup
+- Decision note preserved: cases array is stuffed into `case_number` field (JSON text) to reuse existing pending_triggers schema without a migration. PiP-side handler parses it back out.
+
+Files changed:
+  public/meridian-trigger.js
+
+Tests passed:
+  - `node -c public/meridian-trigger.js` → syntax ok
+  - `grep -c "walkShadow\|collectSelectedCases\|handleListViewContext" public/meridian-trigger.js` → 7 (>= 6)
+
+Learnings for future iterations:
+  - walkShadow uses an iterative stack (not recursion) to avoid call-stack overflows on large DOMs
+  - node.getAttribute guard (`if (!node.getAttribute) return`) is required since non-Element nodes (Text, Comment) don't have getAttribute
+  - The `data-row-key-value` attribute holds the SF Case ID even when `aria-selected="false"` — never trust aria-selected
+  - collectSelectedCases returns an empty array if no checked rows — handleListViewContext checks length > 0 before firing relay
+  - Task 4 is next: extend usePendingTriggers.js to route MERIDIAN_MASS_RECLASS events to a new onMassReclass handler
+---

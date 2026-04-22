@@ -16,6 +16,20 @@
   var userId = MERIDIAN_PAYLOAD.userId;
   var relay = MERIDIAN_PAYLOAD.relayFrame;
 
+  // ── Shadow-DOM walker ────────────────────────────────────────────────────
+  function walkShadow(root, visitor) {
+    var stack = [root];
+    while (stack.length) {
+      var node = stack.pop();
+      visitor(node);
+      if (node.shadowRoot) stack.push(node.shadowRoot);
+      var children = node.childNodes || [];
+      for (var ci = children.length - 1; ci >= 0; ci--) {
+        stack.push(children[ci]);
+      }
+    }
+  }
+
   var isSalesforce =
     window.location.hostname.includes('force.com') ||
     window.location.hostname.includes('salesforce.com') ||
@@ -86,9 +100,70 @@
     window.removeEventListener('message', onRelayResponse);
   }, 10000);
 
-  // ── List-view handler (stub — full implementation in Task 3) ────────────
+  // ── collectSelectedCases ─────────────────────────────────────────────────
+  function collectSelectedCases() {
+    var cases = [];
+    walkShadow(document.documentElement, function(node) {
+      if (!node.getAttribute) return;
+      var kv = node.getAttribute('data-row-key-value');
+      if (!kv || !kv.startsWith('500')) return;
+      var checkbox = node.querySelector('input[type="checkbox"]');
+      if (!checkbox || !checkbox.checked) return;
+      var caseNumber = null;
+      var primary = node.querySelector('th[data-label="Case Number"] span[title]');
+      if (primary) {
+        caseNumber = primary.getAttribute('title');
+      } else {
+        var spans = node.querySelectorAll('span[title]');
+        for (var si = 0; si < spans.length; si++) {
+          var t = spans[si].getAttribute('title');
+          if (t && /^\d{8,}$/.test(t)) { caseNumber = t; break; }
+        }
+      }
+      if (caseNumber) cases.push({ case_number: caseNumber, sf_case_id: kv });
+    });
+    return cases;
+  }
+
+  // ── List-view handler ────────────────────────────────────────────────────
   function handleListViewContext(relay, userId, showToast) {
-    showToast('Meridian: Select cases in the list, then click again.', 'info');
+    var cases = collectSelectedCases();
+    if (!cases.length) {
+      showToast('Meridian: Select cases in the list, then click again.', 'info');
+      return;
+    }
+
+    var id = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    var payload = {
+      user_id: userId,
+      type: 'MERIDIAN_MASS_RECLASS',
+      action: 'mass_reclass',
+      page_url: window.location.href,
+      case_number: JSON.stringify(cases)
+    };
+
+    function onMassReclassResponse(e) {
+      if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+      if (e.data.id !== id) return;
+      window.removeEventListener('message', onMassReclassResponse);
+      if (e.data.success) {
+        showToast('Meridian: Opened with ' + cases.length + ' cases', 'success');
+      } else {
+        showToast('Meridian: Failed — ' + (e.data.error || 'unknown error'), 'error');
+      }
+    }
+    window.addEventListener('message', onMassReclassResponse);
+
+    relay.postMessage({
+      relay: 'MERIDIAN_TRIGGER',
+      id: id,
+      action: 'SUPABASE_INSERT_TRIGGER',
+      payload: payload
+    }, '*');
+
+    setTimeout(function() {
+      window.removeEventListener('message', onMassReclassResponse);
+    }, 10000);
   }
 
   // ── Toast UI ─────────────────────────────────────────────────────────────

@@ -193,7 +193,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
   - Test: `node -c public/meridian-trigger.js` exits 0 (syntax check).
   - Test: `grep -c "handleListViewContext" public/meridian-trigger.js` prints `>= 2` (declaration + invocation).
 
-- [ ] **Task 3: Implement list-view DOM scrape in `meridian-trigger.js`**
+- [x] **Task 3: Implement list-view DOM scrape in `meridian-trigger.js`**
   - Add a recursive shadow-DOM walker `function walkShadow(root, visitor)` at the top of the IIFE. It calls `visitor(node)` for every descendant in both light DOM and shadow DOM, recursing into any `node.shadowRoot` it finds. Mirrors the `dS()` pattern from the original bookmarklet.
   - Add `function collectSelectedCases()`:
     - Walks the document via `walkShadow`, collecting every `tr` element that has a `data-row-key-value` attribute starting with `500`.
