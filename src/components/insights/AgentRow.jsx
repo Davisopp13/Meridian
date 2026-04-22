@@ -17,7 +17,7 @@ const nameCellStyle = {
   padding: '8px 12px',
   textAlign: 'left',
   fontSize: 14,
-  color: 'var(--text-primary)',
+  color: 'var(--text-pri)',
 };
 
 export default function AgentRow({ agent, stats }) {

@@ -3,7 +3,7 @@ export default function TeamFilterDropdown({ teams, selectedTeamId, onChange }) 
     background: 'var(--bg-card)',
     border: '1px solid var(--border)',
     borderRadius: 8,
-    color: 'var(--text-primary)',
+    color: 'var(--text-pri)',
     fontSize: 13,
     padding: '7px 12px',
     cursor: 'pointer',

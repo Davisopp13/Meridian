@@ -12,13 +12,13 @@ const titleStyle = {
   fontWeight: 800,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   marginBottom: 14,
 };
 
 const labelStyle = {
   fontSize: 13,
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   width: 160,
   flexShrink: 0,
   whiteSpace: 'nowrap',
@@ -29,7 +29,7 @@ const labelStyle = {
 const minutesStyle = {
   fontSize: 13,
   fontWeight: 600,
-  color: 'var(--text-primary)',
+  color: 'var(--text-pri)',
   width: 48,
   textAlign: 'right',
   flexShrink: 0,
@@ -73,7 +73,7 @@ export default function MplByCategoryPanel({ byCategory, categoryNames = {} }) {
     <div style={cardStyle}>
       <div style={titleStyle}>MPL Minutes by Category</div>
       {displayed.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No process data for this period.</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sec)' }}>No process data for this period.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {displayed.map(({ id, name, minutes }) => (

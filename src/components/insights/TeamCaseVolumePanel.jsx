@@ -22,21 +22,21 @@ const titleStyle = {
   fontWeight: 800,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   marginBottom: 4,
 };
 
 const totalStyle = {
   fontSize: 36,
   fontWeight: 800,
-  color: 'var(--text-primary)',
+  color: 'var(--text-pri)',
   lineHeight: 1,
   marginBottom: 16,
 };
 
 const agentNameStyle = {
   fontSize: 13,
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   width: 120,
   flexShrink: 0,
   whiteSpace: 'nowrap',
@@ -47,7 +47,7 @@ const agentNameStyle = {
 const agentCountStyle = {
   fontSize: 13,
   fontWeight: 600,
-  color: 'var(--text-primary)',
+  color: 'var(--text-pri)',
   width: 32,
   textAlign: 'right',
   flexShrink: 0,
@@ -102,7 +102,7 @@ export default function TeamCaseVolumePanel({ perAgentStats, teamTotals }) {
       <div style={totalStyle}>{totalCases}</div>
 
       {agents.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No agent data for this period.</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sec)' }}>No agent data for this period.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {agents.map(([agentId, entry]) => {
@@ -125,7 +125,7 @@ export default function TeamCaseVolumePanel({ perAgentStats, teamTotals }) {
         {SEGMENT_KEYS.map((k) => (
           <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: 2, background: SEGMENT_COLORS[k], flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{SEGMENT_LABELS[k]}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-sec)' }}>{SEGMENT_LABELS[k]}</span>
           </div>
         ))}
       </div>

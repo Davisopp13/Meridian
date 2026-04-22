@@ -136,7 +136,7 @@ Things Ralph should know before starting:
 
 ### Phase 1 — Critical bug fixes
 
-- [ ] **Task 1.1: Fix the Insights token typo (CRITICAL)**
+- [x] **Task 1.1: Fix the Insights token typo (CRITICAL)**
 
   The entire Insights module references `var(--text-primary)` and `var(--text-secondary)`, which do **not exist**. The canonical tokens are `--text-pri` and `--text-sec`. This means every Insights panel is currently rendering with default browser colors in some contexts.
 

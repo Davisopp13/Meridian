@@ -19,7 +19,7 @@ const titleStyle = {
   fontWeight: 800,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   marginBottom: 14,
 };
 
@@ -29,7 +29,7 @@ const thStyle = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.06em',
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   textAlign: 'right',
   cursor: 'pointer',
   userSelect: 'none',
@@ -46,7 +46,7 @@ const casesPerHourStyle = {
   textAlign: 'right',
   fontSize: 14,
   fontWeight: 600,
-  color: 'var(--text-primary)',
+  color: 'var(--text-pri)',
 };
 
 function computeCasesPerHour(stats, activeDays) {
@@ -111,7 +111,7 @@ export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
     <div style={cardStyle}>
       <div style={titleStyle}>Agent Handle Time</div>
       {sorted.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>No agent data for this period.</div>
+        <div style={{ fontSize: 13, color: 'var(--text-sec)' }}>No agent data for this period.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -129,7 +129,7 @@ export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
             <tbody>
               {sorted.map(({ agentId, agent, stats, casesPerHour }) => (
                 <tr key={agentId} style={{ borderBottom: '1px solid var(--border)' }}>
-                  <td style={{ padding: '8px 12px', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}>
+                  <td style={{ padding: '8px 12px', textAlign: 'left', fontSize: 14, color: 'var(--text-pri)' }}>
                     {onAgentClick ? (
                       <button
                         onClick={() => onAgentClick(agentId)}
@@ -139,12 +139,12 @@ export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
                           padding: 0,
                           font: 'inherit',
                           fontSize: 14,
-                          color: 'var(--text-primary)',
+                          color: 'var(--text-pri)',
                           cursor: 'pointer',
                           textDecoration: 'none',
                         }}
                         onMouseEnter={e => { e.currentTarget.style.color = '#E8540A'; e.currentTarget.style.textDecoration = 'underline'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.textDecoration = 'none'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-pri)'; e.currentTarget.style.textDecoration = 'none'; }}
                       >
                         {agent?.full_name || agent?.email || agentId}
                       </button>
@@ -164,7 +164,7 @@ export default function AgentHandleTimePanel({ perAgentStats, onAgentClick }) {
           </table>
         </div>
       )}
-      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+      <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-sec)', fontStyle: 'italic' }}>
         Cases/hr = (Resolved + Reclassified) ÷ estimated active hours (provisional)
       </div>
     </div>

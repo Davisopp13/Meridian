@@ -14,7 +14,7 @@ const titleStyle = {
   fontWeight: 800,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
-  color: 'var(--text-secondary)',
+  color: 'var(--text-sec)',
   marginBottom: 14,
 };
 
@@ -52,7 +52,7 @@ export default function TrendComparisonPanel({ period, perAgentStats, previousPe
     { name: currentLabel, value: current },
   ];
 
-  const pctColor = isPositive ? '#4ade80' : isNegative ? '#f87171' : 'var(--text-secondary)';
+  const pctColor = isPositive ? '#4ade80' : isNegative ? '#f87171' : 'var(--text-sec)';
 
   return (
     <div style={cardStyle}>
@@ -60,22 +60,22 @@ export default function TrendComparisonPanel({ period, perAgentStats, previousPe
 
       <div style={{ display: 'flex', gap: 24, marginBottom: 16, flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{currentLabel}</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)' }}>{current}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-sec)', marginBottom: 2 }}>{currentLabel}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-pri)' }}>{current}</div>
         </div>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>{previousLabel}</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-secondary)' }}>{previous}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-sec)', marginBottom: 2 }}>{previousLabel}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-sec)' }}>{previous}</div>
         </div>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 2 }}>Change</div>
+          <div style={{ fontSize: 11, color: 'var(--text-sec)', marginBottom: 2 }}>Change</div>
           <div style={{ fontSize: 28, fontWeight: 700, color: pctColor }}>{pctChange}</div>
         </div>
       </div>
 
       <ResponsiveContainer width="100%" height={80}>
         <BarChart data={chartData} barSize={40} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} axisLine={false} tickLine={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text-sec)' }} axisLine={false} tickLine={false} />
           <YAxis hide />
           <Tooltip
             contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
