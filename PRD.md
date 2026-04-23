@@ -310,7 +310,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
 
 ### Phase 4: Widget — add mode + mass-mode rendering
 
-- [ ] **Task 4: Add mode to ct-widget.js state**
+- [x] **Task 4: Add mode to ct-widget.js state**
   - View `public/ct-widget.js` lines 45-65 to see the state object.
   - Add a new field to the state object literal: `mode: MERIDIAN_PAYLOAD.mode || 'single',`
   - Also add these new fields (for mass-mode state machine):

@@ -4860,3 +4860,40 @@ Learnings for future iterations:
   - `Prefer: return=representation` is used (not return=minimal) because the widget needs the returned data (batch_id, case_count)
   - payload.args is spread directly as the JSON body (not wrapped in another object)
 ---
+---
+
+## Iteration 41 (unified-start-button) - Task 3: Simplify meridian-trigger.js with detectMode()
+- Removed isListView detection block (lines 55-68)
+- Removed collectSelectedCases() function
+- Removed handleListViewContext() function (including SUPABASE_INSERT_TRIGGER relay call)
+- Added detectMode() function: URL-first (pathname check for /lightning/r/Case/ → single, /lightning/o/Case/list → mass), fallback to walkShadow scan for data-row-key-value^=500
+- Added `MERIDIAN_PAYLOAD.mode = detectMode();` before the new Function(...) call inside onRelayResponse
+- File reduced from 209 lines → 149 lines (rough target was ~130, "significantly shorter" achieved)
+
+Files changed:
+  public/meridian-trigger.js (simplified)
+  PRD.md (Task 3 marked [x])
+
+Tests passed:
+  - node -c public/meridian-trigger.js → syntax ok ✓
+  - grep -c "function detectMode" → 1 ✓
+  - grep -c "MERIDIAN_MASS_RECLASS" → 0 ✓
+  - grep -c "SUPABASE_INSERT_TRIGGER" → 0 ✓
+  - grep -c "handleListViewContext|collectSelectedCases" → 0 ✓
+
+Learnings for future iterations:
+  - In mass mode, the trigger no longer pre-counts cases; the widget handles count display
+  - detectMode() uses indexOf (not includes/startsWith) for compatibility with older SF browser contexts
+  - walkShadow is kept in the trigger file because detectMode's fallback needs it for DOM scanning
+  - showToast is a function declaration (hoisted) — called before its definition in the file, safe
+
+## Iteration 4 - Task 4: Add mode to ct-widget.js state
+- Added `mode: MERIDIAN_PAYLOAD.mode || 'single'` to the state object (lines 47-70)
+- Added mass-mode state fields: massSubState, massCases, massBatchId, massError, massCountdown, massCountdownTimer
+- Updated MERIDIAN_PAYLOAD comment at line 4 to include `mode`
+- Also added `state.mode = payload.mode || state.mode` to `_meridianRefresh` handler so re-injection updates the mode
+- Files changed: public/ct-widget.js, PRD.md
+- Learnings for future iterations:
+  - The grep test `state\.mode\|mode:.*MERIDIAN_PAYLOAD\.mode` requires >= 2 matches — satisfying it required adding state.mode to the _meridianRefresh handler (line 557), which is correct behavior anyway.
+  - progress.txt is >256KB and can only be written via Bash append (not Read+Write).
+---
