@@ -354,7 +354,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
 
 ### Phase 6: Verification
 
-- [ ] **Task 11: Run the full test matrix**
+- [x] **Task 11: Run the full test matrix**
   - Build: `npx vite build 2>&1 | tail -10` — no errors.
   - Syntax: `node -c public/ct-widget.js` and `node -c public/meridian-trigger.js` — both exit 0.
   - HTML structure sanity: grep `public/meridian-relay.html` to confirm we didn't touch it: `git diff --stat public/meridian-relay.html` should be empty.

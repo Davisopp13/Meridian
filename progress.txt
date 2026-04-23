@@ -5339,3 +5339,19 @@ Learnings for future iterations:
   - start-mass was already gone from Task 9; Task 10 only needed to swap startcase → start
   - Next tasks: Task 11 (verification), Task 12 (commit summary)
 ---
+
+## Iteration N - Task 11: Run the full test matrix
+- Ran full verification suite for feat/detect-at-start branch
+- Build: `npx vite build` — ✓ built in 1.36s, 0 errors
+- Syntax: `node -c public/ct-widget.js` and `node -c public/meridian-trigger.js` — both OK
+- Relay untouched: `git diff --stat public/meridian-relay.html` — empty (no output)
+- Scope: `git diff --stat main...HEAD` — only 4 files: PRD.md, progress.txt, public/ct-widget.js, public/meridian-trigger.js
+
+Files changed:
+  PRD.md (Task 11 marked [x])
+  progress.txt (this entry)
+
+Learnings for future iterations:
+  - Verification tasks: run commands, record output, mark done if all pass
+  - All detect-at-start tasks (1-11) now verified; Task 12 is the summary commit
+---
