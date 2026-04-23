@@ -242,6 +242,33 @@
     }
   }
 
+  function detectModeAtStart() {
+    // Single-case record page: /lightning/r/Case/500.../view
+    if (window.location.pathname.indexOf('/lightning/r/Case/') === 0) {
+      return 'single';
+    }
+    // Case list view: /lightning/o/Case/list
+    if (window.location.pathname.indexOf('/lightning/o/Case/list') === 0) {
+      return 'mass';
+    }
+    // Fallback: if any checked case rows exist in the DOM, treat as mass
+    var foundCheckedRow = false;
+    try {
+      walkShadowLocal(document.documentElement, function (n) {
+        if (foundCheckedRow) return;
+        if (!n.getAttribute) return;
+        var kv = n.getAttribute('data-row-key-value');
+        if (!kv || kv.indexOf('500') !== 0) return;
+        var cb = n.querySelector && n.querySelector('input[type="checkbox"]');
+        if (cb && cb.checked) foundCheckedRow = true;
+      });
+    } catch (e) {}
+    if (foundCheckedRow) return 'mass';
+    // Last fallback: if the document title has an 8+ digit number, treat as single
+    if (document.title && /\d{8,}/.test(document.title)) return 'single';
+    return 'none';
+  }
+
   function collectSelectedCasesFromDom() {
     var cases = [];
     walkShadowLocal(document.documentElement, function (node) {

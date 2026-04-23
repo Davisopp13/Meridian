@@ -5244,3 +5244,41 @@ Learnings for future iterations:
   - The Edit tool's unicode swap logic handles \uXXXX ↔ actual char but NOT multi-byte UTF-8 sequences embedded in strings
   - Next task: Task 6 (remove renderMass's idle sub-state)
 ---
+
+## Iteration [detect-at-start] - Task 6: Remove renderMass idle sub-state
+- Added defensive fallback at top of renderMass(): `if (state.massSubState === 'idle') { renderIdle(); return; }`
+- Removed entire `if (sub === 'idle')` block (23 lines): the "N Cases Selected" badge, the start-mass button, and the count badge logic
+- renderMass() now only handles: confirm, submitting, success, error, and the generic minimized branch
+
+Files changed:
+  public/ct-widget.js (renderMass simplified, 23 lines removed + 1 added)
+  PRD.md (Task 6 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function renderMass" → 1 ✓
+  - grep -c 'data-action="start-mass"' → 0 ✓
+  - grep -c "Cases Selected" → 0 ✓
+
+Learnings for future iterations:
+  - The Edit tool handled multi-line UTF-8 comment blocks correctly in this case (used plain ASCII in the deleted block)
+  - Next task: Task 7 (add detectModeAtStart() function)
+---
+
+## Iteration [7-Task] - Task 7: Add detectModeAtStart() function
+- Inserted `detectModeAtStart()` between `walkShadowLocal` and `collectSelectedCasesFromDom` at line 245 of public/ct-widget.js
+- Function returns 'single' for /lightning/r/Case/ URLs, 'mass' for /lightning/o/Case/list URLs
+- Fallback: walks shadow DOM for checked case rows (mass), then checks document.title for 8+ digit number (single), else 'none'
+
+Files changed:
+  public/ct-widget.js (new function inserted)
+  PRD.md (Task 7 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function detectModeAtStart" → 1 ✓
+
+Learnings for future iterations:
+  - Insertion point between walkShadowLocal (line 232) and collectSelectedCasesFromDom (line 245)
+  - Next task: Task 8 (add handleStart() dispatcher)
+---

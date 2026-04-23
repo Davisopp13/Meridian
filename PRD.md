@@ -247,7 +247,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
   - Test: `grep -c "data-action=\"startcase\"" public/ct-widget.js` returns `0` (old data-action gone).
   - Test: `node -c public/ct-widget.js` exits 0.
 
-- [ ] **Task 6: Remove renderMass's idle sub-state**
+- [x] **Task 6: Remove renderMass's idle sub-state**
   - View `renderMass()`. It currently has an `if (sub === 'idle')` block that produces the mass-mode idle bar with "Start" button and "N Cases Selected" badge.
   - Remove that entire `if (sub === 'idle')` block. The `renderMass` function should now ONLY handle sub-states `confirm`, `submitting`, `success`, `error`, and `minimized`.
   - Add a defensive fallback at the top: if `state.mode === 'mass'` but `state.massSubState === 'idle'` (shouldn't happen post-refactor), render the idle bar instead:
@@ -264,7 +264,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
 
 ### Phase 4: Add the unified dispatcher
 
-- [ ] **Task 7: Add detectModeAtStart() function**
+- [x] **Task 7: Add detectModeAtStart() function**
   - Insert a new function near the other helpers (after `walkShadowLocal` and before `collectSelectedCasesFromDom` is a natural spot). The function reads the current page and returns `'single'`, `'mass'`, or `'none'`:
     ```js
     function detectModeAtStart() {
