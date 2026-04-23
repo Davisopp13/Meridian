@@ -326,7 +326,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - Test: `node -c public/ct-widget.js` exits 0.
   - Test: `grep -c "state.mode\|mode:.*MERIDIAN_PAYLOAD.mode" public/ct-widget.js` returns `>= 2`.
 
-- [ ] **Task 5: Add handleStartMass function + deep-walk collector**
+- [x] **Task 5: Add handleStartMass function + deep-walk collector**
   - In `public/ct-widget.js`, add a new function `collectSelectedCasesFromDom()` near the existing helpers. Use the same deep-walk pattern established in Task 3 of the previous Mass Reclass PRD — the specific version that correctly pierces `<lightning-primitive-custom-cell>` shadow roots:
     ```js
     function walkShadowLocal(root, visitor) {

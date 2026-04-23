@@ -200,6 +200,46 @@
     });
   }
 
+  // ── Shadow-DOM walker (widget-local, for mass case collection) ──────────
+  function walkShadowLocal(root, visitor) {
+    var stack = [root];
+    while (stack.length) {
+      var node = stack.pop();
+      visitor(node);
+      if (node.shadowRoot) stack.push(node.shadowRoot);
+      var children = node.childNodes || [];
+      for (var ci = children.length - 1; ci >= 0; ci--) {
+        stack.push(children[ci]);
+      }
+    }
+  }
+
+  function collectSelectedCasesFromDom() {
+    var cases = [];
+    walkShadowLocal(document.documentElement, function (node) {
+      if (!node.getAttribute) return;
+      var kv = node.getAttribute('data-row-key-value');
+      if (!kv || kv.indexOf('500') !== 0) return;
+      var checkbox = node.querySelector && node.querySelector('input[type="checkbox"]');
+      if (!checkbox || !checkbox.checked) return;
+
+      // Deep-walk the Case Number <th> to pierce the custom-cell shadow root.
+      var caseNumber = null;
+      var caseCell = node.querySelector('th[data-label="Case Number"]');
+      if (caseCell) {
+        walkShadowLocal(caseCell, function (inner) {
+          if (caseNumber) return;
+          if (!inner.getAttribute) return;
+          var t = inner.getAttribute('title');
+          if (t && /^\d{8,}$/.test(t)) caseNumber = t;
+        });
+      }
+
+      if (caseNumber) cases.push({ case_number: caseNumber, sf_case_id: kv });
+    });
+    return cases;
+  }
+
   // ── Date helper ─────────────────────────────────────────────────────────
   function getTodayNY() {
     return new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
@@ -402,6 +442,85 @@
     state.sessionId   = '';
     state.elapsed     = 0;
     state.isAwaiting  = false;
+    render();
+  }
+
+  // ── Mass-mode handlers ───────────────────────────────────────────────────
+  function handleStartMass() {
+    var cases = collectSelectedCasesFromDom();
+    if (!cases.length) {
+      showWidgetToast('No cases selected. Check rows in the list, then Start.');
+      return;
+    }
+    state.massCases = cases;
+    state.massSubState = 'confirm';
+    render();
+  }
+
+  function handleConfirmMass() {
+    state.massSubState = 'submitting';
+    render();
+    relayRpc('bulk_reclassify_cases', {
+      p_user_id: state.userId,
+      p_case_refs: state.massCases
+    }).then(function (rows) {
+      var batchId = (rows && rows[0] && rows[0].batch_id) || null;
+      if (!batchId) throw new Error('RPC returned no batch_id');
+      state.massBatchId = batchId;
+      state.massSubState = 'success';
+      state.massCountdown = 10;
+      render();
+      state.massCountdownTimer = setInterval(function () {
+        state.massCountdown -= 1;
+        if (state.massCountdown <= 0) {
+          clearInterval(state.massCountdownTimer);
+          state.massCountdownTimer = null;
+          handleDismissMass();
+        } else {
+          render();
+        }
+      }, 1000);
+    }).catch(function (err) {
+      state.massSubState = 'error';
+      state.massError = err.message || 'Unknown error';
+      render();
+    });
+  }
+
+  function handleUndoMass() {
+    if (!state.massBatchId) return;
+    if (state.massCountdownTimer) {
+      clearInterval(state.massCountdownTimer);
+      state.massCountdownTimer = null;
+    }
+    relayRpc('undo_mass_reclass_batch', {
+      p_user_id: state.userId,
+      p_batch_id: state.massBatchId
+    }).then(function () {
+      handleDismissMass();
+    }).catch(function (err) {
+      state.massError = 'Undo failed: ' + (err.message || 'Unknown error');
+      state.massSubState = 'error';
+      render();
+    });
+  }
+
+  function handleDismissMass() {
+    state.massCases = [];
+    state.massBatchId = null;
+    state.massError = null;
+    state.massSubState = 'idle';
+    state.massCountdown = 10;
+    if (state.massCountdownTimer) {
+      clearInterval(state.massCountdownTimer);
+      state.massCountdownTimer = null;
+    }
+    render();
+  }
+
+  function handleCancelConfirm() {
+    state.massCases = [];
+    state.massSubState = 'idle';
     render();
   }
 
