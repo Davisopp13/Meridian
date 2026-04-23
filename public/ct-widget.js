@@ -501,7 +501,9 @@
       case_id:    null,
       duration_s: null,
       entry_date: getTodayNY(),
-      notes: state.note || null,
+      notes:      state.note || null,
+      direction:  'outgoing',
+      source:     'ct_widget',
     }).then(function () {
       relayPost('case_events', {
         session_id: state.sessionId || null,

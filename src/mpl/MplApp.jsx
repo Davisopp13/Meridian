@@ -5,7 +5,7 @@ import { usePendingTriggers } from '../hooks/usePendingTriggers.js'
 import useMplRecovery from '../hooks/useMplRecovery.js'
 import { useStats } from '../hooks/useStats.js'
 import { supabase } from '../lib/supabase.js'
-import { logMplEntry, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam, fetchMyActiveMplTimers, clearMplActiveTimer } from '../lib/api.js'
+import { logMplEntry, logCall, fetchProfile, fetchCategoriesForTeamId, fetchCategoriesForTeam, fetchMyActiveMplTimers, clearMplActiveTimer } from '../lib/api.js'
 import { saveSnapshot, clearSnapshot, loadSnapshot } from '../lib/mplRecoveryStorage.js'
 import MplPipBar from './MplPipBar.jsx'
 import AuthScreen from '../components/auth/AuthScreen.jsx'
@@ -447,6 +447,24 @@ export default function MplApp() {
   }
 
   // Quick Log — opens ManualEntryForm in PiP window
+  async function handleCallLog(direction) {
+    if (!user?.id) return
+    const { error } = await logCall({
+      userId: user.id,
+      direction,
+      source: 'mpl_widget',
+      note: null,
+    })
+    if (error) {
+      console.error('[Meridian MPL] call log failed:', error.message)
+      setPipToast('Call log failed')
+      setTimeout(() => setPipToast(null), 2500)
+      return
+    }
+    setPipToast(direction === 'incoming' ? '📞 Incoming logged' : '📞 Outgoing logged')
+    setTimeout(() => setPipToast(null), 2000)
+  }
+
   function handleQuickLog() {
     // Fast path: widget is already open. Fully synchronous so resizeTo runs
     // inside the click's user activation window.
@@ -577,6 +595,7 @@ export default function MplApp() {
           processCount={processCount}
           onOpenDashboard={handleOpenDashboard}
           onStart={handleStart}
+          onCallLog={handleCallLog}
           onQuickLog={handleQuickLog}
           onConfirmProcess={handleConfirmProcess}
           onCancelProcess={handleCancelProcess}

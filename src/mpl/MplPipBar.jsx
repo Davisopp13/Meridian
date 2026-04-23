@@ -52,6 +52,7 @@ export default function MplPipBar({
   quickLogOpen = false,
   onQuickLogConfirm,
   onQuickLogCancel,
+  onCallLog,
   onMinimize,
   onRestore,
   isMinimized = false,
@@ -152,6 +153,26 @@ export default function MplPipBar({
               >
                 Quick Log
               </button>
+              <button
+                onClick={() => onCallLog && onCallLog('incoming')}
+                style={{
+                  height: 28, padding: '0 10px', borderRadius: 14,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                }}
+              >
+                📞 In
+              </button>
+              <button
+                onClick={() => onCallLog && onCallLog('outgoing')}
+                style={{
+                  height: 28, padding: '0 10px', borderRadius: 14,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                }}
+              >
+                📞 Out
+              </button>
             </>
           ) : (
             /* Processes active — inline pills + Quick Log + chevron */
@@ -204,6 +225,26 @@ export default function MplPipBar({
                 }}
               >
                 Quick Log
+              </button>
+              <button
+                onClick={() => onCallLog && onCallLog('incoming')}
+                style={{
+                  height: 26, padding: '0 10px', borderRadius: 13,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                }}
+              >
+                📞 In
+              </button>
+              <button
+                onClick={() => onCallLog && onCallLog('outgoing')}
+                style={{
+                  height: 26, padding: '0 10px', borderRadius: 13,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                }}
+              >
+                📞 Out
               </button>
             </>
           )}

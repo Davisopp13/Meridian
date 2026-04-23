@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { getNewYorkDateKey } from './timezone.js'
 
 export async function logCaseEvent({ userId, type, sessionId = null, excluded = false, rfc = false, note = null }) {
   return supabase.from('case_events').insert({
@@ -20,6 +21,44 @@ export async function logMplEntry({ userId, categoryId, subcategoryId, minutes, 
     source,
     note,
   })
+}
+
+export async function logCall({
+  userId,
+  sessionId = null,
+  durationS = null,
+  note = null,
+  direction,
+  source,
+}) {
+  const callRes = await supabase.from('ct_calls').insert({
+    user_id: userId,
+    case_id: null,
+    duration_s: durationS,
+    entry_date: getNewYorkDateKey(),
+    notes: note,
+    direction,
+    source,
+  })
+
+  if (callRes.error) return { error: callRes.error }
+
+  // Activity-feed marker — non-fatal if this fails.
+  // case_events.note mirrors ct_calls.notes so the dashboard can show call notes without joining ct_calls.
+  const eventRes = await supabase.from('case_events').insert({
+    user_id: userId,
+    type: 'call',
+    session_id: sessionId,
+    excluded: false,
+    rfc: false,
+    note,
+  })
+
+  if (eventRes.error) {
+    console.warn('[Meridian] logCall: case_events marker write failed:', eventRes.error.message)
+  }
+
+  return { error: null }
 }
 
 export async function fetchRecentMplPairs(userId, limit = 5) {
