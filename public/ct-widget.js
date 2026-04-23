@@ -780,6 +780,7 @@
   }
 
   function renderMass() {
+    if (state.massSubState === 'idle') { renderIdle(); return; }  // defensive
     var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
     var sub = state.massSubState;
     var n = state.massCases.length || state.massCount || 0;
@@ -850,29 +851,6 @@
           spacer +
           minBtn + '▲</button>' +
           closeBtn +
-        '</div>';
-      return;
-    }
-
-    // ── Sub-state: idle ──────────────────────────────────────────────────
-    if (sub === 'idle') {
-      var countBadge = n > 0
-        ? '<span style="color:#E8540A;font-weight:700;font-size:12px;flex-shrink:0;">' + n + ' Cases Selected</span>'
-        : '<span style="color:rgba(255,255,255,0.55);font-size:12px;flex-shrink:0;">Cases Selected</span>';
-      shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
-          mLogo +
-          '<button data-action="start-mass" style="' +
-            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
-            'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
-          '">Start</button>' +
-          countBadge +
-          divider +
-          statPills +
-          spacer +
-          minBtn + '▼</button>' +
-          closeBtn +
-          toastHtml +
         '</div>';
       return;
     }
