@@ -278,21 +278,59 @@
       var checkbox = node.querySelector && node.querySelector('input[type="checkbox"]');
       if (!checkbox || !checkbox.checked) return;
 
-      // Deep-walk the Case Number <th> to pierce the custom-cell shadow root.
-      var caseNumber = null;
-      var caseCell = node.querySelector('th[data-label="Case Number"]');
-      if (caseCell) {
-        walkShadowLocal(caseCell, function (inner) {
-          if (caseNumber) return;
-          if (!inner.getAttribute) return;
-          var t = inner.getAttribute('title');
-          if (t && /^\d{8,}$/.test(t)) caseNumber = t;
-        });
-      }
-
+      var caseNumber = extractCaseNumberFromRow(node, kv);
       if (caseNumber) cases.push({ case_number: caseNumber, sf_case_id: kv });
     });
     return cases;
+  }
+
+  // Cascade extractor — tries three methods in order, returns first success.
+  // `row` is the <tr> element; `sfCaseId` is the 500... ID from data-row-key-value.
+  function extractCaseNumberFromRow(row, sfCaseId) {
+    // Method 1 (legacy): th[data-label="Case Number"] with deep-walked title
+    var caseCell = row.querySelector && row.querySelector('th[data-label="Case Number"]');
+    if (caseCell) {
+      var found = null;
+      walkShadowLocal(caseCell, function (inner) {
+        if (found) return;
+        if (!inner.getAttribute) return;
+        var t = inner.getAttribute('title');
+        if (t && /^\d{8,}$/.test(t)) found = t;
+      });
+      if (found) return found;
+    }
+
+    // Method 2 (new): find an <a> with href matching the row's specific case, read title
+    var foundTitle = null;
+    walkShadowLocal(row, function (inner) {
+      if (foundTitle) return;
+      if (inner.tagName !== 'A' || !inner.getAttribute) return;
+      var href = inner.getAttribute('href') || '';
+      if (href.indexOf('/lightning/r/Case/' + sfCaseId) !== 0 &&
+          href.indexOf('/lightning/r/Case/' + sfCaseId + '/') === -1) {
+        return;
+      }
+      var t = inner.getAttribute('title');
+      if (t && /^\d{8,}$/.test(t)) foundTitle = t;
+    });
+    if (foundTitle) return foundTitle;
+
+    // Method 3 (new): same href match, but read textContent
+    var foundText = null;
+    walkShadowLocal(row, function (inner) {
+      if (foundText) return;
+      if (inner.tagName !== 'A' || !inner.getAttribute) return;
+      var href = inner.getAttribute('href') || '';
+      if (href.indexOf('/lightning/r/Case/' + sfCaseId) !== 0 &&
+          href.indexOf('/lightning/r/Case/' + sfCaseId + '/') === -1) {
+        return;
+      }
+      var text = (inner.textContent || '').trim();
+      if (/^\d{8,}$/.test(text)) foundText = text;
+    });
+    if (foundText) return foundText;
+
+    return null;
   }
 
   // ── Date helper ─────────────────────────────────────────────────────────
