@@ -12,7 +12,7 @@ const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
  * Props:
  *   categories  — [{ id, name, team, mpl_subcategories[] }]
  *   onClose     — () close without logging
- *   onLog       — (categoryId, subcategoryId|null, minutes) save entry with source:'manual'
+ *   onLog       — (categoryId, subcategoryId|null, minutes, note) save entry with source:'manual'
  */
 export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   const [selectedMinutes, setSelectedMinutes] = useState(null)
@@ -20,6 +20,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   const [customMinutes, setCustomMinutes] = useState('')
   const [selection, setSelection] = useState(null) // { cat, sub }
   const [showDurationHint, setShowDurationHint] = useState(false)
+  const [note, setNote] = useState('')
 
   const tint = categories[0]?.team === 'CH' ? 'rgba(251,191,36,1)' : 'rgba(96,165,250,1)'
   const tintColor = categories[0]?.team === 'CH' ? C.awaiting : C.process
@@ -32,7 +33,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   function handleSelect(cat, sub) {
     const mins = getMinutes()
     if (mins > 0) {
-      onLog(cat.id, sub?.id ?? null, mins)
+      onLog(cat.id, sub?.id ?? null, mins, note)
     } else {
       setSelection({ cat, sub })
       setShowDurationHint(true)
@@ -44,7 +45,7 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
     setSelectedMinutes(d)
     setShowCustom(false)
     if (selection) {
-      onLog(selection.cat.id, selection.sub?.id ?? null, d)
+      onLog(selection.cat.id, selection.sub?.id ?? null, d, note)
     }
   }
 
@@ -133,6 +134,21 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
           </div>
         )}
       </div>
+
+      {/* Note input */}
+      <input
+        type="text"
+        maxLength={500}
+        placeholder="Optional note — tap a subcategory to log"
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        style={{
+          width: '100%', boxSizing: 'border-box',
+          height: 28, padding: '6px 8px', fontSize: 12,
+          borderRadius: 6, border: `1px solid ${C.border}`,
+          background: C.bg, color: C.textPri, outline: 'none',
+        }}
+      />
 
       {/* Selected category indicator */}
       {selection && (

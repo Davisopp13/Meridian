@@ -5520,3 +5520,25 @@ Learnings for future iterations:
   - onConfirm signature is now (categoryId, subcategoryId, elapsed, note) — Task 8 must update MplApp.jsx to accept the 4th arg
   - Next task: Task 7 (add notes input to ManualEntryForm.jsx)
 ---
+
+## Iteration 7 - Task 7: Add notes input and note arg to ManualEntryForm.jsx
+- Added `const [note, setNote] = useState('')` inside ManualEntryForm
+- Inserted a controlled text input (height 28px, fontSize 12, padding 6px 8px, borderRadius 6) between duration picker block and selection indicator, using C.border, C.bg, C.textPri
+- Updated handleSelect: `onLog(cat.id, sub?.id ?? null, mins, note)`
+- Updated handleDurationSelect: `onLog(selection.cat.id, selection.sub?.id ?? null, d, note)`
+- Updated JSDoc: `onLog — (categoryId, subcategoryId|null, minutes, note)`
+
+Files changed:
+  src/components/ManualEntryForm.jsx
+  PRD.md (Task 7 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.31s
+  - grep -c "onLog(.*note)" src/components/ManualEntryForm.jsx → 2 ✓
+
+Learnings for future iterations:
+  - ManualEntryForm already imports useState — no import change needed
+  - Note input placed between the duration picker div and the selection indicator div
+  - onLog signature is now (categoryId, subcategoryId, minutes, note) — Task 8 must update MplApp.jsx to accept the 4th arg from both ManualEntryForm and ProcessPicker
+  - Next task: Task 8 (wire note through MplApp.jsx to logMplEntry)
+---

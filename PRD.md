@@ -274,7 +274,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
   - Change `onConfirm` signature from `(categoryId, subcategoryId, elapsed)` to `(categoryId, subcategoryId, elapsed, note)`. Pass the note state value.
   - Test: `npm run build` passes. `grep -c "onConfirm(.*note" src/components/overlays/ProcessPicker.jsx` returns at least `1`.
 
-- [ ] **Task 7: Add notes input and `note` arg to `ManualEntryForm.jsx`**
+- [x] **Task 7: Add notes input and `note` arg to `ManualEntryForm.jsx`**
   - File: `src/components/ManualEntryForm.jsx`
   - Add `useState('')` for the note.
   - Insert the notes input between the duration picker block (ends around line 135) and the selection indicator (line 138). Same styling as Task 6.
