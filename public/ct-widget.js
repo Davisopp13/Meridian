@@ -793,9 +793,9 @@
           'height:26px;padding:0 10px;border-radius:6px;border:none;' +
           'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
         '">' + state.stats.reclass + ' Reclass</button>' +
-        '<button style="' +
+        '<button data-action="call" style="' +
           'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-          'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+          'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
         '">' + state.stats.calls + ' Calls</button>' +
         '<button style="' +
           'height:26px;padding:0 10px;border-radius:6px;border:none;' +
