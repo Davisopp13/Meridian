@@ -284,7 +284,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
   - Change JSDoc from `onLog — (categoryId, subcategoryId, minutes)` to `onLog — (categoryId, subcategoryId, minutes, note)`.
   - Test: `npm run build` passes. `grep -c "onLog(.*note)" src/components/ManualEntryForm.jsx` returns at least `2`.
 
-- [ ] **Task 8: Wire `note` through `MplApp.jsx` to `logMplEntry`**
+- [x] **Task 8: Wire `note` through `MplApp.jsx` to `logMplEntry`**
   - File: `src/mpl/MplApp.jsx`
   - Find the handler that receives `ProcessPicker`'s `onConfirm` callback (typically `handleChipStripConfirm` → `handleConfirmProcess`). Accept and forward `note`.
   - Find the handler that receives `ManualEntryForm`'s `onLog` callback. Accept and forward `note`.

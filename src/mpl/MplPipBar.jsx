@@ -263,7 +263,7 @@ export default function MplPipBar({
         <ProcessPicker
           categories={categories}
           elapsed={chipStripProcess?.elapsed || 0}
-          onConfirm={(catId, subId) => onChipStripConfirm && onChipStripConfirm(chipStripProcessId, catId, subId)}
+          onConfirm={(catId, subId, elapsed, note) => onChipStripConfirm && onChipStripConfirm(chipStripProcessId, catId, subId, note)}
           onCancel={() => onChipStripCancel && onChipStripCancel()}
         />
       )}
@@ -273,7 +273,7 @@ export default function MplPipBar({
         <ManualEntryForm
           categories={categories}
           onClose={() => onQuickLogCancel && onQuickLogCancel()}
-          onLog={(catId, subId, minutes) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes)}
+          onLog={(catId, subId, minutes, note) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes, note)}
         />
       )}
 

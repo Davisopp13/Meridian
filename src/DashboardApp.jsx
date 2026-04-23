@@ -252,7 +252,7 @@ export default function DashboardApp() {
     pin('categoryPicker')
   }
 
-  async function handleChipStripConfirm(processId, categoryId, subcategoryId) {
+  async function handleChipStripConfirm(processId, categoryId, subcategoryId, note) {
     const proc = processesRef.current.find(p => p.id === processId)
     const elapsed = proc?.elapsed || 0
     setChipStripProcessId(null)
@@ -260,7 +260,7 @@ export default function DashboardApp() {
     const cat = categories.find(c => c.id === categoryId)
     const catName = cat?.name || 'Process'
 
-    await handleConfirmProcess(processId, categoryId, subcategoryId, elapsed)
+    await handleConfirmProcess(processId, categoryId, subcategoryId, elapsed, note)
     showToast(`Logged ${catName} · ${Math.round(elapsed / 60) || 1} min`)
   }
 
@@ -293,14 +293,14 @@ export default function DashboardApp() {
     setQuickLogOpen(true)
   }
 
-  async function handleQuickLogConfirm(categoryId, subcategoryId, minutes) {
+  async function handleQuickLogConfirm(categoryId, subcategoryId, minutes, note) {
     if (!user || !minutes) return
     setQuickLogOpen(false)
 
     const cat = categories.find(c => c.id === categoryId)
     const catName = cat?.name || 'Process'
 
-    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes, source: 'manual' }))
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes, source: 'manual', note: note || null }))
     if (ok) {
       showToast(`Logged ${catName} · ${minutes} min`)
       if (showSwimlane && swimlaneOpen) pinActive()
@@ -322,7 +322,7 @@ export default function DashboardApp() {
     else pin('idle')
   }
 
-  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
+  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds, note) {
     if (!user) return
     stopTimer(id)
     const next = processesRef.current.filter(p => p.id !== id)
@@ -332,7 +332,7 @@ export default function DashboardApp() {
       setSwimlaneOpen(false)
       pin('idle')
     }
-    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes: Math.round(durationSeconds / 60) || 1, source: 'pip' }))
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes: Math.round(durationSeconds / 60) || 1, source: 'pip', note: note || null }))
     if (ok) refetch()
   }
 

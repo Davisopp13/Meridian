@@ -427,7 +427,7 @@ export default function MplApp() {
   }
 
   // Called when a category/sub chip is selected in the timed chip strip
-  async function handleChipStripConfirm(processId, categoryId, subcategoryId) {
+  async function handleChipStripConfirm(processId, categoryId, subcategoryId, note) {
     const proc = processesRef.current.find(p => p.id === processId)
     const elapsed = proc?.elapsed || 0
     setChipStripProcessId(null)
@@ -435,7 +435,7 @@ export default function MplApp() {
     const cat = categories.find(c => c.id === categoryId)
     const catName = cat?.name || 'Process'
 
-    await handleConfirmProcess(processId, categoryId, subcategoryId, elapsed)
+    await handleConfirmProcess(processId, categoryId, subcategoryId, elapsed, note)
     showToast(`Logged ${catName} · ${Math.round(elapsed / 60) || 1} min`)
   }
 
@@ -471,14 +471,14 @@ export default function MplApp() {
   }
 
   // Called from ManualEntryForm (Quick Log) when category + duration are selected
-  async function handleQuickLogConfirm(categoryId, subcategoryId, minutes) {
+  async function handleQuickLogConfirm(categoryId, subcategoryId, minutes, note) {
     if (!user || !minutes) return
     setQuickLogOpen(false)
 
     const cat = categories.find(c => c.id === categoryId)
     const catName = cat?.name || 'Process'
 
-    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes, source: 'manual' }))
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes, source: 'manual', note: note || null }))
     if (ok) {
       showToast(`Logged ${catName} · ${minutes} min`)
       if (showSwimlane && swimlaneOpen) pinActive()
@@ -501,7 +501,7 @@ export default function MplApp() {
   }
 
   // Called from ProcessLaneRow when user selects a category — logs the process
-  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds) {
+  async function handleConfirmProcess(id, categoryId, subcategoryId, durationSeconds, note) {
     if (!user) return
     stopTimer(id)
     const next = processesRef.current.filter(p => p.id !== id)
@@ -511,7 +511,7 @@ export default function MplApp() {
       setSwimlaneOpen(false)
       pin('idle')
     }
-    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes: Math.round(durationSeconds / 60) || 1, source: 'pip' }))
+    const ok = await safeWrite(logMplEntry({ userId: user.id, categoryId, subcategoryId, minutes: Math.round(durationSeconds / 60) || 1, source: 'pip', note: note || null }))
     if (ok) refetch()
   }
 
