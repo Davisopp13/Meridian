@@ -5355,3 +5355,39 @@ Learnings for future iterations:
   - Verification tasks: run commands, record output, mark done if all pass
   - All detect-at-start tasks (1-11) now verified; Task 12 is the summary commit
 ---
+
+## Iteration DAS-12 - Task 12: Commit summary
+
+### Detect-at-Start — final commits
+dd9fbcd detect-at-start: [task 0] create feat/detect-at-start branch
+e440aca detect-at-start: [task 1] remove detectMode from meridian-trigger.js
+73bcc92 detect-at-start: [task 2] change state.mode default to 'idle', strip payload.mode from refresh
+3b6ee7e detect-at-start: [task 3] update render() dispatcher to three-way mode routing
+e76c352 detect-at-start: [task 4] add renderIdle() as the neutral pre-Start bar
+7cf768d detect-at-start: [task 5] simplify renderSingle() to active-case state only
+0c0bf17 detect-at-start: [task 6] remove renderMass idle sub-state
+dd1916a detect-at-start: [task 7] add detectModeAtStart() helper
+89b36e8 detect-at-start: [task 8] add handleStart() dispatcher
+34b8eb7 detect-at-start: [task 9] delete now-dead handleStartMass
+dcbe16a detect-at-start: [task 10] route data-action=start to handleStart in event delegation
+f17b2ea detect-at-start: [task 11] run full test matrix — build, syntax, relay, scope all pass
+
+### Davis: manual steps
+1. Review `git diff main...feat/detect-at-start`.
+2. Push branch: `git push -u origin feat/detect-at-start`
+3. Open PR, merge. Vercel auto-deploys. Hard-refresh SF tab.
+4. Test Scenario A: On a case record page, click bookmarklet → widget appears with Start button. Click Start → single-case timer starts with case populated. Verify `ct_cases` row has case_type, case_subtype, sf_case_id, account_id.
+5. Test Scenario B: On a case list view with 3 rows checked, click bookmarklet → widget appears with Start button (same appearance as Scenario A). Click Start → confirm panel expands showing 3 case numbers. Confirm → success state.
+6. Test Scenario C (mode switch): widget open in mass-confirm state → click Cancel to return to idle → navigate to a case record page → click Start → single-case timer starts. No close-and-reopen needed.
+7. Test Scenario D (empty list): On a list view with 0 rows checked, click bookmarklet → widget appears. Click Start → toast: "No cases selected. Check rows, then click Start." Widget stays in idle.
+8. Test Scenario E (unrecognized page): On an account page or random SF page, click bookmarklet → widget appears. Click Start → toast: "Open a Salesforce case or list view to start tracking." Widget stays in idle.
+
+Files changed:
+  PRD.md (Task 12 marked [x])
+  progress.txt (this entry)
+
+Learnings for future iterations:
+  - All detect-at-start tasks (0-12) are complete — PRD is fully done
+  - No migration needed for this branch (pure client JS refactor)
+  - The two changed files are public/ct-widget.js and public/meridian-trigger.js
+---

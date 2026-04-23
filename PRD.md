@@ -364,7 +364,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
     ```
     Expected: only two modified files — `public/ct-widget.js` and `public/meridian-trigger.js`. Plus PRD.md and progress.txt (tracking files). Anything else appearing in the diff is a bug.
 
-- [ ] **Task 12: Commit summary**
+- [x] **Task 12: Commit summary**
   - Run `git log --oneline main..HEAD`. Append the commit list to `progress.txt` under "Detect-at-Start — final commits".
   - Append a "Davis: manual steps" section:
     1. Review `git diff main...feat/detect-at-start`.
