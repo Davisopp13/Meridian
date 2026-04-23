@@ -4816,3 +4816,47 @@ Learnings for future iterations:
   - Branch must be off main (c0e2db0), NOT off feat/mass-reclass
   - progress.txt was ~4800 lines from previous PRD iterations — Learnings section is at the end
 ---
+
+## Iteration 39 (unified-start-button) - Task 1: Create migration 022 with user_id-parameterized RPCs
+- Created `supabase/migrations/022_unified_start_rpc_user_id.sql`
+- Drops old bulk_reclassify_cases(jsonb) and undo_mass_reclass_batch(uuid) signatures
+- Creates new versions with explicit p_user_id uuid parameter (both now 2-arg)
+- Adds user existence check in bulk_reclassify_cases against platform_users table
+- Grants EXECUTE to anon and authenticated roles
+- Includes verification SELECT at bottom for Davis to confirm pronargs=2
+
+Files changed:
+  supabase/migrations/022_unified_start_rpc_user_id.sql (created)
+  PRD.md (Task 1 marked [x])
+
+Tests passed:
+  - node -e content+length check → ok
+
+Learnings for future iterations:
+  - Migration 021 does NOT exist on this branch (it was only on feat/mass-reclass); 022 is the next sequential number here
+  - Ralph does NOT apply migrations; Davis applies manually via Supabase SQL Editor
+  - The verification SELECT at the end of the migration confirms pronargs=2 for both RPCs
+---
+
+## Iteration 40 (unified-start-button) - Task 2: Extend meridian-relay.html with SUPABASE_RPC action
+- Added `else if (action === 'SUPABASE_RPC')` branch to public/meridian-relay.html
+- Placed BEFORE the `FETCH_CODE` branch, inside the async message handler try block
+- POSTs to `/rest/v1/rpc/{payload.function}` with anon key and `Prefer: return=representation`
+- Returns parsed JSON response as result (RPC returns TABLE so response is an array)
+- Error: throws with status + body text, caught by outer try/catch and returned as `success: false`
+
+Files changed:
+  public/meridian-relay.html (SUPABASE_RPC branch added)
+  PRD.md (Task 2 marked [x])
+
+Tests passed:
+  - grep -c "action === 'SUPABASE_RPC'" → 1 ✓
+  - grep -c "/rest/v1/rpc/" → 1 ✓
+  - File structure verified: closing </script>, </body>, </html> all intact
+  - npx vite build → ✓ built in 1.36s, 0 errors
+
+Learnings for future iterations:
+  - SUPABASE_RPC branch placed before FETCH_CODE (not before SUPABASE_GET) to keep actions in logical order
+  - `Prefer: return=representation` is used (not return=minimal) because the widget needs the returned data (batch_id, case_count)
+  - payload.args is spread directly as the JSON body (not wrapped in another object)
+---

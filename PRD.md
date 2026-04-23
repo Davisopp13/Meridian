@@ -242,7 +242,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
 
 ### Phase 2: Relay — add SUPABASE_RPC action
 
-- [ ] **Task 2: Extend meridian-relay.html with SUPABASE_RPC action**
+- [x] **Task 2: Extend meridian-relay.html with SUPABASE_RPC action**
   - View `public/meridian-relay.html` lines 46-135 to see the message-relay handler pattern.
   - Add a new `else if (action === 'SUPABASE_RPC')` branch BEFORE the `else if (action === 'FETCH_CODE')` branch. Pattern:
     ```js
