@@ -460,7 +460,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - Test: `node -c public/ct-widget.js` exits 0.
   - Test: `grep -c "function handleStartMass\|function handleConfirmMass\|function handleUndoMass\|function handleDismissMass\|function handleCancelConfirm\|function collectSelectedCasesFromDom" public/ct-widget.js` returns `>= 6`.
 
-- [ ] **Task 6: Add relayRpc helper to ct-widget.js**
+- [x] **Task 6: Add relayRpc helper to ct-widget.js**
   - Study the existing `relayPost` and `relayGet` patterns in `public/ct-widget.js` (search for `function relayPost`, `function relayGet`). Match that pattern exactly for `relayRpc`.
   - Add a new helper:
     ```js

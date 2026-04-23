@@ -200,6 +200,33 @@
     });
   }
 
+  function relayRpc(fnName, args) {
+    return new Promise(function (resolve, reject) {
+      if (!state.relay) { reject(new Error('No relay available')); return; }
+      var id = 'rpc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+      var timeoutId;
+      function onResponse(e) {
+        if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+        if (e.data.id !== id) return;
+        clearTimeout(timeoutId);
+        window.removeEventListener('message', onResponse);
+        if (e.data.success) resolve(e.data.data);
+        else reject(new Error(e.data.error || 'Unknown relay error'));
+      }
+      window.addEventListener('message', onResponse);
+      timeoutId = setTimeout(function () {
+        window.removeEventListener('message', onResponse);
+        reject(new Error('Relay RPC timeout'));
+      }, 15000);
+      state.relay.postMessage({
+        relay: 'MERIDIAN_TRIGGER',
+        id: id,
+        action: 'SUPABASE_RPC',
+        payload: { function: fnName, args: args }
+      }, '*');
+    });
+  }
+
   // ── Shadow-DOM walker (widget-local, for mass case collection) ──────────
   function walkShadowLocal(root, visitor) {
     var stack = [root];
