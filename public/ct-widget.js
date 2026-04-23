@@ -716,6 +716,11 @@
   }
 
   function renderMass() {
+    var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
+    var sub = state.massSubState;
+    var n = state.massCases.length || state.massCount || 0;
+
+    // ── Shell primitives (identical to renderSingle) ─────────────────────
     var mLogo =
       '<div data-action="dashboard" title="Open Meridian Dashboard" style="' +
         'width:28px;height:28px;border-radius:7px;background:#003087;' +
@@ -725,10 +730,44 @@
         'width:20px;height:20px;display:block;pointer-events:none;' +
       '"/></div>';
 
-    var baseBar =
-      'background:' + T.bg + ';border:1px solid ' + T.border + ';border-radius:10px;' +
-      'box-shadow:0 4px 16px rgba(0,0,0,0.4);font-family:' + T.font + ';' +
-      'cursor:move;user-select:none;';
+    var statPills =
+      '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+        '<button data-action="resolve" disabled style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#22c55e;color:#fff;font-size:11px;font-weight:700;' +
+          'opacity:0.55;cursor:not-allowed;' +
+        '">' + state.stats.resolved + ' Resolved</button>' +
+        '<button data-action="reclass" disabled style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#ef4444;color:#fff;font-size:11px;font-weight:700;' +
+          'opacity:0.55;cursor:not-allowed;' +
+        '">' + state.stats.reclass + ' Reclass</button>' +
+        '<button data-action="call" disabled style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;' +
+          'opacity:0.55;cursor:not-allowed;' +
+        '">' + state.stats.calls + ' Calls</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + total + ' Total</button>' +
+      '</div>';
+
+    var divider = '<div style="width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>';
+    var spacer  = '<div style="flex:1;"></div>';
+    var minBtn  = '<button data-action="minimize" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;">';
+    var closeBtn =
+      '<button data-action="close" style="' +
+        'background:none;border:none;color:rgba(255,255,255,0.4);' +
+        'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+      '">×</button>';
+
+    var barStyle =
+      'height:44px;background:' + T.bg + ';' +
+      'border:1px solid ' + T.border + ';border-radius:10px;' +
+      'display:flex;align-items:center;gap:6px;padding:0 10px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+      'font-family:' + T.font + ';cursor:move;user-select:none;';
 
     var toastHtml = state.toastMsg
       ? '<div style="' +
@@ -739,126 +778,136 @@
         '">' + state.toastMsg + '</div>'
       : '';
 
-    var closeBtn =
-      '<button data-action="close" style="' +
-        'background:none;border:none;color:rgba(255,255,255,0.4);' +
-        'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
-      '">×</button>';
-
-    var sub = state.massSubState;
-    var n = state.massCases.length || state.massCount || 0;
-
+    // ── Minimized ────────────────────────────────────────────────────────
     if (state.isMinimized) {
       shadow.innerHTML =
-        '<div id="ct-header" style="height:44px;' + baseBar +
-          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+        '<div id="ct-header" style="' + barStyle + '">' +
           mLogo +
-          '<div style="flex:1;"></div>' +
-          '<button data-action="minimize" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;">▲</button>' +
+          spacer +
+          minBtn + '▲</button>' +
           closeBtn +
         '</div>';
       return;
     }
 
+    // ── Sub-state: idle ──────────────────────────────────────────────────
     if (sub === 'idle') {
+      var countBadge = n > 0
+        ? '<span style="color:#E8540A;font-weight:700;font-size:12px;flex-shrink:0;">' + n + ' Cases Selected</span>'
+        : '<span style="color:rgba(255,255,255,0.55);font-size:12px;flex-shrink:0;">Cases Selected</span>';
       shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
-          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
           mLogo +
-          '<span style="color:' + T.textPri + ';font-size:12px;font-weight:600;flex:1;">' +
-            (n > 0 ? n + ' cases selected' : 'Cases selected') +
-          '</span>' +
           '<button data-action="start-mass" style="' +
             'height:26px;padding:0 12px;border-radius:6px;border:none;' +
             'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
           '">Start</button>' +
+          countBadge +
+          divider +
+          statPills +
+          spacer +
+          minBtn + '▼</button>' +
           closeBtn +
           toastHtml +
         '</div>';
       return;
     }
 
+    // ── Sub-state: confirm (expanded panel below bar) ────────────────────
     if (sub === 'confirm') {
       var caseListHtml = state.massCases.map(function (c) {
-        return '<div style="' +
-          'padding:4px 8px;color:' + T.textPri + ';font-size:11px;' +
-          'font-family:monospace;border-bottom:1px solid ' + T.divider + ';' +
-        '">' + c.case_number + '</div>';
+        return '<div style="padding:4px 10px;font-size:11px;color:rgba(255,255,255,0.85);font-family:monospace;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+          c.case_number + '</div>';
       }).join('');
-
       shadow.innerHTML =
-        '<div id="ct-header" style="' + baseBar +
-          'display:flex;flex-direction:column;border-radius:10px;overflow:hidden;">' +
-          '<div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;flex-shrink:0;">' +
-            mLogo +
-            '<span style="color:' + T.textPri + ';font-size:12px;font-weight:600;flex:1;">' +
-              'Reclassify ' + state.massCases.length + ' case' + (state.massCases.length !== 1 ? 's' : '') + '?' +
-            '</span>' +
-          '</div>' +
-          '<div style="max-height:180px;overflow-y:auto;border-top:1px solid ' + T.border + ';">' +
-            caseListHtml +
-          '</div>' +
-          '<div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;flex-shrink:0;border-top:1px solid ' + T.border + ';">' +
-            '<button data-action="cancel-mass" style="' +
-              'height:28px;padding:0 12px;border-radius:6px;border:none;' +
-              'background:#374151;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
-            '">Cancel</button>' +
-            '<div style="flex:1;"></div>' +
-            '<button data-action="confirm-mass" style="' +
-              'height:28px;padding:0 16px;border-radius:6px;border:none;' +
-              'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
-            '">Confirm Reclassify</button>' +
-          '</div>' +
+        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
+          mLogo +
+          '<span style="color:#fff;font-weight:600;font-size:12px;flex-shrink:0;">Reclassify ' + state.massCases.length + ' cases?</span>' +
+          spacer +
+          closeBtn +
+        '</div>' +
+        '<div style="background:' + T.bg + ';border:1px solid ' + T.border + ';border-top:none;' +
+          'border-radius:0 0 10px 10px;max-height:180px;overflow-y:auto;' +
+          'margin-top:-1px;">' + caseListHtml + '</div>' +
+        '<div style="background:' + T.bg + ';border:1px solid ' + T.border + ';border-top:none;' +
+          'border-radius:0 0 10px 10px;padding:6px 10px;display:flex;gap:6px;margin-top:-1px;">' +
+          '<button data-action="cancel-mass" style="' +
+            'height:26px;padding:0 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);' +
+            'background:transparent;color:rgba(255,255,255,0.75);font-size:11px;font-weight:700;cursor:pointer;' +
+          '">Cancel</button>' +
+          '<div style="flex:1;"></div>' +
+          '<button data-action="confirm-mass" style="' +
+            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
+            'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+          '">Reclassify ' + state.massCases.length + '</button>' +
         '</div>';
       return;
     }
 
+    // ── Sub-state: submitting ────────────────────────────────────────────
     if (sub === 'submitting') {
       shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
-          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+        '<div id="ct-header" style="' + barStyle + '">' +
           mLogo +
-          '<span style="color:' + T.textSec + ';font-size:12px;font-weight:600;flex:1;">Working…</span>' +
+          '<span style="color:rgba(255,255,255,0.75);font-size:12px;flex-shrink:0;">Working…</span>' +
+          divider +
+          statPills +
+          spacer +
         '</div>';
       return;
     }
 
+    // ── Sub-state: success (with countdown + undo) ───────────────────────
     if (sub === 'success') {
       shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
-          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
           mLogo +
-          '<span style="color:#22c55e;font-size:12px;font-weight:600;flex:1;">' +
-            'Reclassified ' + state.massCases.length + ' case' + (state.massCases.length !== 1 ? 's' : '') + '.' +
-          '</span>' +
+          '<span style="color:#22c55e;font-weight:600;font-size:12px;flex-shrink:0;">Reclassified ' + state.massCases.length + '</span>' +
           '<button data-action="undo-mass" style="' +
-            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-            'background:#374151;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+            'height:26px;padding:0 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.12);' +
+            'background:transparent;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
           '">Undo (' + state.massCountdown + 's)</button>' +
+          divider +
+          statPills +
+          spacer +
           '<button data-action="dismiss-mass" style="' +
             'background:none;border:none;color:rgba(255,255,255,0.4);' +
             'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
           '">×</button>' +
+          toastHtml +
         '</div>';
       return;
     }
 
-    // error sub-state (default)
+    // ── Sub-state: error ─────────────────────────────────────────────────
+    if (sub === 'error') {
+      shadow.innerHTML =
+        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
+          mLogo +
+          '<span style="color:#ef4444;font-weight:600;font-size:12px;flex-shrink:0;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' +
+            (state.massError || 'Unknown error').replace(/"/g, '&quot;') + '">Error: ' +
+            (state.massError || 'Unknown error') + '</span>' +
+          '<button data-action="confirm-mass" style="' +
+            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+            'background:#003087;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+          '">Retry</button>' +
+          spacer +
+          '<button data-action="dismiss-mass" style="' +
+            'background:none;border:none;color:rgba(255,255,255,0.4);' +
+            'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+          '">×</button>' +
+          toastHtml +
+        '</div>';
+      return;
+    }
+
+    // Fallback: unknown sub-state (should never render)
     shadow.innerHTML =
-      '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
-        'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+      '<div id="ct-header" style="' + barStyle + '">' +
         mLogo +
-        '<span style="color:#ef4444;font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-          'Error: ' + (state.massError || 'Unknown error') +
-        '</span>' +
-        '<button data-action="confirm-mass" style="' +
-          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-          'background:#374151;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
-        '">Retry</button>' +
-        '<button data-action="dismiss-mass" style="' +
-          'background:none;border:none;color:rgba(255,255,255,0.4);' +
-          'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
-        '">×</button>' +
+        '<span style="color:rgba(255,255,255,0.55);font-size:12px;">Mass mode</span>' +
+        spacer +
+        closeBtn +
       '</div>';
   }
 
