@@ -232,7 +232,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
     ```
   - Test: `npm run build` passes. `grep -c 'note = null' src/lib/api.js` returns at least `2`.
 
-- [ ] **Task 4: Add `searchUserActivity` wrapper**
+- [x] **Task 4: Add `searchUserActivity` wrapper**
   - File: `src/lib/api.js`
   - Add after `logMplEntry`:
     ```js

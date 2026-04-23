@@ -5450,3 +5450,21 @@ Learnings for future iterations:
   - api.js is a straightforward destructured-param pattern — add to both the param list and the insert object
   - Next task: Task 4 (add searchUserActivity wrapper to api.js)
 ---
+
+## Iteration 4 - Task 4: Add searchUserActivity wrapper
+- Added `searchUserActivity(userId, query, limit = 50)` to src/lib/api.js after logMplEntry
+- Early return `{ data: [], error: null }` when userId or query is falsy/empty
+- Calls supabase.rpc('search_user_activity', { p_user_id, p_query, p_limit })
+
+Files changed:
+  src/lib/api.js (searchUserActivity function added)
+  PRD.md (Task 4 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.31s
+  - grep -c 'searchUserActivity' src/lib/api.js → 1 ✓
+
+Learnings for future iterations:
+  - Function placed between logMplEntry and fetchProfile to keep API wrappers together
+  - Next task: Task 5 (add notes input to public/ct-widget.js)
+---

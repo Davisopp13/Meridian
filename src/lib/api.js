@@ -22,6 +22,15 @@ export async function logMplEntry({ userId, categoryId, subcategoryId, minutes, 
   })
 }
 
+export async function searchUserActivity(userId, query, limit = 50) {
+  if (!userId || !query || query.trim().length === 0) return { data: [], error: null }
+  return supabase.rpc('search_user_activity', {
+    p_user_id: userId,
+    p_query: query.trim(),
+    p_limit: limit,
+  })
+}
+
 export async function fetchProfile(userId) {
   return supabase.from('platform_users').select('*').eq('id', userId).single()
 }
