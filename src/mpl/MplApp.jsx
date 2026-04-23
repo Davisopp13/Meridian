@@ -42,7 +42,7 @@ export default function MplApp() {
   const recoveryCheckedRef = useRef(false)
 
   // ── Stats ──────────────────────────────────────────────────────────────
-  const { processes: processCount, refetch } = useStats()
+  const { processes: processCount, calls: callsCount, refetch } = useStats()
 
   // ── Refs ──────────────────────────────────────────────────────────────
   const processTimers = useRef({})  // { [id]: intervalId }
@@ -447,11 +447,11 @@ export default function MplApp() {
   }
 
   // Quick Log — opens ManualEntryForm in PiP window
-  async function handleCallLog(direction) {
+  async function handleCallLog() {
     if (!user?.id) return
     const { error } = await logCall({
       userId: user.id,
-      direction,
+      direction: 'outgoing',
       source: 'mpl_widget',
       note: null,
     })
@@ -461,8 +461,9 @@ export default function MplApp() {
       setTimeout(() => setPipToast(null), 2500)
       return
     }
-    setPipToast(direction === 'incoming' ? '📞 Incoming logged' : '📞 Outgoing logged')
+    setPipToast('📞 Call logged')
     setTimeout(() => setPipToast(null), 2000)
+    refetch()
   }
 
   function handleQuickLog() {
@@ -593,6 +594,7 @@ export default function MplApp() {
           quickLogOpen={quickLogOpen}
           onToggleSwimlane={handleToggleSwimlane}
           processCount={processCount}
+          callsCount={callsCount}
           onOpenDashboard={handleOpenDashboard}
           onStart={handleStart}
           onCallLog={handleCallLog}

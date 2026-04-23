@@ -53,6 +53,7 @@ export default function MplPipBar({
   onQuickLogConfirm,
   onQuickLogCancel,
   onCallLog,
+  callsCount = 0,
   onMinimize,
   onRestore,
   isMinimized = false,
@@ -154,24 +155,15 @@ export default function MplPipBar({
                 Quick Log
               </button>
               <button
-                onClick={() => onCallLog && onCallLog('incoming')}
+                onClick={() => onCallLog && onCallLog()}
                 style={{
-                  height: 28, padding: '0 10px', borderRadius: 14,
-                  background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                  height: 28, padding: '0 14px', borderRadius: 14,
+                  background: '#3b82f6', border: 'none',
+                  color: '#fff', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
-                📞 In
-              </button>
-              <button
-                onClick={() => onCallLog && onCallLog('outgoing')}
-                style={{
-                  height: 28, padding: '0 10px', borderRadius: 14,
-                  background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
-                }}
-              >
-                📞 Out
+                {callsCount} Calls
               </button>
             </>
           ) : (
@@ -227,24 +219,15 @@ export default function MplPipBar({
                 Quick Log
               </button>
               <button
-                onClick={() => onCallLog && onCallLog('incoming')}
+                onClick={() => onCallLog && onCallLog()}
                 style={{
-                  height: 26, padding: '0 10px', borderRadius: 13,
-                  background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                  height: 26, padding: '0 14px', borderRadius: 13,
+                  background: '#3b82f6', border: 'none',
+                  color: '#fff', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
-                📞 In
-              </button>
-              <button
-                onClick={() => onCallLog && onCallLog('outgoing')}
-                style={{
-                  height: 26, padding: '0 10px', borderRadius: 13,
-                  background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--text-sec)', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
-                }}
-              >
-                📞 Out
+                {callsCount} Calls
               </button>
             </>
           )}

@@ -502,7 +502,7 @@
       duration_s: null,
       entry_date: getTodayNY(),
       notes:      state.note || null,
-      direction:  'outgoing',
+      direction:  'incoming',
       source:     'ct_widget',
     }).then(function () {
       relayPost('case_events', {
