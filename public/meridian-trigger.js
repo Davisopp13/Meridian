@@ -3,14 +3,15 @@
 // host page via new Function('MERIDIAN_PAYLOAD', code)(payload).
 //
 // MERIDIAN_PAYLOAD is injected by the bookmarklet and contains:
-//   { userId, relayFrame }
+//   { userId, relayFrame, mode }
 //   - userId: the Meridian user's UUID, baked into the bookmarklet at onboarding
 //   - relayFrame: reference to the relay iframe's contentWindow
+//   - mode: 'single' or 'mass', detected at trigger time and injected before widget load
 //
 // Flow:
 // 1. Detects whether the current page is Salesforce
 // 2. On non-SF: shows a toast and returns
-// 3. On SF: asks relay to load ct-widget.js (widget scrapes case on demand)
+// 3. On SF: detects mode (single/mass), asks relay to load ct-widget.js
 
 (function() {
   var userId = MERIDIAN_PAYLOAD.userId;
@@ -52,19 +53,27 @@
     return;
   }
 
-  // ── List-view detection ──────────────────────────────────────────────────
-  var isListView = window.location.pathname.includes('/lightning/o/Case/list');
-  if (!isListView) {
-    var trs = document.querySelectorAll('tr[data-row-key-value]');
-    for (var i = 0; i < trs.length; i++) {
-      var kv = trs[i].getAttribute('data-row-key-value');
-      if (kv && kv.startsWith('500')) { isListView = true; break; }
+  // ── Mode detection ───────────────────────────────────────────────────────
+  function detectMode() {
+    // Single-case record page: URL like /lightning/r/Case/500.../view
+    if (window.location.pathname.indexOf('/lightning/r/Case/') === 0) {
+      return 'single';
     }
-  }
-
-  if (isListView) {
-    handleListViewContext(relay, userId, showToast);
-    return;
+    // List view: URL like /lightning/o/Case/list OR DOM has checked case rows
+    if (window.location.pathname.indexOf('/lightning/o/Case/list') === 0) {
+      return 'mass';
+    }
+    // Fallback: if walkShadow finds any tr[data-row-key-value^="500"], treat as mass
+    var foundCaseRow = false;
+    try {
+      walkShadow(document.documentElement, function (n) {
+        if (foundCaseRow) return;
+        if (!n.getAttribute) return;
+        var kv = n.getAttribute('data-row-key-value');
+        if (kv && kv.indexOf('500') === 0) foundCaseRow = true;
+      });
+    } catch (e) {}
+    return foundCaseRow ? 'mass' : 'single';
   }
 
   // ── Ask relay to fetch ct-widget.js ─────────────────────────────────────
@@ -77,6 +86,7 @@
 
     if (e.data.success && e.data.data && e.data.data.code) {
       try {
+        MERIDIAN_PAYLOAD.mode = detectMode();
         (new Function('MERIDIAN_PAYLOAD', e.data.data.code))(MERIDIAN_PAYLOAD);
       } catch (err) {
         showToast('Meridian: Widget error — ' + err.message, 'error');
@@ -99,76 +109,6 @@
   setTimeout(function() {
     window.removeEventListener('message', onRelayResponse);
   }, 10000);
-
-  // ── collectSelectedCases ─────────────────────────────────────────────────
-  function collectSelectedCases() {
-    var cases = [];
-    walkShadow(document.documentElement, function (node) {
-      if (!node.getAttribute) return;
-      var kv = node.getAttribute('data-row-key-value');
-      if (!kv || kv.indexOf('500') !== 0) return;
-      var checkbox = node.querySelector && node.querySelector('input[type="checkbox"]');
-      if (!checkbox || !checkbox.checked) return;
-
-      // The Case Number <th> is in the row's light DOM, but the <span title="...">
-      // inside it lives in a nested shadow root on <lightning-primitive-custom-cell>.
-      // Scope a deep walk to just that <th> so we don't pick up numeric titles
-      // from other columns (account id, order id, etc.).
-      var caseNumber = null;
-      var caseCell = node.querySelector('th[data-label="Case Number"]');
-      if (caseCell) {
-        walkShadow(caseCell, function (inner) {
-          if (caseNumber) return;
-          if (!inner.getAttribute) return;
-          var t = inner.getAttribute('title');
-          if (t && /^\d{8,}$/.test(t)) caseNumber = t;
-        });
-      }
-
-      if (caseNumber) cases.push({ case_number: caseNumber, sf_case_id: kv });
-    });
-    return cases;
-  }
-
-  // ── List-view handler ────────────────────────────────────────────────────
-  function handleListViewContext(relay, userId, showToast) {
-    var cases = collectSelectedCases();
-    if (!cases.length) {
-      showToast('Meridian: Select cases in the list, then click again.', 'info');
-      return;
-    }
-
-    var id = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-    var row = {
-      user_id: userId,
-      type: 'MERIDIAN_MASS_RECLASS',
-      page_url: window.location.href,
-      case_number: JSON.stringify(cases)
-    };
-
-    function onMassReclassResponse(e) {
-      if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
-      if (e.data.id !== id) return;
-      window.removeEventListener('message', onMassReclassResponse);
-      if (e.data.success) {
-        showToast('Meridian: Opened with ' + cases.length + ' cases', 'success');
-      } else {
-        showToast('Meridian: Failed — ' + (e.data.error || 'unknown error'), 'error');
-      }
-    }
-    window.addEventListener('message', onMassReclassResponse);
-
-    relay.postMessage({
-      relay: 'MERIDIAN_TRIGGER',
-      id: id,
-      action: 'SUPABASE_INSERT_TRIGGER',
-      payload: { body: row }
-    }, '*');
-
-    setTimeout(function() {
-      window.removeEventListener('message', onMassReclassResponse);
-    }, 10000);
-  }
 
   // ── Toast UI ─────────────────────────────────────────────────────────────
 

@@ -272,7 +272,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
 
 ### Phase 3: Bookmarklet trigger — mode detection
 
-- [ ] **Task 3: Simplify and re-scope meridian-trigger.js**
+- [x] **Task 3: Simplify and re-scope meridian-trigger.js**
   - Modify `public/meridian-trigger.js`. The goal: detect whether we're on a case record page or a list view, and pass the mode to the widget.
   - **Keep** the existing `walkShadow` helper (lines 19-31 today), the `isSalesforce` check, the `!userId` guard, the `!isSalesforce` toast branch, the `!relay` guard, the `FETCH_CODE` / widget-load flow, and the `showToast` UI at the bottom.
   - **Remove** the entire `isListView` / `handleListViewContext` / `collectSelectedCases` / `SUPABASE_INSERT_TRIGGER` mass-reclass flow (current lines ~55-167). The list-view detection and collection logic is MOVING INTO the widget file itself (Task 5), not deleted.
