@@ -583,7 +583,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - Test: `ls src/hooks/useMassReclass.js 2>&1 | grep -c "No such"` returns `1`.
   - Test: `ls src/components/MassReclassModal.jsx 2>&1 | grep -c "No such"` returns `1`.
 
-- [ ] **Task 10: Remove MERIDIAN_MASS_RECLASS routing from usePendingTriggers.js**
+- [x] **Task 10: Remove MERIDIAN_MASS_RECLASS routing from usePendingTriggers.js**
   - View `src/hooks/usePendingTriggers.js`. Remove the entire `else if (trigger.type === 'MERIDIAN_MASS_RECLASS')` branch and its body. Keep the existing `handleCaseStart` and `handleProcessStart` branches intact.
   - Remove the `shouldDelete` flag pattern introduced by that branch IF it's no longer needed (i.e., if all remaining branches use the default immediate delete). If the flag is still structurally useful for something else, leave it — it's harmless.
   - Remove `onMassReclass` from the JSDoc handlers type declaration.

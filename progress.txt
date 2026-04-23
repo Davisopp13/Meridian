@@ -4995,3 +4995,40 @@ Learnings for future iterations:
   - massCount added to state to show pre-count in idle before Start is clicked (from MERIDIAN_PAYLOAD.massCount if trigger adds it)
   - Retry in error state reuses data-action="confirm-mass" which fires handleConfirmMass() — clean reuse
 ---
+
+## Iteration 44 (unified-start-button) - Task 9: Delete useMassReclass hook and MassReclassModal component
+- Deleted src/hooks/useMassReclass.js
+- Deleted src/components/MassReclassModal.jsx
+
+Files changed:
+  src/hooks/useMassReclass.js (deleted)
+  src/components/MassReclassModal.jsx (deleted)
+  PRD.md (Task 9 marked [x])
+
+Tests passed:
+  - ls src/hooks/useMassReclass.js | grep -c "No such" → 1 ✓
+  - ls src/components/MassReclassModal.jsx | grep -c "No such" → 1 ✓
+
+Learnings for future iterations:
+  - Simple deletion task — no code changes needed, just rm the two files
+  - These files were imported by MplApp.jsx and usePendingTriggers.js — Tasks 10 and 11 must remove those imports/usages before the build will pass
+---
+
+## Iteration 45 (unified-start-button) - Task 10: Remove MERIDIAN_MASS_RECLASS routing from usePendingTriggers.js
+- Removed else if (trigger.type === 'MERIDIAN_MASS_RECLASS') branch and its body from consumeTrigger()
+- Removed the shouldDelete flag (was only ever set to false in the removed branch) — replaced with unconditional delete
+- Removed onMassReclass from JSDoc @param type declaration
+
+Files changed:
+  src/hooks/usePendingTriggers.js (branch removed, shouldDelete flag removed, JSDoc updated)
+  PRD.md (Task 10 marked [x])
+
+Tests passed:
+  - grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js → 0 ✓
+
+Note: npx vite build still fails (pre-existing from Task 9) because MplApp.jsx imports the deleted files. Task 11 will fix this by removing those imports.
+
+Learnings for future iterations:
+  - The shouldDelete flag was purely for the mass-reclass deferred-delete pattern — removing the branch makes the delete unconditional (cleaner)
+  - Build will only pass after Task 11 removes the useMassReclass + MassReclassModal imports from MplApp.jsx
+---
