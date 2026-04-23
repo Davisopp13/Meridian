@@ -590,7 +590,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - Test: `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` returns `0`.
   - Test: `npx vite build 2>&1 | tail -10` — no errors.
 
-- [ ] **Task 11: Remove mass-reclass wiring from MplApp.jsx**
+- [x] **Task 11: Remove mass-reclass wiring from MplApp.jsx**
   - View `src/mpl/MplApp.jsx`. Remove:
     - The `import useMassReclass from '../hooks/useMassReclass'` line.
     - The `import MassReclassModal from '../components/MassReclassModal'` line.
