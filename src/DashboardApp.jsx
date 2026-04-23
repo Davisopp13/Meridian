@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import * as ReactDOM from 'react-dom/client'
 import { ThemeProvider } from './context/ThemeContext.jsx'
 import { supabase } from './lib/supabase.js'
-import { logMplEntry, fetchProfile, fetchCategoriesForTeam, fetchCategoriesForTeamId } from './lib/api.js'
+import { logMplEntry, logCall, fetchProfile, fetchCategoriesForTeam, fetchCategoriesForTeamId } from './lib/api.js'
 import { usePipWindow } from './hooks/usePipWindow.js'
 import { useStats } from './hooks/useStats.js'
 import { getMplSizeForState, getMplBarWidth } from './lib/constants.js'
@@ -41,7 +41,7 @@ export default function DashboardApp() {
   } = usePipWindow()
 
   // ── Stats (for processCount badge in MPL bar) ───────────────────────────
-  const { processes: processCount, refetch } = useStats()
+  const { processes: processCount, calls: callsCount, refetch } = useStats()
 
   // ── Refs ────────────────────────────────────────────────────────────────
   const processTimers = useRef({})
@@ -216,11 +216,30 @@ export default function DashboardApp() {
         isMinimized={isMinimized}
         connectionStatus={connectionStatus}
         pipToast={pipToast}
+        callsCount={callsCount}
+        onCallLog={handleCallLog}
       />
     )
   }
 
   // ── MPL handlers ────────────────────────────────────────────────────────
+
+  async function handleCallLog() {
+    if (!user?.id) return
+    const { error } = await logCall({
+      userId: user.id,
+      direction: 'outgoing',
+      source: 'mpl_widget',
+      note: null,
+    })
+    if (error) {
+      console.error('[Meridian MPL] call log failed:', error.message)
+      showToast('Call log failed')
+      return
+    }
+    showToast('📞 Call logged')
+    refetch()
+  }
 
   async function handleStart() {
     if (!mplIsOpen) {
