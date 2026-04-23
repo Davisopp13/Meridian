@@ -315,7 +315,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
 
 ### Phase 6: Search
 
-- [ ] **Task 11: Add search input and wire to `searchUserActivity`**
+- [x] **Task 11: Add search input and wire to `searchUserActivity`**
   - File: `src/components/ActivityLog.jsx`
   - Import `searchUserActivity` from `../lib/api`.
   - Add state: `const [searchQuery, setSearchQuery] = useState('')`, `const [searchResults, setSearchResults] = useState(null)`, `const [searchLoading, setSearchLoading] = useState(false)`.

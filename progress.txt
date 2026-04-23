@@ -5610,3 +5610,28 @@ Learnings for future iterations:
   - Note suffix in EntryRow truncates with textOverflow ellipsis via the parent span — no extra CSS needed
   - Next task: Task 11 (search input wired to searchUserActivity RPC in ActivityLog.jsx)
 ---
+
+## Iteration 11 - Task 11: Add search input and wire to searchUserActivity
+- Imported `searchUserActivity` from `../lib/api` in ActivityLog.jsx
+- Added `searchQuery`, `searchResults`, `searchLoading` state inside ActivityLog
+- Added 250ms debounced useEffect that calls searchUserActivity; maps RPC results using inline typeLabel object (same as TYPE_LABEL in useActivityData) to normalize lowercase DB types to Title Case display labels
+- src='mpl' entries use 'Process' as type; all others pass through typeLabel lookup
+- Added search input row (width 100%, max-width 340px, height 32, fontSize 13) above the filter-tab header row, with its own border-bottom divider
+- Added opacity:0.5 / pointerEvents:none to the header (filter tabs + range) while searchResults !== null
+- Updated feed section: when searchResults !== null, renders caption + mapped rows instead of normal entries; shows empty state for 0 results; appends limit warning when length === 50
+- Feed opacity also responds to searchLoading
+
+Files changed:
+  src/components/ActivityLog.jsx
+  PRD.md (Task 11 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.30s
+  - grep -c 'searchUserActivity' src/components/ActivityLog.jsx → 2 (≥1 required) ✓
+  - grep -c 'setSearchQuery' src/components/ActivityLog.jsx → 2 (≥2 required) ✓
+
+Learnings for future iterations:
+  - Type normalization must be done in the search mapper too — the RPC returns lowercase types from case_events (resolved, reclassified, call, not_a_case) and the literal string 'Process' for mpl
+  - Checking r.src === 'mpl' is more reliable than r.type === 'Process' for discriminating MPL vs case rows in the search results
+  - The header disabling (opacity/pointerEvents) covers both filter tabs and range selector in one step since they share the same container div
+---

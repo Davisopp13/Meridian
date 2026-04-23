@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useActivityData } from '../hooks/useActivityData';
 import { useTheme } from '../context/ThemeContext.jsx';
 import CaseLink from './CaseLink.jsx';
+import { searchUserActivity } from '../lib/api';
 
 const TYPE_STYLE = {
   Resolved:     { color: '#16a34a', bg: 'rgba(22,163,74,0.12)',   border: 'rgba(22,163,74,0.28)' },
@@ -777,6 +778,36 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
   const [range, setRange] = useState('today');
   const [editingEntry, setEditingEntry] = useState(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) { setSearchResults(null); return; }
+    const handle = setTimeout(async () => {
+      setSearchLoading(true);
+      const { data, error: searchError } = await searchUserActivity(userId, searchQuery);
+      if (searchError) console.error('search error:', searchError);
+      const typeLabel = { resolved: 'Resolved', reclassified: 'Reclassified', call: 'Call', not_a_case: 'Not a Case', rfc: 'RFC' };
+      const mapped = (data || []).map(r => ({
+        id: r.id,
+        type: r.src === 'mpl' ? 'Process' : (typeLabel[r.type] || r.type),
+        src: r.src,
+        case_number: r.case_number,
+        sf_case_id: r.sf_case_id,
+        category: r.category_name || '',
+        dur: r.duration_s ?? (r.minutes ? r.minutes * 60 : 0),
+        minutes: r.minutes,
+        rfc: r.rfc,
+        note: r.note,
+        ts: new Date(r.ts),
+      }));
+      setSearchResults(mapped);
+      setSearchLoading(false);
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [searchQuery, userId]);
+
   const rangeDays = RANGES.find(r => r.key === range)?.days ?? 0;
   const { entries, loading, error, editEntry, deleteEntry } = useActivityData({ userId, userIds, rangeDays });
 
@@ -845,6 +876,29 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
         overflow: 'hidden',
       }}
     >
+      {/* Search input */}
+      <div style={{ padding: '10px 16px', borderBottom: `1px solid var(--divider)` }}>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Search case #, category, or note…"
+          style={{
+            width: '100%',
+            maxWidth: 340,
+            height: 32,
+            padding: '0 12px',
+            fontSize: 13,
+            border: `1px solid var(--divider)`,
+            background: 'var(--bg-card)',
+            borderRadius: 8,
+            color: 'var(--text-pri)',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
       {/* Header */}
       <div
         style={{
@@ -855,6 +909,8 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
           borderBottom: `1px solid var(--divider)`,
           gap: 12,
           flexWrap: 'wrap',
+          opacity: searchResults !== null ? 0.5 : 1,
+          pointerEvents: searchResults !== null ? 'none' : 'auto',
         }}
       >
         {/* Filter tabs */}
@@ -931,8 +987,24 @@ export default function ActivityLog({ userId, userIds, allowMutations = true }) 
       )}
 
       {/* Feed */}
-      <div style={{ maxHeight: 400, overflowY: 'auto', opacity: loading ? 0.5 : 1, transition: 'opacity 200ms' }}>
-        {error ? (
+      <div style={{ maxHeight: 400, overflowY: 'auto', opacity: (loading || searchLoading) ? 0.5 : 1, transition: 'opacity 200ms' }}>
+        {searchResults !== null ? (
+          <>
+            <div style={{ padding: '6px 16px 4px', color: 'var(--text-dim)', fontSize: 11 }}>
+              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} — showing most recent 50. Clear search to restore.
+              {searchResults.length === 50 && ' (limit reached — refine search to narrow)'}
+            </div>
+            {searchResults.length === 0 ? (
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-dim)', fontSize: 13 }}>
+                No results found
+              </div>
+            ) : (
+              searchResults.map(entry => (
+                <EntryRow key={entry.id} entry={entry} onEdit={setEditingEntry} allowMutations={allowMutations} />
+              ))
+            )}
+          </>
+        ) : error ? (
           <div
             style={{
               padding: '32px 16px',
