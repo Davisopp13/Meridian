@@ -592,8 +592,8 @@
 
   // ── Render ───────────────────────────────────────────────────────────────
   function renderSingle() {
+    if (!state.caseNumber) { renderIdle(); return; }  // defensive
     var total    = state.stats.resolved + state.stats.reclass + state.stats.calls;
-    var isActive = !!state.caseNumber;
 
     var mLogo =
       '<div data-action="dashboard" title="Open Meridian Dashboard" style="' +
@@ -642,14 +642,13 @@
 
     // ── Minimized ────────────────────────────────────────────────────────────
     if (state.isMinimized) {
-      var minContent = isActive
-        ? '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
-          '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;margin-left:6px;">' + fmtTime(state.elapsed) + '</span>'
-        : '';
+      var minContent =
+        '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
+        '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;margin-left:6px;">' + fmtTime(state.elapsed) + '</span>';
       shadow.innerHTML =
         '<div id="ct-header" style="' + barStyle + '">' +
           mLogo +
-          (minContent ? '<div style="display:flex;align-items:center;flex-shrink:0;">' + minContent + '</div>' : '') +
+          '<div style="display:flex;align-items:center;flex-shrink:0;">' + minContent + '</div>' +
           spacer +
           minBtn + '\u25b2</button>' +
           closeBtn +
@@ -666,25 +665,6 @@
           'box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;' +
         '">' + state.toastMsg + '</div>'
       : '';
-
-    // ── Idle (no case) ───────────────────────────────────────────────────────
-    if (!isActive) {
-      shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
-          mLogo +
-          '<button data-action="startcase" style="' +
-            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
-            'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
-          '">Start Case</button>' +
-          divider +
-          statPills +
-          spacer +
-          minBtn + '\u25bc</button>' +
-          closeBtn +
-          toastHtml +
-        '</div>';
-      return;
-    }
 
     // ── Active (case loaded) ─────────────────────────────────────────────────
     var awaitBtn =

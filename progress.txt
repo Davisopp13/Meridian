@@ -5222,3 +5222,25 @@ Learnings for future iterations:
   - The closeBtn in renderIdle uses the × character directly rather than × — both work, × is cleaner
   - Next task: Task 5 (simplify renderSingle to handle only the active-case state — remove the !isActive idle branch)
 ---
+
+## Iteration [detect-at-start] - Task 5: Simplify renderSingle() to active-case only
+- Added defensive guard `if (!state.caseNumber) { renderIdle(); return; }` at top of renderSingle()
+- Removed `var isActive = !!state.caseNumber;` declaration
+- Simplified minimized branch: removed ternary since caseNumber is always set; minContent now always shows case+timer
+- Removed the `if (!isActive)` idle branch entirely (15 lines deleted)
+
+Files changed:
+  public/ct-widget.js (renderSingle simplified, ~20 lines removed)
+  PRD.md (Task 5 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function renderSingle" → 1 ✓
+  - grep -c "if (!isActive)" → 0 ✓
+  - grep -c 'data-action="startcase"' → 0 ✓
+
+Learnings for future iterations:
+  - File has UTF-8 box-drawing characters in comment lines (──) that the Edit tool cannot match — use Python regex with re.DOTALL for deletions spanning these lines
+  - The Edit tool's unicode swap logic handles \uXXXX ↔ actual char but NOT multi-byte UTF-8 sequences embedded in strings
+  - Next task: Task 6 (remove renderMass's idle sub-state)
+---

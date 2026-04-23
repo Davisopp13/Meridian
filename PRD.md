@@ -225,7 +225,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
   - Test: `grep -c "data-action=\"start\"" public/ct-widget.js` returns at least `1`.
   - Test: `node -c public/ct-widget.js` exits 0.
 
-- [ ] **Task 5: Simplify renderSingle() to handle only the active-case state**
+- [x] **Task 5: Simplify renderSingle() to handle only the active-case state**
   - `renderSingle()` currently has an internal `if (!isActive)` branch that produces the idle bar. That branch is now duplicated in `renderIdle()`. Remove it from `renderSingle()` — the function should only render the active-case bar. If `render()` is called with `state.mode === 'single'` but `state.caseNumber` is empty (shouldn't happen in practice), fall back to `renderIdle()`.
   - Replace the top of `renderSingle()` with a guard:
     ```js
