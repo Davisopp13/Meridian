@@ -5138,3 +5138,25 @@ Learnings for future iterations:
   - All commits use format: `detect-at-start: [task N] <short description>`
   - Tasks 1-12 remain; next is Task 1 (remove detectMode from meridian-trigger.js)
 ---
+
+## Iteration DAS-1 - Task 1 (Detect-at-Start PRD): Remove detectMode from meridian-trigger.js
+- Deleted entire `function detectMode() { ... }` block
+- Deleted `MERIDIAN_PAYLOAD.mode = detectMode();` line
+- Deleted `walkShadow` helper (was only used by detectMode)
+- Updated top-of-file comment block to remove `mode:` entry
+
+Files changed:
+  public/meridian-trigger.js (3 deletions + comment update)
+  PRD.md (Task 1 marked [x])
+
+Tests passed:
+  - node -c public/meridian-trigger.js → exit 0 ✓
+  - grep -c "function detectMode" → 0 ✓
+  - grep -c "MERIDIAN_PAYLOAD.mode" → 0 ✓
+  - wc -l → 110 (down from 149, 39 lines removed) ✓
+
+Learnings for future iterations:
+  - walkShadow in the trigger was solely used by detectMode; safe to delete both together
+  - The file now cleanly just: checks SF, checks relay, fetches widget, executes it
+  - Next task: Task 2 (change state.mode default to 'idle' in ct-widget.js)
+---

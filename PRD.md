@@ -82,7 +82,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
 
 ### Phase 1: Strip mode detection from the trigger
 
-- [ ] **Task 1: Remove detectMode from meridian-trigger.js**
+- [x] **Task 1: Remove detectMode from meridian-trigger.js**
   - View `public/meridian-trigger.js`. Find `function detectMode()` (~line 57) and the line `MERIDIAN_PAYLOAD.mode = detectMode();` (~line 89).
   - Delete the entire `function detectMode() { ... }` block.
   - Delete the `MERIDIAN_PAYLOAD.mode = detectMode();` line.
