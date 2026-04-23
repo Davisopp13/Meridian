@@ -298,7 +298,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
   - Test: `grep -c "function detectModeAtStart" public/ct-widget.js` returns `1`.
   - Test: `node -c public/ct-widget.js` exits 0.
 
-- [ ] **Task 8: Add handleStart() dispatcher**
+- [x] **Task 8: Add handleStart() dispatcher**
   - Insert `handleStart` near the other handlers (after `handleStartCase` and `handleStartMass`). It's a thin dispatcher:
     ```js
     function handleStart() {

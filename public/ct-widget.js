@@ -550,6 +550,28 @@
     render();
   }
 
+  function handleStart() {
+    var mode = detectModeAtStart();
+    if (mode === 'single') {
+      state.mode = 'single';
+      handleStartCase();
+      return;
+    }
+    if (mode === 'mass') {
+      var cases = collectSelectedCasesFromDom();
+      if (!cases.length) {
+        showWidgetToast('No cases selected. Check rows, then click Start.');
+        return;
+      }
+      state.mode = 'mass';
+      state.massCases = cases;
+      state.massSubState = 'confirm';
+      render();
+      return;
+    }
+    showWidgetToast('Open a Salesforce case or list view to start tracking.');
+  }
+
   function handleConfirmMass() {
     state.massSubState = 'submitting';
     render();

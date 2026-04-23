@@ -5282,3 +5282,22 @@ Learnings for future iterations:
   - Insertion point between walkShadowLocal (line 232) and collectSelectedCasesFromDom (line 245)
   - Next task: Task 8 (add handleStart() dispatcher)
 ---
+
+## Iteration [8-Task] - Task 8: Add handleStart() dispatcher
+- Inserted `handleStart()` between `handleStartMass` and `handleConfirmMass` in public/ct-widget.js
+- Function calls detectModeAtStart(), dispatches to handleStartCase() for 'single', collects cases and transitions to mass confirm for 'mass', shows toast for 'none'
+- Sets state.mode = 'single' before calling handleStartCase() so render() picks the right branch
+
+Files changed:
+  public/ct-widget.js (new function inserted)
+  PRD.md (Task 8 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function handleStart\b" → 1 ✓
+  - grep -c "function handleStart|function handleStartCase|function handleStartMass" → 3 ✓
+
+Learnings for future iterations:
+  - handleStart() was inserted between handleStartMass (line 551) and handleConfirmMass
+  - Next task: Task 9 (delete handleStartMass as dead code)
+---
