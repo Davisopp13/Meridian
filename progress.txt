@@ -5391,3 +5391,22 @@ Learnings for future iterations:
   - No migration needed for this branch (pure client JS refactor)
   - The two changed files are public/ct-widget.js and public/meridian-trigger.js
 ---
+
+## Iteration 1 - Task 1: Create notes migration
+- Created supabase/migrations/023_notes_on_events_and_entries.sql
+- Adds `note varchar(500)` column to case_events and mpl_entries with IF NOT EXISTS guard
+- Migration not applied — Davis applies manually in Supabase SQL editor
+
+Files changed:
+  supabase/migrations/023_notes_on_events_and_entries.sql (new)
+  PRD.md (Task 1 marked [x])
+
+Tests passed:
+  - grep -c 'add column if not exists note' 023_notes_on_events_and_entries.sql → 2 ✓
+
+Learnings for future iterations:
+  - This is a new PRD (Notes Capture, Display & Search) — 11 tasks total
+  - Migration naming: 023_ follows the existing 022_ migration
+  - note column is singular on both tables; ct_calls.notes (plural) already exists and is NOT modified here
+  - Next task: Task 2 (create 024_search_user_activity_rpc.sql)
+---
