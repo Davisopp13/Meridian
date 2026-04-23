@@ -1,12 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { C } from '../../lib/constants.js'
 import CategoryDrillDown from '../CategoryDrillDown.jsx'
+import RecentPairsStrip from '../RecentPairsStrip.jsx'
+import { fetchRecentMplPairs } from '../../lib/api.js'
 
-export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel, onScreenChange }) {
+export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel, onScreenChange, userId }) {
   const [note, setNote] = useState('')
+  const [recentPairs, setRecentPairs] = useState([])
+  const [drillScreen, setDrillScreen] = useState('category')
+
+  useEffect(() => {
+    if (!userId) return
+    fetchRecentMplPairs(userId, 5).then(({ data }) => setRecentPairs(data || []))
+  }, [userId])
 
   function handleSelect(cat, sub) {
     onConfirm(cat.id, sub?.id ?? null, elapsed, note)
+  }
+
+  function handleRecentPick(cat, sub) {
+    onConfirm(cat.id, sub?.id ?? null, elapsed, note)
+  }
+
+  function handleScreenChange(s) {
+    setDrillScreen(s)
+    onScreenChange?.(s)
   }
 
   return (
@@ -70,8 +88,16 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
       <CategoryDrillDown
         categories={categories}
         onSelect={handleSelect}
-        onScreenChange={onScreenChange}
+        onScreenChange={handleScreenChange}
         contentPadding="14px"
+        headerSlot={
+          <RecentPairsStrip
+            pairs={recentPairs}
+            categories={categories}
+            onPick={handleRecentPick}
+            disabled={drillScreen !== 'category'}
+          />
+        }
       />
     </div>
   )

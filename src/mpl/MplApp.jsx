@@ -566,6 +566,7 @@ export default function MplApp() {
     return (
       <>
         <MplPipBar
+          userId={user?.id}
           processes={processes}
           categories={categories}
           showSwimlane={showSwimlane}

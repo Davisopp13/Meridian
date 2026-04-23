@@ -22,6 +22,30 @@ export async function logMplEntry({ userId, categoryId, subcategoryId, minutes, 
   })
 }
 
+export async function fetchRecentMplPairs(userId, limit = 5) {
+  if (!userId) return { data: [], error: null }
+
+  const { data, error } = await supabase
+    .from('mpl_entries')
+    .select('category_id, subcategory_id, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  if (error) return { data: [], error }
+
+  const seen = new Set()
+  const pairs = []
+  for (const row of data || []) {
+    const key = `${row.category_id}::${row.subcategory_id ?? 'null'}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    pairs.push({ categoryId: row.category_id, subcategoryId: row.subcategory_id })
+    if (pairs.length >= limit) break
+  }
+  return { data: pairs, error: null }
+}
+
 export async function searchUserActivity(userId, query, limit = 50) {
   if (!userId || !query || query.trim().length === 0) return { data: [], error: null }
   return supabase.rpc('search_user_activity', {

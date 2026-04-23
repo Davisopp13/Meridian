@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { C } from '../lib/constants.js'
 import CategoryDrillDown from './CategoryDrillDown.jsx'
+import RecentPairsStrip from './RecentPairsStrip.jsx'
+import { fetchRecentMplPairs } from '../lib/api.js'
 
 const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
 
@@ -14,13 +16,20 @@ const DURATIONS = [5, 10, 15, 20, 30, 45, 60]
  *   onClose     — () close without logging
  *   onLog       — (categoryId, subcategoryId|null, minutes, note) save entry with source:'manual'
  */
-export default function ManualEntryForm({ categories = [], onClose, onLog }) {
+export default function ManualEntryForm({ categories = [], onClose, onLog, userId }) {
   const [selectedMinutes, setSelectedMinutes] = useState(null)
   const [showCustom, setShowCustom] = useState(false)
   const [customMinutes, setCustomMinutes] = useState('')
   const [selection, setSelection] = useState(null) // { cat, sub }
   const [showDurationHint, setShowDurationHint] = useState(false)
   const [note, setNote] = useState('')
+  const [recentPairs, setRecentPairs] = useState([])
+  const [drillScreen, setDrillScreen] = useState('category')
+
+  useEffect(() => {
+    if (!userId) return
+    fetchRecentMplPairs(userId, 5).then(({ data }) => setRecentPairs(data || []))
+  }, [userId])
 
   const tint = categories[0]?.team === 'CH' ? 'rgba(251,191,36,1)' : 'rgba(96,165,250,1)'
   const tintColor = categories[0]?.team === 'CH' ? C.awaiting : C.process
@@ -31,6 +40,17 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
   }
 
   function handleSelect(cat, sub) {
+    const mins = getMinutes()
+    if (mins > 0) {
+      onLog(cat.id, sub?.id ?? null, mins, note)
+    } else {
+      setSelection({ cat, sub })
+      setShowDurationHint(true)
+      setTimeout(() => setShowDurationHint(false), 2000)
+    }
+  }
+
+  function handleRecentPick(cat, sub) {
     const mins = getMinutes()
     if (mins > 0) {
       onLog(cat.id, sub?.id ?? null, mins, note)
@@ -161,6 +181,15 @@ export default function ManualEntryForm({ categories = [], onClose, onLog }) {
       <CategoryDrillDown
         categories={categories}
         onSelect={handleSelect}
+        onScreenChange={setDrillScreen}
+        headerSlot={
+          <RecentPairsStrip
+            pairs={recentPairs}
+            categories={categories}
+            onPick={handleRecentPick}
+            disabled={drillScreen !== 'category'}
+          />
+        }
       />
     </div>
   )

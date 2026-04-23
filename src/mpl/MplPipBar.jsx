@@ -33,6 +33,7 @@ const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: 
  *   children             — overlay slot (ManualEntryForm)
  */
 export default function MplPipBar({
+  userId,
   processes = [],
   categories = [],
   showSwimlane = false,
@@ -261,6 +262,7 @@ export default function MplPipBar({
       {/* ── Category drill-down — TIMED (process pill "Log" tap) ──── */}
       {chipStripProcessId && !quickLogOpen && (
         <ProcessPicker
+          userId={userId}
           categories={categories}
           elapsed={chipStripProcess?.elapsed || 0}
           onConfirm={(catId, subId, elapsed, note) => onChipStripConfirm && onChipStripConfirm(chipStripProcessId, catId, subId, note)}
@@ -271,6 +273,7 @@ export default function MplPipBar({
       {/* ── Quick Log — UNTIMED (2-col grid matching timed Log) ─────── */}
       {quickLogOpen && !chipStripProcessId && (
         <ManualEntryForm
+          userId={userId}
           categories={categories}
           onClose={() => onQuickLogCancel && onQuickLogCancel()}
           onLog={(catId, subId, minutes, note) => onQuickLogConfirm && onQuickLogConfirm(catId, subId, minutes, note)}
