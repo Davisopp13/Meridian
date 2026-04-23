@@ -913,7 +913,8 @@
 
   function render() {
     if (state.mode === 'mass') renderMass();
-    else renderSingle();
+    else if (state.mode === 'single') renderSingle();
+    else renderIdle();
   }
 
   // Initial render (stats show 0 until hydration completes)

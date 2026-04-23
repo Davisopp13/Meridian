@@ -107,7 +107,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
   - Test: `grep -c "mode: 'idle'" public/ct-widget.js` returns `1`.
   - Test: `grep -c "MERIDIAN_PAYLOAD.mode" public/ct-widget.js` returns `0`.
 
-- [ ] **Task 3: Update render() dispatcher to route three modes**
+- [x] **Task 3: Update render() dispatcher to route three modes**
   - Find the `render()` dispatcher function (~line 865):
     ```js
     function render() {
