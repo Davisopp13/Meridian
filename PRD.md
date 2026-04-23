@@ -492,7 +492,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - Test: `grep -c "function relayRpc" public/ct-widget.js` returns `1`.
   - Test: `node -c public/ct-widget.js` exits 0.
 
-- [ ] **Task 7: Upgrade handleStartCase to scrape type/subtype/sf_case_id/account_id**
+- [x] **Task 7: Upgrade handleStartCase to scrape type/subtype/sf_case_id/account_id**
   - View the existing `handleStartCase` (around line 374 today). It only scrapes `document.title` for the case number. Replace its body with a version that does a shadow-DOM walk for the other fields.
   - Target implementation (replaces the function body, keeps the name/signature):
     ```js
