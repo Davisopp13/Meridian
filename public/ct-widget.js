@@ -715,6 +715,90 @@
       '</div>';
   }
 
+  function renderIdle() {
+    var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
+
+    var mLogo =
+      '<div data-action="dashboard" title="Open Meridian Dashboard" style="' +
+        'width:28px;height:28px;border-radius:7px;background:#003087;' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'cursor:pointer;flex-shrink:0;' +
+      '"><img src="' + MERIDIAN_ICON_B64 + '" alt="Meridian" style="' +
+        'width:20px;height:20px;display:block;pointer-events:none;' +
+      '"/></div>';
+
+    var statPills =
+      '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + state.stats.resolved + ' Resolved</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + state.stats.reclass + ' Reclass</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + state.stats.calls + ' Calls</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + total + ' Total</button>' +
+      '</div>';
+
+    var divider = '<div style="width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>';
+    var spacer  = '<div style="flex:1;"></div>';
+    var minBtn  = '<button data-action="minimize" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;">';
+    var closeBtn =
+      '<button data-action="close" style="' +
+        'background:none;border:none;color:rgba(255,255,255,0.4);' +
+        'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+      '">×</button>';
+
+    var barStyle =
+      'height:44px;background:' + T.bg + ';' +
+      'border:1px solid ' + T.border + ';border-radius:10px;' +
+      'display:flex;align-items:center;gap:6px;padding:0 10px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+      'font-family:' + T.font + ';cursor:move;user-select:none;';
+
+    var toastHtml = state.toastMsg
+      ? '<div style="' +
+          'position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);' +
+          'background:#065f46;color:#fff;padding:4px 12px;border-radius:6px;' +
+          'font-size:11px;font-weight:600;white-space:nowrap;' +
+          'box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;' +
+        '">' + state.toastMsg + '</div>'
+      : '';
+
+    if (state.isMinimized) {
+      shadow.innerHTML =
+        '<div id="ct-header" style="' + barStyle + '">' +
+          mLogo +
+          spacer +
+          minBtn + '▲</button>' +
+          closeBtn +
+        '</div>';
+      return;
+    }
+
+    shadow.innerHTML =
+      '<div id="ct-header" style="position:relative;' + barStyle + '">' +
+        mLogo +
+        '<button data-action="start" style="' +
+          'height:26px;padding:0 12px;border-radius:6px;border:none;' +
+          'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+        '">Start</button>' +
+        divider +
+        statPills +
+        spacer +
+        minBtn + '▼</button>' +
+        closeBtn +
+        toastHtml +
+      '</div>';
+  }
+
   function renderMass() {
     var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
     var sub = state.massSubState;

@@ -5180,3 +5180,45 @@ Learnings for future iterations:
   - _meridianRefresh is around line 942; the mode propagation line was the first line of the function body
   - Next task: Task 3 (update render() dispatcher to route three modes)
 ---
+
+## Iteration N - Task 3: Update render() dispatcher to route three modes
+- Changed render() from a two-way (mass | single) to a three-way dispatch:
+  if mass → renderMass(); else if single → renderSingle(); else → renderIdle()
+- renderIdle() does not exist yet — added in Task 4. The dispatcher is wired first per PRD order of operations.
+
+Files changed:
+  public/ct-widget.js (render() at line 914, 1-line change)
+  PRD.md (Task 3 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "renderIdle\|renderSingle\|renderMass" → 6 ✓
+
+Learnings for future iterations:
+  - render() is at line 914; grep found it instantly
+  - The grep count of 6 includes: dispatcher (3 references) + renderSingle declaration + renderMass declaration = 5 existing, plus the new renderIdle reference = 6 total (renderIdle declaration comes in Task 4)
+  - Next task: Task 4 (add renderIdle() function)
+---
+
+## Iteration DAS-4 - Task 4 (Detect-at-Start PRD): Add renderIdle() function
+- Inserted new `renderIdle()` function between `renderSingle()` (line 716) and `renderMass()` (line 718)
+- Stat pills have `cursor:default` and no `data-action` — display-only in idle state
+- Start button uses `data-action="start"` (unified), not "startcase"
+- Minimized branch shows only mLogo + spacer + minBtn + closeBtn (no case content)
+- Used Unicode literals ▲/▼ directly as ▲/▼ (same visual result)
+
+Files changed:
+  public/ct-widget.js (renderIdle function added, ~80 lines)
+  PRD.md (Task 4 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function renderIdle" → 1 ✓
+  - grep -c 'data-action="start"' → 1 ✓
+  - grep -c "renderIdle\|renderSingle\|renderMass" → 7 (≥6) ✓
+
+Learnings for future iterations:
+  - renderIdle sits between renderSingle and renderMass in the file
+  - The closeBtn in renderIdle uses the × character directly rather than × — both work, × is cleaner
+  - Next task: Task 5 (simplify renderSingle to handle only the active-case state — remove the !isActive idle branch)
+---

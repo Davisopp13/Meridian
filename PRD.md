@@ -128,7 +128,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
 
 ### Phase 3: Extract the idle state and add detectModeAtStart
 
-- [ ] **Task 4: Add renderIdle() as the neutral pre-Start bar**
+- [x] **Task 4: Add renderIdle() as the neutral pre-Start bar**
   - The current `renderSingle()` handles TWO sub-states internally: idle (no case) around lines 670-690, and active (case loaded) below it. Keep `renderSingle()` but simplify it to ONLY render the active-case case — the idle branch moves to a new `renderIdle()` function.
   - Add a new function `renderIdle()` near `renderSingle()`. The body renders the exact same bar the current `renderSingle()` idle branch renders, with one change: the Start button's `data-action` becomes `"start"` (unified) instead of `"startcase"`.
   - Target implementation:
