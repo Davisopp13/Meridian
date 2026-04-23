@@ -4964,3 +4964,34 @@ Learnings for future iterations:
   - depth limit of 50 matches the PRD spec exactly; do not change it
   - `/* non-fatal */` comment in catch block is intentional (per PRD) — leave it in
 ---
+
+## Iteration 43 (unified-start-button) - Task 8: Split render() into renderSingle() and renderMass(), add dispatcher
+- Renamed existing render() to renderSingle() (unchanged logic)
+- Added renderMass() handling 5 sub-states: idle, confirm, submitting, success, error
+  - idle: compact bar, "N cases selected — Start" + close button
+  - confirm: expanded panel with top row (logo + count), scrollable case list (max 180px), bottom row (Cancel + Confirm Reclassify)
+  - submitting: compact "Working…" with no buttons
+  - success: compact "Reclassified N cases. [Undo (Ns)] [×]"
+  - error: compact "Error: msg. [Retry] [×]"
+- Added minimized state to renderMass() (shows logo + expand arrow + close, same as single minimized)
+- Added new top-level render() dispatcher: calls renderMass() if mode='mass', else renderSingle()
+- Added event-delegation cases: start-mass → handleStartMass, cancel-mass → handleCancelConfirm,
+  confirm-mass → handleConfirmMass, undo-mass → handleUndoMass, dismiss-mass → handleDismissMass
+- Added massCount: MERIDIAN_PAYLOAD.massCount || 0 to state for idle display hint
+
+Files changed:
+  public/ct-widget.js (renderSingle rename, renderMass + render added, click handler extended)
+  PRD.md (Task 8 marked [x])
+
+Tests passed:
+  - grep -c "function renderSingle|function renderMass|function render\b" → 3 ✓
+  - grep -c 'data-action="start-mass"|data-action="confirm-mass"|data-action="undo-mass"' → 4 ✓
+  - node -c public/ct-widget.js → syntax ok ✓
+  - npx vite build → ✓ built in 1.37s, 0 errors
+
+Learnings for future iterations:
+  - renderMass() uses the same shadow + T + MERIDIAN_ICON_B64 closure vars as renderSingle — no extra setup needed
+  - confirm sub-state uses flex-direction:column to expand downward; baseBar does NOT include height:44px for that state
+  - massCount added to state to show pre-count in idle before Start is clicked (from MERIDIAN_PAYLOAD.massCount if trigger adds it)
+  - Retry in error state reuses data-action="confirm-mass" which fires handleConfirmMass() — clean reuse
+---
