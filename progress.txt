@@ -5032,3 +5032,22 @@ Learnings for future iterations:
   - The shouldDelete flag was purely for the mass-reclass deferred-delete pattern — removing the branch makes the delete unconditional (cleaner)
   - Build will only pass after Task 11 removes the useMassReclass + MassReclassModal imports from MplApp.jsx
 ---
+
+## Iteration 46 (unified-start-button) - Task 11: Remove mass-reclass wiring from MplApp.jsx
+- Removed import useMassReclass from '../hooks/useMassReclass.js'
+- Removed import MassReclassModal from '../components/MassReclassModal.jsx'
+- Removed const massReclass = useMassReclass() call
+- Removed onMassReclass: ... from usePendingTriggers options object
+- Removed <MassReclassModal .../> from buildMplBar() render tree
+
+Files changed:
+  src/mpl/MplApp.jsx (4 removals)
+  PRD.md (Task 11 marked [x])
+
+Tests passed:
+  - grep -c "useMassReclass|MassReclassModal" src/mpl/MplApp.jsx → 0 ✓
+  - npx vite build → ✓ built in 1.37s ✓
+
+Learnings for future iterations:
+  - Build now passes cleanly — all dead mass-reclass code fully removed from the app
+---
