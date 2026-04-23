@@ -5410,3 +5410,25 @@ Learnings for future iterations:
   - note column is singular on both tables; ct_calls.notes (plural) already exists and is NOT modified here
   - Next task: Task 2 (create 024_search_user_activity_rpc.sql)
 ---
+
+## Iteration 2 - Task 2: Create search RPC migration
+- Created supabase/migrations/024_search_user_activity_rpc.sql
+- Defines search_user_activity(p_user_id, p_query, p_limit) as a UNION of case_events and mpl_entries
+- UNIONs on case_number ilike and note ilike for case events; category name ilike and note ilike for MPL entries
+- Returns unified result set with src discriminator ('case' | 'mpl'), hard limit 50 rows, ordered by ts desc
+- Migration not applied — Davis applies manually in Supabase SQL editor
+
+Files changed:
+  supabase/migrations/024_search_user_activity_rpc.sql (new)
+  PRD.md (Task 2 marked [x])
+
+Tests passed:
+  - grep -c 'create or replace function search_user_activity' → 1 ✓
+
+Learnings for future iterations:
+  - 024_ follows 023_ in migration naming sequence
+  - The RPC uses security invoker so RLS on underlying tables applies to the calling user
+  - ct_cases join uses ce.session_id = cc.id (not a direct foreign key on case_events)
+  - mpl_categories joined as mc on mc.id = me.category_id
+  - Next task: Task 3 (extend logCaseEvent and logMplEntry to accept note)
+---

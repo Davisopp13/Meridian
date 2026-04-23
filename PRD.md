@@ -121,7 +121,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
   - **Do not apply the migration.** Only write the file.
   - Test: file exists at correct path. `grep -c 'add column if not exists note' supabase/migrations/023_notes_on_events_and_entries.sql` returns `2`.
 
-- [ ] **Task 2: Create search RPC migration**
+- [x] **Task 2: Create search RPC migration**
   - File: `supabase/migrations/024_search_user_activity_rpc.sql`
   - Content:
     ```sql
