@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { C } from '../../lib/constants.js'
 import CategoryDrillDown from '../CategoryDrillDown.jsx'
 
 export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel, onScreenChange }) {
+  const [note, setNote] = useState('')
+
   function handleSelect(cat, sub) {
-    onConfirm(cat.id, sub?.id ?? null, elapsed)
+    onConfirm(cat.id, sub?.id ?? null, elapsed, note)
   }
 
   return (
@@ -40,6 +43,28 @@ export default function ProcessPicker({ categories, elapsed, onConfirm, onCancel
             fontSize: 14, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
           }}
         >✕</button>
+      </div>
+
+      <div style={{ padding: '8px 14px 0', flexShrink: 0 }}>
+        <input
+          type="text"
+          maxLength={500}
+          placeholder="Optional note — tap a subcategory to log"
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          style={{
+            width: '100%',
+            boxSizing: 'border-box',
+            height: 28,
+            fontSize: 12,
+            padding: '6px 8px',
+            borderRadius: 6,
+            border: `1px solid ${C.border}`,
+            background: C.bg,
+            color: C.textPri,
+            outline: 'none',
+          }}
+        />
       </div>
 
       <CategoryDrillDown

@@ -5499,3 +5499,24 @@ Learnings for future iterations:
   - Must add `if (e.target.tagName === 'INPUT') return;` to drag mousedown handler to prevent dragging when typing in note input
   - Next task: Task 6 (add notes input to ProcessPicker.jsx)
 ---
+
+## Iteration 6 - Task 6: Add notes input and note prop to ProcessPicker.jsx
+- Added `import { useState } from 'react'` to ProcessPicker.jsx
+- Added `const [note, setNote] = useState('')` inside the component
+- Added a controlled text input (height 28px, fontSize 12, padding 6px 8px, borderRadius 6) above CategoryDrillDown, using C.border, C.bg, C.textPri
+- Changed onConfirm call from `(cat.id, sub?.id ?? null, elapsed)` to `(cat.id, sub?.id ?? null, elapsed, note)`
+
+Files changed:
+  src/components/overlays/ProcessPicker.jsx
+  PRD.md (Task 6 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.30s
+  - grep -c "onConfirm(.*note" src/components/overlays/ProcessPicker.jsx → 1 ✓
+
+Learnings for future iterations:
+  - ProcessPicker had no React imports at all — needed to add useState import
+  - Note input placed in a padding wrapper div between the header and CategoryDrillDown
+  - onConfirm signature is now (categoryId, subcategoryId, elapsed, note) — Task 8 must update MplApp.jsx to accept the 4th arg
+  - Next task: Task 7 (add notes input to ManualEntryForm.jsx)
+---

@@ -263,7 +263,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
 
 ### Phase 4: Capture — MPL widgets
 
-- [ ] **Task 6: Add notes input and `note` prop to `ProcessPicker.jsx`**
+- [x] **Task 6: Add notes input and `note` prop to `ProcessPicker.jsx`**
   - File: `src/components/overlays/ProcessPicker.jsx`
   - Add a `useState('')` for the note inside the component.
   - Add a single-line text input above the drill-down area. Style constraints:
