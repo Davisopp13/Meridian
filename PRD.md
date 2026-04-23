@@ -552,7 +552,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - Test: `grep -c "Type / Sub-Type" public/ct-widget.js` returns `>= 1`.
   - Test: `node -c public/ct-widget.js` exits 0.
 
-- [ ] **Task 8: Split render() into renderSingle() and renderMass(), add dispatcher**
+- [x] **Task 8: Split render() into renderSingle() and renderMass(), add dispatcher**
   - The existing `render()` function (around line 402) is ~120 lines of innerHTML assembly for the single-case widget. Rename it to `renderSingle()`.
   - Add a new `renderMass()` that produces the mass-mode UI across its sub-states:
     - **idle sub-state:** compact bar, same footprint as single mode. Contents: `[M° logo] 3 cases selected  [Start]  [×]`. The Start button has `data-action="start-mass"`. The × has `data-action="close"` (reuses existing close handler).

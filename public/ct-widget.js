@@ -66,6 +66,7 @@
     massCases:           [],
     massBatchId:         null,
     massError:           null,
+    massCount:           MERIDIAN_PAYLOAD.massCount || 0,
     massCountdown:       10,
     massCountdownTimer:  null,
   };
@@ -590,7 +591,7 @@
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
-  function render() {
+  function renderSingle() {
     var total    = state.stats.resolved + state.stats.reclass + state.stats.calls;
     var isActive = !!state.caseNumber;
 
@@ -714,6 +715,158 @@
       '</div>';
   }
 
+  function renderMass() {
+    var mLogo =
+      '<div data-action="dashboard" title="Open Meridian Dashboard" style="' +
+        'width:28px;height:28px;border-radius:7px;background:#003087;' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'cursor:pointer;flex-shrink:0;' +
+      '"><img src="' + MERIDIAN_ICON_B64 + '" alt="Meridian" style="' +
+        'width:20px;height:20px;display:block;pointer-events:none;' +
+      '"/></div>';
+
+    var baseBar =
+      'background:' + T.bg + ';border:1px solid ' + T.border + ';border-radius:10px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);font-family:' + T.font + ';' +
+      'cursor:move;user-select:none;';
+
+    var toastHtml = state.toastMsg
+      ? '<div style="' +
+          'position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);' +
+          'background:#065f46;color:#fff;padding:4px 12px;border-radius:6px;' +
+          'font-size:11px;font-weight:600;white-space:nowrap;' +
+          'box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;' +
+        '">' + state.toastMsg + '</div>'
+      : '';
+
+    var closeBtn =
+      '<button data-action="close" style="' +
+        'background:none;border:none;color:rgba(255,255,255,0.4);' +
+        'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+      '">×</button>';
+
+    var sub = state.massSubState;
+    var n = state.massCases.length || state.massCount || 0;
+
+    if (state.isMinimized) {
+      shadow.innerHTML =
+        '<div id="ct-header" style="height:44px;' + baseBar +
+          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+          mLogo +
+          '<div style="flex:1;"></div>' +
+          '<button data-action="minimize" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;">▲</button>' +
+          closeBtn +
+        '</div>';
+      return;
+    }
+
+    if (sub === 'idle') {
+      shadow.innerHTML =
+        '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
+          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+          mLogo +
+          '<span style="color:' + T.textPri + ';font-size:12px;font-weight:600;flex:1;">' +
+            (n > 0 ? n + ' cases selected' : 'Cases selected') +
+          '</span>' +
+          '<button data-action="start-mass" style="' +
+            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
+            'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+          '">Start</button>' +
+          closeBtn +
+          toastHtml +
+        '</div>';
+      return;
+    }
+
+    if (sub === 'confirm') {
+      var caseListHtml = state.massCases.map(function (c) {
+        return '<div style="' +
+          'padding:4px 8px;color:' + T.textPri + ';font-size:11px;' +
+          'font-family:monospace;border-bottom:1px solid ' + T.divider + ';' +
+        '">' + c.case_number + '</div>';
+      }).join('');
+
+      shadow.innerHTML =
+        '<div id="ct-header" style="' + baseBar +
+          'display:flex;flex-direction:column;border-radius:10px;overflow:hidden;">' +
+          '<div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;flex-shrink:0;">' +
+            mLogo +
+            '<span style="color:' + T.textPri + ';font-size:12px;font-weight:600;flex:1;">' +
+              'Reclassify ' + state.massCases.length + ' case' + (state.massCases.length !== 1 ? 's' : '') + '?' +
+            '</span>' +
+          '</div>' +
+          '<div style="max-height:180px;overflow-y:auto;border-top:1px solid ' + T.border + ';">' +
+            caseListHtml +
+          '</div>' +
+          '<div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;flex-shrink:0;border-top:1px solid ' + T.border + ';">' +
+            '<button data-action="cancel-mass" style="' +
+              'height:28px;padding:0 12px;border-radius:6px;border:none;' +
+              'background:#374151;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+            '">Cancel</button>' +
+            '<div style="flex:1;"></div>' +
+            '<button data-action="confirm-mass" style="' +
+              'height:28px;padding:0 16px;border-radius:6px;border:none;' +
+              'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
+            '">Confirm Reclassify</button>' +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    if (sub === 'submitting') {
+      shadow.innerHTML =
+        '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
+          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+          mLogo +
+          '<span style="color:' + T.textSec + ';font-size:12px;font-weight:600;flex:1;">Working…</span>' +
+        '</div>';
+      return;
+    }
+
+    if (sub === 'success') {
+      shadow.innerHTML =
+        '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
+          'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+          mLogo +
+          '<span style="color:#22c55e;font-size:12px;font-weight:600;flex:1;">' +
+            'Reclassified ' + state.massCases.length + ' case' + (state.massCases.length !== 1 ? 's' : '') + '.' +
+          '</span>' +
+          '<button data-action="undo-mass" style="' +
+            'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+            'background:#374151;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+          '">Undo (' + state.massCountdown + 's)</button>' +
+          '<button data-action="dismiss-mass" style="' +
+            'background:none;border:none;color:rgba(255,255,255,0.4);' +
+            'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+          '">×</button>' +
+        '</div>';
+      return;
+    }
+
+    // error sub-state (default)
+    shadow.innerHTML =
+      '<div id="ct-header" style="position:relative;height:44px;' + baseBar +
+        'display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+        mLogo +
+        '<span style="color:#ef4444;font-size:11px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+          'Error: ' + (state.massError || 'Unknown error') +
+        '</span>' +
+        '<button data-action="confirm-mass" style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#374151;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+        '">Retry</button>' +
+        '<button data-action="dismiss-mass" style="' +
+          'background:none;border:none;color:rgba(255,255,255,0.4);' +
+          'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+        '">×</button>' +
+      '</div>';
+  }
+
+  function render() {
+    if (state.mode === 'mass') renderMass();
+    else renderSingle();
+  }
+
   // Initial render (stats show 0 until hydration completes)
   render();
 
@@ -790,6 +943,16 @@
         stopTimer();
       }
       render();
+    } else if (action === 'start-mass') {
+      handleStartMass();
+    } else if (action === 'cancel-mass') {
+      handleCancelConfirm();
+    } else if (action === 'confirm-mass') {
+      handleConfirmMass();
+    } else if (action === 'undo-mass') {
+      handleUndoMass();
+    } else if (action === 'dismiss-mass') {
+      handleDismissMass();
     }
   });
 
