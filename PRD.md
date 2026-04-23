@@ -119,7 +119,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
 
 ### Phase 1: Database migration
 
-- [ ] **Task 1: Create migration 022 with user_id-parameterized RPCs**
+- [x] **Task 1: Create migration 022 with user_id-parameterized RPCs**
   - Create `supabase/migrations/022_unified_start_rpc_user_id.sql` with the following contents (one transaction):
     ```sql
     -- ============================================================
