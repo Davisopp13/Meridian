@@ -1052,8 +1052,8 @@
     } else if (action === 'close') {
       stopTimer();
       host.remove();
-    } else if (action === 'startcase') {
-      handleStartCase();
+    } else if (action === 'start') {
+      handleStart();
     } else if (action === 'dismisscase') {
       handleDismissCase();
     } else if (action === 'resolve') {

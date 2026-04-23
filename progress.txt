@@ -5319,3 +5319,23 @@ Tests passed:
 Learnings for future iterations:
   - The 'start-mass' event delegation branch was the only caller of handleStartMass — removing both together satisfied Task 9's grep-c "handleStartMass" === 0 requirement
   - Task 10 still needs to add 'start' action routing and verify 'startcase'/'start-mass' are gone; the latter is already gone after Task 9
+
+## Iteration N - Task 10: Update event delegation to route data-action="start" to handleStart
+- Replaced `action === 'startcase'` branch (calling handleStartCase) with `action === 'start'` branch (calling handleStart)
+- No `action === 'start-mass'` existed (was already removed in Task 9 iteration)
+
+Files changed:
+  public/ct-widget.js (event delegation updated at line ~1055)
+  PRD.md (Task 10 marked [x])
+
+Tests passed:
+  - grep -c "action === 'start'" → 1 ✓
+  - grep -c "action === 'startcase'" → 0 ✓
+  - grep -c "action === 'start-mass'" → 0 ✓
+  - grep -cE mass sub-state actions → 4 ✓
+  - node -c public/ct-widget.js → syntax ok ✓
+
+Learnings for future iterations:
+  - start-mass was already gone from Task 9; Task 10 only needed to swap startcase → start
+  - Next tasks: Task 11 (verification), Task 12 (commit summary)
+---

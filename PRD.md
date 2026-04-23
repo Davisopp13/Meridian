@@ -339,7 +339,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
 
 ### Phase 5: Wire the event delegation
 
-- [ ] **Task 10: Update event delegation to route data-action="start" to handleStart**
+- [x] **Task 10: Update event delegation to route data-action="start" to handleStart**
   - View the shadow `click` event handler (around line 912). It currently routes `data-action="startcase"` to `handleStartCase` and `data-action="start-mass"` to... something (probably `handleStartMass`).
   - Change:
     - Add: `else if (action === 'start') { handleStart(); }`
