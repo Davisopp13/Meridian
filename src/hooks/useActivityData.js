@@ -148,6 +148,7 @@ export function useActivityData({ userId, userIds, rangeDays }) {
       const eventPayload = {};
       if (updates.type !== undefined) eventPayload.type = TYPE_DB[updates.type] || updates.type;
       if (updates.rfc !== undefined) eventPayload.rfc = updates.rfc;
+      if (updates.note !== undefined) eventPayload.note = updates.note;
 
       if (Object.keys(eventPayload).length > 0) {
         const { error } = await supabase
@@ -174,6 +175,7 @@ export function useActivityData({ userId, userIds, rangeDays }) {
       if (updates.category_id !== undefined) payload.category_id = updates.category_id;
       if (updates.subcategory_id !== undefined) payload.subcategory_id = updates.subcategory_id;
       if (updates.minutes !== undefined) payload.minutes = updates.minutes;
+      if (updates.note !== undefined) payload.note = updates.note;
 
       const { error } = await supabase
         .from('mpl_entries')

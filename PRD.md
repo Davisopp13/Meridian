@@ -300,7 +300,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
   - In the mapping functions (lines ~29 and ~47), include `note: row.note ?? null` in the returned entry object.
   - Test: `npm run build` passes. `grep -c "note" src/hooks/useActivityData.js` increases by at least 4 (2 selects + 2 mappings).
 
-- [ ] **Task 10: Display note in `EntryRow` and add note field to `EditModal`**
+- [x] **Task 10: Display note in `EntryRow` and add note field to `EditModal`**
   - File: `src/components/ActivityLog.jsx`
   - **EntryRow (around line 620–706):** In the Category cell, change the span's content from `{entry.category}` to conditionally include the note:
     ```jsx

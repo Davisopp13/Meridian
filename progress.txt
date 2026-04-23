@@ -5542,3 +5542,71 @@ Learnings for future iterations:
   - onLog signature is now (categoryId, subcategoryId, minutes, note) — Task 8 must update MplApp.jsx to accept the 4th arg from both ManualEntryForm and ProcessPicker
   - Next task: Task 8 (wire note through MplApp.jsx to logMplEntry)
 ---
+
+## Iteration 8 - Task 8: Wire note through MplApp.jsx to logMplEntry
+- Updated `handleChipStripConfirm` in MplApp.jsx: added `note` param, forwarded to `handleConfirmProcess`
+- Updated `handleQuickLogConfirm` in MplApp.jsx: added `note` param, passed `note: note || null` to logMplEntry
+- Updated `handleConfirmProcess` in MplApp.jsx: added `note` param, passed `note: note || null` to logMplEntry
+- Updated MplPipBar.jsx ProcessPicker callback: `(catId, subId, elapsed, note) => onChipStripConfirm(processId, catId, subId, note)`
+- Updated MplPipBar.jsx ManualEntryForm callback: `(catId, subId, minutes, note) => onQuickLogConfirm(catId, subId, minutes, note)`
+- Applied same handler changes to DashboardApp.jsx (mirrors MplApp pattern)
+
+Files changed:
+  src/mpl/MplApp.jsx
+  src/mpl/MplPipBar.jsx
+  src/DashboardApp.jsx
+  PRD.md (Task 8 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.32s
+  - grep -c "note" src/mpl/MplApp.jsx → 6 (≥4 required) ✓
+
+Learnings for future iterations:
+  - DashboardApp.jsx has duplicate handler logic mirroring MplApp.jsx — both must be updated in sync
+  - MplPipBar.jsx is the intermediate layer: it receives callbacks from MplApp/DashboardApp and wires them to ProcessPicker and ManualEntryForm
+  - `note || null` normalization: convert empty string to null before passing to logMplEntry to keep DB clean
+  - ProcessPicker's onConfirm signature is now (catId, subId, elapsed, note); MplPipBar line 266 forwards it as (processId, catId, subId, note) — elapsed is consumed locally by handleChipStripConfirm via proc.elapsed
+  - Next task: Task 9 (update useActivityData.js to select and map note)
+---
+
+## Iteration 9 - Task 9: Update useActivityData.js to select and map note
+- Added `, note` to case_events select: `.select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, note')`
+- Added `, note` to mpl_entries select: `.select('id, user_id, minutes, created_at, category_id, subcategory_id, mpl_categories(name), note')`
+- Added `note: row.note ?? null` to normalizeCaseEvent return object
+- Added `note: row.note ?? null` to normalizeMplEntry return object
+
+Files changed:
+  src/hooks/useActivityData.js
+  PRD.md (Task 9 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.37s
+  - grep -c "note" src/hooks/useActivityData.js → 4 (≥4 required) ✓
+
+Learnings for future iterations:
+  - Baseline note count in useActivityData.js was 0; now 4 (2 selects + 2 mappings)
+  - `editEntry` in useActivityData.js also handles note updates — Task 10's EditModal save will need `note` added to both the case and process payload branches
+  - Next task: Task 10 (display note in EntryRow + add note field to EditModal in ActivityLog.jsx)
+---
+
+## Iteration 10 - Task 10: Display note in EntryRow and add note field to EditModal
+- Added `note` support to mpl_entries (process) branch of `editEntry` in useActivityData.js
+- Added `const [note, setNote] = useState(entry.note || '')` to EditModal state
+- Added `note: note.trim() || null` to both isCaseEntry and else patches in handleSave
+- Added Notes textarea (max 500 chars, rows=3) to EditModal body below existing fields, with char counter
+- Added `title={entry.note || ''}` and conditional `— "{entry.note}"` suffix to EntryRow category span
+
+Files changed:
+  src/hooks/useActivityData.js
+  src/components/ActivityLog.jsx
+  PRD.md (Task 10 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.32s
+  - grep -c 'entry.note' src/components/ActivityLog.jsx → 3 (≥3 required) ✓
+
+Learnings for future iterations:
+  - EditModal textarea uses `inputStyle` spread with `resize: vertical` and `fontFamily: inherit` for consistent look
+  - Note suffix in EntryRow truncates with textOverflow ellipsis via the parent span — no extra CSS needed
+  - Next task: Task 11 (search input wired to searchUserActivity RPC in ActivityLog.jsx)
+---

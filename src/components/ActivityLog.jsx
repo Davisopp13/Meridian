@@ -211,6 +211,7 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [note, setNote] = useState(entry.note || '');
 
   useEffect(() => {
     function onKey(e) {
@@ -230,9 +231,10 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
           rfc,
           case_number: caseNumber.trim() || null,
           dur: durMinutes * 60 + durSeconds,
+          note: note.trim() || null,
         });
       } else {
-        await onSave(entry, { minutes: parseInt(minutes, 10) || 0 });
+        await onSave(entry, { minutes: parseInt(minutes, 10) || 0, note: note.trim() || null });
       }
       onClose();
     } catch { /* parent handles */ } finally { setSaving(false); }
@@ -543,6 +545,32 @@ function EditModal({ entry, onClose, onSave, onDelete }) {
                     </div>
                   </>
                 )}
+
+                {/* Notes */}
+                <div>
+                  <div style={labelStyle}>Notes</div>
+                  <textarea
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    maxLength={500}
+                    rows={3}
+                    placeholder="Optional note…"
+                    style={{
+                      ...inputStyle,
+                      width: '100%',
+                      padding: '8px 10px',
+                      fontSize: 13,
+                      resize: 'vertical',
+                      boxSizing: 'border-box',
+                      fontFamily: 'inherit',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = MC.borderFocus; }}
+                    onBlur={e => { e.target.style.borderColor = MC.border; }}
+                  />
+                  <div style={{ color: MC.textMuted, fontSize: 11, marginTop: 4, textAlign: 'right' }}>
+                    {note.length}/500
+                  </div>
+                </div>
               </div>
 
               {/* Footer */}
@@ -692,6 +720,7 @@ function EntryRow({ entry, onEdit, allowMutations }) {
       {/* Category — flex grow */}
       <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
         <span
+          title={entry.note || ''}
           style={{
             color: 'var(--text-sec)',
             fontSize: 12,
@@ -702,6 +731,7 @@ function EntryRow({ entry, onEdit, allowMutations }) {
           }}
         >
           {entry.category}
+          {entry.note && <span style={{ color: 'var(--text-dim)' }}> — "{entry.note}"</span>}
         </span>
       </div>
 
