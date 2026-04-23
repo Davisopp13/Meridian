@@ -5123,3 +5123,18 @@ Learnings for future iterations:
   - All 14 tasks on feat/unified-start-button are complete; PRD is fully done
   - Migration 022 must be applied manually by Davis before the mass-flow works in production
 ---
+
+## Iteration DAS-0 - Task 0 (Detect-at-Start PRD): Create feat/detect-at-start branch
+- Ran `git checkout -b feat/detect-at-start` from main (94cc98b)
+- Verified `git branch --show-current` returns `feat/detect-at-start`
+- Verified `git log --oneline -1` shows `94cc98b Merge fix/mass-mode-visual-parity into main`
+- Both tests pass
+
+Files changed:
+  PRD.md (Task 0 marked [x])
+
+Learnings for future iterations:
+  - This PRD lives in the current PRD.md (Meridian Unified Start — Detect-At-Click PRD)
+  - All commits use format: `detect-at-start: [task N] <short description>`
+  - Tasks 1-12 remain; next is Task 1 (remove detectMode from meridian-trigger.js)
+---
