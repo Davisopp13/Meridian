@@ -5432,3 +5432,21 @@ Learnings for future iterations:
   - mpl_categories joined as mc on mc.id = me.category_id
   - Next task: Task 3 (extend logCaseEvent and logMplEntry to accept note)
 ---
+
+## Iteration 3 - Task 3: Extend logCaseEvent and logMplEntry to accept note
+- Added `note = null` default parameter to both function signatures in src/lib/api.js
+- Added `note` to the insert payload object in both functions
+- Existing callers unchanged (default null keeps them working)
+
+Files changed:
+  src/lib/api.js (logCaseEvent and logMplEntry signatures + insert payloads)
+  PRD.md (Task 3 marked [x])
+
+Tests passed:
+  - npm run build → ✓ built in 1.34s
+  - grep -c 'note = null' src/lib/api.js → 2 ✓
+
+Learnings for future iterations:
+  - api.js is a straightforward destructured-param pattern — add to both the param list and the insert object
+  - Next task: Task 4 (add searchUserActivity wrapper to api.js)
+---

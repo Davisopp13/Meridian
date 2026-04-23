@@ -213,7 +213,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
 
 ### Phase 2: Wrappers
 
-- [ ] **Task 3: Extend `logCaseEvent` and `logMplEntry` to accept `note`**
+- [x] **Task 3: Extend `logCaseEvent` and `logMplEntry` to accept `note`**
   - File: `src/lib/api.js`
   - Extend both wrappers. Default value `note = null` so existing callers keep working.
   - After:

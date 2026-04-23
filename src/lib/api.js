@@ -1,22 +1,24 @@
 import { supabase } from './supabase.js'
 
-export async function logCaseEvent({ userId, type, sessionId = null, excluded = false, rfc = false }) {
+export async function logCaseEvent({ userId, type, sessionId = null, excluded = false, rfc = false, note = null }) {
   return supabase.from('case_events').insert({
     user_id: userId,
     type,
     session_id: sessionId,
     excluded,
     rfc,
+    note,
   })
 }
 
-export async function logMplEntry({ userId, categoryId, subcategoryId, minutes, source = 'mpl_widget' }) {
+export async function logMplEntry({ userId, categoryId, subcategoryId, minutes, source = 'mpl_widget', note = null }) {
   return supabase.from('mpl_entries').insert({
     user_id: userId,
     category_id: categoryId,
     subcategory_id: subcategoryId,
     minutes,
     source,
+    note,
   })
 }
 
