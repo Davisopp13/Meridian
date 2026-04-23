@@ -5051,3 +5051,18 @@ Tests passed:
 Learnings for future iterations:
   - Build now passes cleanly — all dead mass-reclass code fully removed from the app
 ---
+
+## Iteration 12 - Task 12: Regression check — protected files
+- Ran `git diff --stat main...HEAD` to verify file scope
+- All 8 expected files present: ct-widget.js, meridian-trigger.js, meridian-relay.html, usePendingTriggers.js, MplApp.jsx (modified); 022 migration (created); useMassReclass.js, MassReclassModal.jsx (deleted)
+- All 4 protected files absent from diff: CtApp.jsx, 020/021 migrations, api.js, Step3Bookmarklet.jsx
+- Saved full diff stat to scripts/unified-start-button-scope-check.txt
+
+Files changed:
+  scripts/unified-start-button-scope-check.txt (created)
+  PRD.md (Task 12 marked [x])
+
+Learnings for future iterations:
+  - PRD.md and progress.txt also appear in the diff — these are expected tracking files, not violations
+  - git diff --stat main...HEAD is the correct command for branch-relative scope check
+---

@@ -603,7 +603,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
 
 ### Phase 6: Verification
 
-- [ ] **Task 12: Regression check — protected files**
+- [x] **Task 12: Regression check — protected files**
   - Run `git diff --stat main...HEAD` and verify the modified/created/deleted file list matches the PRD's File Structure section exactly.
   - Files expected in the diff:
     - MODIFIED: `public/ct-widget.js`, `public/meridian-trigger.js`, `public/meridian-relay.html`, `src/hooks/usePendingTriggers.js`, `src/mpl/MplApp.jsx`
