@@ -4897,3 +4897,70 @@ Learnings for future iterations:
   - The grep test `state\.mode\|mode:.*MERIDIAN_PAYLOAD\.mode` requires >= 2 matches — satisfying it required adding state.mode to the _meridianRefresh handler (line 557), which is correct behavior anyway.
   - progress.txt is >256KB and can only be written via Bash append (not Read+Write).
 ---
+
+## Iteration 42 (unified-start-button) - Task 5: Add handleStartMass function + deep-walk collector
+- Added walkShadowLocal() iterative shadow-DOM walker (inserted after relayGet, before getTodayNY)
+- Added collectSelectedCasesFromDom() that walks for checked rows (data-row-key-value^=500), deep-walks each row's Case Number <th> to pierce lightning-primitive-custom-cell shadow root, collects {case_number, sf_case_id}
+- Added handleStartMass() — collects from DOM, shows toast on empty, sets massSubState='confirm' and renders
+- Added handleConfirmMass() — sets submitting state, calls relayRpc (Task 6), starts countdown timer on success
+- Added handleUndoMass() — clears countdown timer, calls relayRpc undo, then handleDismissMass
+- Added handleDismissMass() — resets all mass state fields back to idle
+- Added handleCancelConfirm() — clears massCases and resets to idle (no RPC call)
+
+Files changed:
+  public/ct-widget.js (walkShadowLocal, collectSelectedCasesFromDom, 5 handlers added)
+  PRD.md (Task 5 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → syntax ok ✓
+  - grep -c for 6 function names → 6 ✓
+
+Learnings for future iterations:
+  - relayRpc is called in handleConfirmMass/handleUndoMass but defined in Task 6 — node -c passes because JS hoisting/scoping doesn't require forward declarations for function calls
+  - walkShadowLocal placed in helpers section (after relayGet) not in handlers section — keeps the scraping utility separate from business logic
+  - handleDismissMass/handleCancelConfirm both reset massCases but DismissMass also clears batch/error/countdown; CancelConfirm only clears massCases + subState (no RPC was fired)
+---
+---
+
+## Iteration [N] - Task 6: Add relayRpc helper to ct-widget.js
+- Added `relayRpc(fnName, args)` function to public/ct-widget.js
+- Inserted between relayGet and the walkShadowLocal comment block
+- Matches existing relayPost/relayGet pattern exactly: msgId, timeoutId with clearTimeout, onResponse with cleanup
+- Differences from relayPost/relayGet: 15s timeout (vs 10s), `rpc_` id prefix, SUPABASE_RPC action, `{ function, args }` payload shape
+
+Files changed:
+  public/ct-widget.js (relayRpc added at line ~203)
+  PRD.md (Task 6 marked [x])
+
+Tests passed:
+  - grep -c "function relayRpc" → 1 ✓
+  - node -c public/ct-widget.js → syntax ok ✓
+
+Learnings for future iterations:
+  - relayRpc's clearTimeout pattern matches relayPost/relayGet — PRD template omitted clearTimeout but existing style includes it; follow existing style
+  - The PRD payload uses `function` (keyword in some contexts) as a property name — works fine as a JS object property, no quoting needed
+
+## Iteration [N] - Task 7: Upgrade handleStartCase to scrape type/subtype/sf_case_id/account_id
+- Replaced the body of handleStartCase in public/ct-widget.js
+- Old version: only scraped case number from document.title, then immediately started timer
+- New version: after matching case number, runs a recursive shadow-DOM scrape (depth-limited to 50)
+  - Finds slds-p-around_small nodes whose textContent starts with "Type / Sub-Type" → typeVal/subtypeVal
+  - Finds <a> hrefs matching /lightning/r/Account/001* → accountId
+  - Finds <a> hrefs matching /lightning/r/Case/500* → sfCaseId
+  - try/catch wraps the whole scrape so any DOM errors are non-fatal
+- Assigns all four scraped fields to state before calling startTimer() + render()
+
+Files changed:
+  public/ct-widget.js (handleStartCase replaced, lines 448–500 approx)
+  PRD.md (Task 7 marked [x])
+
+Tests passed:
+  - grep -c "function handleStartCase" → 1 ✓
+  - grep -c "Type / Sub-Type" → 2 (>= 1) ✓
+  - node -c public/ct-widget.js → syntax ok ✓
+
+Learnings for future iterations:
+  - The inner `scrape(n, d)` function is declared inside handleStartCase (closure over typeVal etc.) — valid JS, no hoisting issues
+  - depth limit of 50 matches the PRD spec exactly; do not change it
+  - `/* non-fatal */` comment in catch block is intentional (per PRD) — leave it in
+---
