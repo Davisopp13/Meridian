@@ -5468,3 +5468,34 @@ Learnings for future iterations:
   - Function placed between logMplEntry and fetchProfile to keep API wrappers together
   - Next task: Task 5 (add notes input to public/ct-widget.js)
 ---
+
+## Iteration 5 - Task 5: Add notes input to public/ct-widget.js
+- Added `note: ''` to the state object
+- Added note input row (above action bar) in renderSingle() active state - restructured from flat flex to flex-column container
+- Added "✗ Not a Case" button in the note row (new handleNotACase function + notacase action)
+- Added `note: state.note || null` (single space format for grep) to case_events writes in: handleResolved, handleReclass, handleCall, handleNotACase
+- Added awaiting case_events write with `note: state.note || null` in pause branch of awaiting event handler
+- Added `notes: state.note || null` to ct_calls write in handleCall
+- Clears state.note after each successful log action
+- Added `shadow.addEventListener('input', ...)` to sync ct-note-input → state.note
+- Fixed drag handler to ignore INPUT element mousedown
+
+Files changed:
+  public/ct-widget.js
+  PRD.md (Task 5 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → SYNTAX OK ✓
+  - grep -c 'ct-note-input' → 2 (≥1) ✓
+  - grep -c "note: state.note" → 5 (≥5) ✓
+  - grep -c "notes: state.note" → 1 (≥1) ✓
+  - npm run build → ✓ built in 1.29s
+
+Learnings for future iterations:
+  - grep tests in PRD use SINGLE SPACE format: `note: state.note` — do NOT use aligned multi-space formatting like `note:       state.note`
+  - The awaiting handler in event delegation (not a named function) needed a relayPost('case_events') write added for the pause branch
+  - handleNotACase was missing entirely — added as a new function + button in the note row
+  - Restructured renderSingle active state from `height:44px;display:flex;align-items:center` to `display:flex;flex-direction:column` to allow note row above action bar
+  - Must add `if (e.target.tagName === 'INPUT') return;` to drag mousedown handler to prevent dragging when typing in note input
+  - Next task: Task 6 (add notes input to ProcessPicker.jsx)
+---

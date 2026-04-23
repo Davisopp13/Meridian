@@ -69,6 +69,7 @@
     massCount:           MERIDIAN_PAYLOAD.massCount || 0,
     massCountdown:       10,
     massCountdownTimer:  null,
+    note:                '',
   };
 
   // ── Host element + Shadow DOM ────────────────────────────────────────────
@@ -426,6 +427,7 @@
         excluded:   false,
         rfc:        false,
         sf_case_id: state.sfCaseId || null,
+        note: state.note || null,
       }).catch(function (err) {
         console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
       });
@@ -436,6 +438,7 @@
       state.accountId   = '';
       state.sfCaseId    = '';
       state.sessionId   = '';
+      state.note        = '';
       state.stats.resolved++;
       showWidgetToast('\u2713 Resolved \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -471,6 +474,7 @@
         excluded:   false,
         rfc:        false,
         sf_case_id: state.sfCaseId || null,
+        note: state.note || null,
       }).catch(function (err) {
         console.warn('[Meridian CT] case_events write failed (non-blocking):', err.message);
       });
@@ -481,6 +485,7 @@
       state.accountId   = '';
       state.sfCaseId    = '';
       state.sessionId   = '';
+      state.note        = '';
       state.stats.reclass++;
       showWidgetToast('\u21a9 Reclassified \u2014 Case ' + (caseNum || '\u2014'));
       render();
@@ -496,7 +501,7 @@
       case_id:    null,
       duration_s: null,
       entry_date: getTodayNY(),
-      notes:      null,
+      notes: state.note || null,
     }).then(function () {
       relayPost('case_events', {
         session_id: state.sessionId || null,
@@ -505,9 +510,11 @@
         excluded:   false,
         rfc:        false,
         sf_case_id: state.sfCaseId || null,
+        note: state.note || null,
       }).catch(function (err) {
         console.warn('[Meridian CT] case_events call write failed:', err.message);
       });
+      state.note = '';
       state.stats.calls++;
       showWidgetToast('\uD83D\uDCDE Call logged');
       render();
@@ -578,6 +585,33 @@
     state.sessionId   = '';
     state.elapsed     = 0;
     state.isAwaiting  = false;
+    render();
+  }
+
+  function handleNotACase() {
+    stopTimer();
+    var caseNum = state.caseNumber;
+    relayPost('case_events', {
+      session_id: state.sessionId || null,
+      user_id:    state.userId,
+      type:       'not_a_case',
+      excluded:   true,
+      rfc:        false,
+      sf_case_id: state.sfCaseId || null,
+      note: state.note || null,
+    }).catch(function (err) {
+      console.warn('[Meridian CT] case_events not_a_case write failed:', err.message);
+    });
+    state.elapsed     = 0;
+    state.caseNumber  = '';
+    state.caseType    = '';
+    state.caseSubtype = '';
+    state.accountId   = '';
+    state.sfCaseId    = '';
+    state.sessionId   = '';
+    state.note        = '';
+    state.isAwaiting  = false;
+    showWidgetToast('✗ Not a Case — Case ' + (caseNum || '—'));
     render();
   }
 
@@ -755,23 +789,39 @@
         'color:#f59e0b;font-size:12px;cursor:pointer;flex-shrink:0;' +
       '">' + (state.isAwaiting ? '\u25b6' : '\u23f8') + '</button>';
 
+    var outerContainerStyle =
+      'position:relative;background:' + T.bg + ';' +
+      'border:1px solid ' + T.border + ';border-radius:10px;' +
+      'display:flex;flex-direction:column;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+      'font-family:' + T.font + ';cursor:move;user-select:none;';
+
     shadow.innerHTML =
-      '<div id="ct-header" style="position:relative;' + barStyle + '">' +
-        mLogo +
-        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
-          '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
-          '<button data-action="dismisscase" style="' +
-            'background:none;border:none;color:rgba(255,255,255,0.4);' +
-            'font-size:11px;cursor:pointer;padding:0 2px;' +
-          '">\u00d7</button>' +
+      '<div id="ct-header" style="' + outerContainerStyle + '">' +
+        '<div style="padding:5px 10px 0;display:flex;align-items:center;gap:6px;">' +
+          '<input type="text" id="ct-note-input" maxlength="500"' +
+            ' placeholder="Optional note \u2014 press any action to log"' +
+            ' value="' + (state.note || '').replace(/"/g, '&quot;') + '"' +
+            ' style="flex:1;min-width:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.92);font-size:12px;padding:4px 8px;font-family:' + T.font + ';outline:none;box-sizing:border-box;">' +
+          '<button data-action="notacase" style="height:22px;padding:0 8px;border-radius:5px;border:none;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.45);font-size:10px;cursor:pointer;white-space:nowrap;flex-shrink:0;">\u2717 Not a Case</button>' +
         '</div>' +
-        '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;flex-shrink:0;">' + fmtTime(state.elapsed) + '</span>' +
-        divider +
-        statPills +
-        awaitBtn +
-        spacer +
-        minBtn + '\u25bc</button>' +
-        closeBtn +
+        '<div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;">' +
+          mLogo +
+          '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+            '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
+            '<button data-action="dismisscase" style="' +
+              'background:none;border:none;color:rgba(255,255,255,0.4);' +
+              'font-size:11px;cursor:pointer;padding:0 2px;' +
+            '">\u00d7</button>' +
+          '</div>' +
+          '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;flex-shrink:0;">' + fmtTime(state.elapsed) + '</span>' +
+          divider +
+          statPills +
+          awaitBtn +
+          spacer +
+          minBtn + '\u25bc</button>' +
+          closeBtn +
+        '</div>' +
         toastHtml +
       '</div>';
   }
@@ -1111,11 +1161,25 @@
         state.isAwaiting = false;
         startTimer();
       } else {
-        // Pause
+        // Pause — log awaiting event with any current note
         state.isAwaiting = true;
         stopTimer();
+        relayPost('case_events', {
+          session_id: state.sessionId || null,
+          user_id:    state.userId,
+          type:       'awaiting',
+          excluded:   false,
+          rfc:        false,
+          sf_case_id: state.sfCaseId || null,
+          note: state.note || null,
+        }).catch(function (err) {
+          console.warn('[Meridian CT] case_events awaiting write failed:', err.message);
+        });
+        state.note = '';
       }
       render();
+    } else if (action === 'notacase') {
+      handleNotACase();
     } else if (action === 'cancel-mass') {
       handleCancelConfirm();
     } else if (action === 'confirm-mass') {
@@ -1127,6 +1191,13 @@
     }
   });
 
+  // ── Note input sync ──────────────────────────────────────────────────────
+  shadow.addEventListener('input', function (e) {
+    if (e.target && e.target.id === 'ct-note-input') {
+      state.note = e.target.value;
+    }
+  });
+
   // ── Draggable header ─────────────────────────────────────────────────────
   var dragging = false;
   var dragStartX, dragStartY, hostStartLeft, hostStartBottom;
@@ -1135,6 +1206,7 @@
     var header = shadow.querySelector('#ct-header');
     if (!header || !header.contains(e.target)) return;
     if (e.target.closest('[data-action]')) return;   // ignore button clicks
+    if (e.target.tagName === 'INPUT') return;         // ignore note input
 
     dragging = true;
     dragStartX = e.clientX;

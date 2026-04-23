@@ -249,7 +249,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
 
 ### Phase 3: Capture — CT widget
 
-- [ ] **Task 5: Add notes input to `public/ct-widget.js`**
+- [x] **Task 5: Add notes input to `public/ct-widget.js`**
   - The widget is vanilla JS with a Shadow DOM. The state object is defined at the top of the file. The tray is built as an HTML template string.
   - Add `note: ''` to the `state` object alongside existing keys.
   - In the render function, add an input element at the top of the action tray HTML (above the disposition buttons). Use inline styles matching the existing tray's dark-on-dark aesthetic. Constraints:
