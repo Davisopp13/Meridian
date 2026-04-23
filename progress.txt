@@ -5066,3 +5066,60 @@ Learnings for future iterations:
   - PRD.md and progress.txt also appear in the diff — these are expected tracking files, not violations
   - git diff --stat main...HEAD is the correct command for branch-relative scope check
 ---
+
+## Iteration 13 - Task 13: Final build check
+- Ran `npx vite build 2>&1 | tail -20` — ✓ built in 1.37s, 2517 modules, 0 errors
+- Ran `node -c public/meridian-trigger.js` — exit 0 ✓
+- Ran `node -c public/ct-widget.js` — exit 0 ✓
+- Confirmed `public/meridian-relay.html` closing tags: </script> </body> </html> all present ✓
+
+Files changed:
+  PRD.md (Task 13 marked [x])
+
+Learnings for future iterations:
+  - All three vanilla JS / HTML artifacts pass their respective checks cleanly
+  - Vite build chunk size warning (>500KB) is expected and not a blocker
+---
+
+## Iteration 14 - Task 14: Commit summary
+
+### Unified Start Button — final commits
+b1ee5cf unified-start: [task 0] create branch feat/unified-start-button
+487945d unified-start: [task 1] create migration 022 with user_id-parameterized RPCs
+0943113 unified-start: [task 2] extend meridian-relay.html with SUPABASE_RPC action
+4d054b6 unified-start: [task 3] simplify meridian-trigger.js with detectMode()
+03e6dd7 unified-start: [task 4] add mode + mass-mode state fields to ct-widget.js
+792cb28 unified-start: [task 5] add handleStartMass + deep-walk collector to ct-widget.js
+ddc11e5 unified-start: [task 6] add relayRpc helper to ct-widget.js
+f755290 unified-start: [task 7] upgrade handleStartCase to scrape type/subtype/sf_case_id/account_id
+1e327e7 unified-start: [task 8] split render() into renderSingle()/renderMass(), add dispatcher
+ac7fd7b unified-start: [task 9] delete useMassReclass hook and MassReclassModal component
+8b9aeea unified-start: [task 10] remove MERIDIAN_MASS_RECLASS routing from usePendingTriggers
+bc57ce3 unified-start: [task 11] remove mass-reclass wiring from MplApp.jsx
+4f8dd00 unified-start: [task 12] regression check — protected files
+
+### Davis: manual steps to ship
+1. Review the branch diff: `git diff main...feat/unified-start-button`
+2. Apply `supabase/migrations/022_unified_start_rpc_user_id.sql` via Supabase SQL Editor.
+   The verification SELECT at the bottom should return two rows with pronargs=2 each.
+3. Push branch: `git push -u origin feat/unified-start-button`
+4. Open PR against main and merge. Vercel auto-deploys on merge.
+5. Hard-refresh both the Salesforce tab and any Meridian tab after deploy.
+6. Test single-case flow: open an SF case record page, click bookmarklet. Widget injects
+   in single mode. Click Start Case. Verify ct_cases row has case_type, case_subtype,
+   sf_case_id, account_id populated.
+7. Test mass flow: open an SF case list view, check 3 rows. Click bookmarklet. Widget
+   injects in mass mode showing "3 cases selected — Start". Click Start. Confirmation
+   panel expands. Click "Confirm Reclassify". See success state with "Reclassified 3
+   cases. Undo (10s)". Verify 3 ct_cases rows with source='bulk' and matching batch_id.
+8. Test undo: do the mass flow again, click Undo within the countdown. Verify the
+   ct_cases rows are gone.
+
+Files changed:
+  PRD.md (Tasks 13 and 14 marked [x])
+  progress.txt (this entry)
+
+Learnings for future iterations:
+  - All 14 tasks on feat/unified-start-button are complete; PRD is fully done
+  - Migration 022 must be applied manually by Davis before the mass-flow works in production
+---

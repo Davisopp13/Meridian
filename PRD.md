@@ -617,13 +617,13 @@ src/lib/api.js                   — data layer wrappers, unrelated
   - If any unexpected file appears, investigate and revert before committing.
   - Test: Save the full `git diff --stat main...HEAD` output to `scripts/unified-start-button-scope-check.txt` for Davis's review.
 
-- [ ] **Task 13: Final build check**
+- [x] **Task 13: Final build check**
   - Run `npx vite build 2>&1 | tail -20`. Must complete without errors.
   - Run `node -c public/meridian-trigger.js`. Exit 0.
   - Run `node -c public/ct-widget.js`. Exit 0.
   - Confirm `public/meridian-relay.html` is well-formed HTML (no truncation, closing `</script>` and `</body>` and `</html>` tags intact).
 
-- [ ] **Task 14: Commit summary**
+- [x] **Task 14: Commit summary**
   - Run `git log --oneline main..HEAD`. Log the commit list to `progress.txt` under a heading "Unified Start Button — final commits".
   - Append a "Davis: manual steps to ship" section to `progress.txt`:
     1. Review the branch diff.
