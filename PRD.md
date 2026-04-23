@@ -577,7 +577,7 @@ src/lib/api.js                   — data layer wrappers, unrelated
 
 ### Phase 5: Delete dead mass-reclass code
 
-- [ ] **Task 9: Delete useMassReclass hook and MassReclassModal component**
+- [x] **Task 9: Delete useMassReclass hook and MassReclassModal component**
   - Delete `src/hooks/useMassReclass.js`.
   - Delete `src/components/MassReclassModal.jsx`.
   - Test: `ls src/hooks/useMassReclass.js 2>&1 | grep -c "No such"` returns `1`.
