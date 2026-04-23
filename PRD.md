@@ -95,7 +95,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
 
 ### Phase 2: Restructure widget state and render dispatch
 
-- [ ] **Task 2: Change state.mode default and semantics in ct-widget.js**
+- [x] **Task 2: Change state.mode default and semantics in ct-widget.js**
   - View `public/ct-widget.js` lines 47-70 (the state object literal).
   - Change the default for `mode` from reading `MERIDIAN_PAYLOAD.mode || 'single'` to just `'idle'`:
     ```js

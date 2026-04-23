@@ -5160,3 +5160,23 @@ Learnings for future iterations:
   - The file now cleanly just: checks SF, checks relay, fetches widget, executes it
   - Next task: Task 2 (change state.mode default to 'idle' in ct-widget.js)
 ---
+
+## Iteration DAS-2 - Task 2 (Detect-at-Start PRD): Change state.mode default to 'idle'
+- Changed `mode: MERIDIAN_PAYLOAD.mode || 'single'` → `mode: 'idle'` (line 50)
+- Removed `mode:` from top-of-file MERIDIAN_PAYLOAD comment (line 4)
+- Removed `if (payload && payload.mode) state.mode = payload.mode;` from `_meridianRefresh` (line 943)
+
+Files changed:
+  public/ct-widget.js (3 targeted changes)
+  PRD.md (Task 2 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep mode:.*idle → 1 match at line 50 ✓
+  - grep MERIDIAN_PAYLOAD.mode → 0 matches ✓
+
+Learnings for future iterations:
+  - The bash `grep -c "mode: 'idle'"` returned 0 due to shell quoting; use the Grep tool with regex `mode:.*idle` instead
+  - _meridianRefresh is around line 942; the mode propagation line was the first line of the function body
+  - Next task: Task 3 (update render() dispatcher to route three modes)
+---

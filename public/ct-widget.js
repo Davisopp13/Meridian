@@ -1,7 +1,7 @@
 // ct-widget.js
 // Vanilla JS CT overlay widget — injected into Salesforce pages via meridian-trigger.js
 // Received via: new Function('MERIDIAN_PAYLOAD', code)(payload)
-// MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId, mode }
+// MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId }
 
 (function () {
 
@@ -47,7 +47,7 @@
   var state = {
     userId:       MERIDIAN_PAYLOAD.userId    || '',
     relay:        MERIDIAN_PAYLOAD.relayFrame || null,
-    mode:         MERIDIAN_PAYLOAD.mode      || 'single',
+    mode:         'idle',
     caseNumber:   '',
     caseType:     '',
     caseSubtype:  '',
@@ -940,7 +940,7 @@
 
   // ── Expose refresh hook for double-injection guard ────────────────────────
   host._meridianRefresh = function (payload) {
-    if (payload && payload.mode) state.mode = payload.mode;
+
     if (payload && payload.caseNumber) {
       state.caseNumber  = payload.caseNumber;
       state.caseType    = payload.caseType    || '';
