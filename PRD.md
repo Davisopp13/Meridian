@@ -1,12 +1,20 @@
-# Meridian Mass Reclass PRD
+# Meridian Unified Start Button PRD
 
 ## Project Overview
 
-Adds a "mass reclassify" feature to Meridian that lets agents select multiple cases in a Salesforce list view, click the existing Meridian bookmarklet, and bulk-log them all as reclassified in one action. Eliminates the need to open each case individually to reclassify it.
+Replaces the in-PiP mass-reclassify modal flow with a unified in-widget Start Button pattern on the Salesforce page. The existing CT overlay widget (`public/ct-widget.js`) learns a second mode: `single` (today's behavior — scrape a single case, time it, resolve/reclass/call it) and `mass` (new — scrape N checked cases from a list view, show compact count + Start, expand to confirmation list on Start, bulk-reclassify via RPC).
 
-**Success criteria:** An agent on a Salesforce case list view with 3+ rows checked can click the Meridian bookmarklet, see a confirmation modal in their Meridian PiP window listing the selected case numbers, click Confirm, and have matching `ct_cases` + `case_events` rows written — all without opening any individual case page. Existing single-case bookmarklet behavior on record pages remains unchanged.
+**The Start button becomes the single "capture happens now" moment for both modes.** The bookmarklet detects context and passes a mode hint. The widget does the actual DOM scraping at Start-click time, not at bookmarklet-click time — this matches user mental model and guarantees fresh data.
 
-**Stack:** Vite + React 18, Supabase (Postgres + Realtime + RPC), vanilla JS overlay widget on Salesforce pages, Node 18+, npm.
+**Secondary outcome:** mass-reclass no longer depends on the PiP window being open. Confirmation lives on the SF page itself.
+
+**Stack:** Vite + React 18 (dashboard app), vanilla JS shadow-DOM overlay (ct-widget.js on SF pages), Supabase (Postgres + RPC + RLS), Vercel.
+
+**Success criteria:**
+1. On an SF case record page, the CT widget opens in single mode (current behavior preserved). Clicking Start scrapes case number + type/subtype + sf_case_id + account_id and starts the timer with all four fields populated.
+2. On an SF case list view with N rows checked, the CT widget opens in mass mode, compact, showing "N cases selected — Start". Clicking Start expands an inline panel listing the N case numbers with a Confirm button. Clicking Confirm calls the `bulk_reclassify_cases` RPC, writes N rows with `source='bulk'`, shows an undo window for 10 seconds.
+3. Neither flow requires the PiP window to be open.
+4. No regression in existing single-case behavior (bookmarklet on a case page, widget injects, case number populated from `MERIDIAN_PAYLOAD`, Start button not needed unless user navigated away — unchanged from today).
 
 ---
 
@@ -14,14 +22,18 @@ Adds a "mass reclassify" feature to Meridian that lets agents select multiple ca
 
 **These decisions are locked. Do NOT relitigate them during execution.**
 
-- **Bookmarklet stays one bookmarklet.** The existing bookmarklet becomes context-aware: record page → existing single-case widget flow (unchanged); list view with ≥1 checked row → mass reclass flow. No second bookmarklet, no new onboarding step.
-- **DOM scraping on the SF list view.** Case numbers and SF Case IDs are read from the native SLDS datatable DOM. Primary selector: `tr[data-row-key-value]` for the SF Case ID and `th[data-label="Case Number"] span[title]` for the case number. Fallback selector: any `<span title>` in the row whose value matches `/^\d{8,}$/`. The primary signal for "is this row selected" is the native `<input type="checkbox">` inside each row — use `.checked`, NOT the `aria-selected` attribute on the `<tr>` (it lies).
-- **Shadow DOM walk reuses the existing `dS()`-style recursive traversal pattern** from the current bookmarklet. The `<lightning-datatable>` renders rows inside a shadow root, so a non-recursive `document.querySelectorAll` will not find them.
-- **Confirmation UI lives in the existing PiP window**, not on the SF page. The bookmarklet inserts a `pending_triggers` row with `action='mass_reclass'`; the PiP window's existing `usePendingTriggers` hook receives the Realtime event and opens a new `MassReclassModal` component. Reuses all existing trigger plumbing.
-- **Batch writes via a Supabase RPC**, not a client loop. The RPC `bulk_reclassify_cases(p_case_refs jsonb)` accepts an array of `{ case_number, sf_case_id }` objects and writes N `ct_cases` rows + N `case_events` rows in a single transaction. Computes `reopen_count` server-side via a subquery per case_number.
-- **Bulk rows carry `source = 'bulk'`** — a NEW enum value added to the `ct_cases.source` CHECK constraint in this migration. `duration_s` is `NULL` on bulk rows (they have no session). `started_at` = `ended_at` = `now()`.
-- **Undo window of 10 seconds** after the batch completes. The confirmation modal's success state shows a countdown toast with an Undo button. Undo deletes the exact rows written (tracked by a `batch_id` UUID stamped on both `ct_cases` and `case_events`).
-- **No widget changes on SF record pages.** The existing single-case widget file `public/ct-widget.js` is NOT modified in this PRD. Only `public/meridian-trigger.js` is modified, to add the list-view branch.
+- **One widget file, two modes.** `public/ct-widget.js` learns a `state.mode` of either `'single'` (default) or `'mass'`. No new widget file, no separate mass-reclass file. Mode is added to `MERIDIAN_PAYLOAD` by the bookmarklet.
+- **Context detection lives in the widget, not in the bookmarklet or trigger.** The bookmarklet passes raw context hints (the URL, the fact that a list-view-like DOM exists); the widget reads its own environment at init time and decides its mode. Rationale from Davis: keeping detection in a single file makes it easier to reason about, and lets the trigger stay minimal.
+- **Capture (DOM scrape) happens at Start-click time in both modes.** In single mode, `handleStartCase` scrapes case_number / case_type / case_subtype / sf_case_id / account_id via the same shadow-DOM walk the bookmarklet uses. In mass mode, `handleStartMass` runs a deep walk to collect checked rows and their case numbers + sf_case_ids. The bookmarklet's initial payload only provides hints for display; the Start click is the source of truth.
+- **The bookmarklet walks twice.** Once at bookmarklet-click to get a display count (mass mode) or a pre-filled payload (single mode, existing behavior). Once at Start-click in the widget to get fresh data. This is intentional — the first walk populates the UI hint ("3 cases selected"), the second walk is the real capture. Agents may change their selection between clicks.
+- **Mass confirmation lives on the SF page.** The widget's mass mode has two sub-states: `mass-idle` (compact: "N cases selected — Start") and `mass-confirm` (expanded: case list + Confirm + Cancel). The Confirm button fires the `bulk_reclassify_cases` RPC via the relay. No `pending_triggers` row is ever written for mass-reclass.
+- **All mass-reclass infrastructure built on `feat/mass-reclass` that depends on `pending_triggers` is deleted or superseded.** Specifically: `MERIDIAN_MASS_RECLASS` trigger type routing in `usePendingTriggers.js`, `useMassReclass.js` hook, `MassReclassModal.jsx`, and the `MERIDIAN_MASS_RECLASS` branch in `meridian-trigger.js` — all removed. Migration 021 (constraint expansion to allow `MERIDIAN_MASS_RECLASS`) is left in place — harmless, and reverting migrations is more risk than the cosmetic benefit. Migration 020 stays in full — the `bulk_reclassify_cases` and `undo_mass_reclass_batch` RPCs are reused verbatim; the `source='bulk'` constraint and `batch_id` columns are reused verbatim.
+- **The relay gains one action: `SUPABASE_RPC`.** The widget needs to call `bulk_reclassify_cases` through the relay (SF CSP blocks direct calls to Supabase). The relay today supports `SUPABASE_INSERT_TRIGGER`, `SUPABASE_POST`, `SUPABASE_GET`, and `FETCH_CODE`. Adding `SUPABASE_RPC` is a new action that POSTs to `/rest/v1/rpc/{function_name}` with a JSON body.
+- **Auth: the RPC call from the widget uses the anon key, not a user session JWT.** `bulk_reclassify_cases` is SECURITY DEFINER with `auth.uid()` guard. Because the widget has no user JWT (it uses the relay's anon key pattern like everything else from the SF page), `auth.uid()` will be null and the RPC will throw. **This PRD modifies the RPC to accept an explicit `p_user_id uuid` parameter instead of relying on `auth.uid()`.** The widget passes `state.userId` (baked in via `MERIDIAN_PAYLOAD`). Same pattern already used by `pending_triggers` inserts — user_id is trusted from the baked bookmarklet identity. This is a migration change (021 was already used by the branch, so the new RPC change goes in migration 022).
+- **Single mode is untouched visually.** The Start button already exists in the widget for single mode (`handleStartCase` at line 374 of ct-widget.js today). Its *behavior* gets upgraded to scrape type/subtype/sf_case_id/account_id in addition to case_number (the fix queued separately in the earlier CC prompt becomes part of this PRD instead). No new UI for single mode.
+- **Compact-first mass mode.** When the widget opens in mass mode, it shows "N cases selected — Start" in the same bar footprint as single mode. Start click expands the widget downward with the confirmation list. This matches Davis's answer (#3) — compact first, expand on Start. Swim-lane styling is deferred.
+- **Undo behavior.** After a successful `bulk_reclassify_cases` call, the widget shows a third sub-state: `mass-success`, a 10-second countdown with an Undo button. Auto-dismisses at 0. Undo calls `undo_mass_reclass_batch` via the relay (also modified in migration 022 to accept `p_user_id`).
+- **Branch: `feat/unified-start-button`.** New branch, off `main`. The `feat/mass-reclass` branch is NOT the base — too much of its code is being deleted to branch from it. Start fresh from `main` and cherry-pick only what survives (migration 020, the relay `SUPABASE_POST` action if it predates `feat/mass-reclass`).
 
 ---
 
@@ -29,24 +41,57 @@ Adds a "mass reclassify" feature to Meridian that lets agents select multiple ca
 
 **New files:**
 ```
-supabase/migrations/020_mass_reclass.sql   ← migration: source enum + RPC + batch_id columns
-src/components/MassReclassModal.jsx        ← PiP-rendered confirmation + undo UI
-src/hooks/useMassReclass.js                ← handler for action='mass_reclass' triggers
+supabase/migrations/022_unified_start_rpc_user_id.sql
+   — drop+recreate bulk_reclassify_cases and undo_mass_reclass_batch
+     with explicit p_user_id parameter instead of auth.uid().
 ```
 
 **Modified files:**
 ```
-public/meridian-trigger.js                 ← add list-view detection + mass-reclass branch
-src/hooks/usePendingTriggers.js            ← route action='mass_reclass' to useMassReclass
-src/mpl/MplApp.jsx                         ← wire MassReclassModal into the PiP render tree
+public/ct-widget.js
+   — add state.mode; add handleStartMass; expand handleStartCase to scrape
+     type/subtype/sf_case_id/account_id; split render() into renderSingle()
+     and renderMass(); add sub-state machine for mass-idle/mass-confirm/
+     mass-success; add relayRpc() helper.
+
+public/meridian-trigger.js
+   — detect list-view context; pass mode='single' or mode='mass' to the
+     widget via MERIDIAN_PAYLOAD; in mass mode, also pre-count checked rows
+     for the initial display hint. Delete the SUPABASE_INSERT_TRIGGER path
+     for MERIDIAN_MASS_RECLASS.
+
+public/meridian-relay.html
+   — add SUPABASE_RPC action that POSTs to /rest/v1/rpc/{fn_name} and
+     returns the response body.
+
+src/components/onboarding/Step3Bookmarklet.jsx
+   — no change expected (the bookmarklet href just loads meridian-trigger.js
+     which now handles mode detection itself). Leave the scrape logic in the
+     href alone — it's still used for the single-case initial payload.
+```
+
+**Deleted files:**
+```
+src/hooks/useMassReclass.js
+src/components/MassReclassModal.jsx
+```
+
+**Modified files (deletions within):**
+```
+src/hooks/usePendingTriggers.js
+   — remove the MERIDIAN_MASS_RECLASS branch entirely. The remaining
+     handlers (handleCaseStart, handleProcessStart) are untouched.
+
+src/mpl/MplApp.jsx
+   — remove the useMassReclass import, hook call, and MassReclassModal
+     render. The remaining PiP content is untouched.
 ```
 
 **NOT modified (protect these):**
 ```
-public/ct-widget.js                        ← single-case widget, untouched
-public/meridian-relay.html                 ← relay, untouched
-src/ct/CtApp.jsx                           ← CT dashboard view, untouched
-supabase/migrations/001-019                ← existing migrations, never edit
+src/ct/CtApp.jsx                 — CT dashboard view, unrelated
+supabase/migrations/001-021      — all existing migrations, NEVER edit
+src/lib/api.js                   — data layer wrappers, unrelated
 ```
 
 ---
@@ -54,45 +99,52 @@ supabase/migrations/001-019                ← existing migrations, never edit
 ## Environment & Setup
 
 - Supabase project ref: `wluynppocsoqjdbmwass` (Meridian, live).
-- `ct_cases.source` CHECK constraint currently allows `'pip'` and `'manual'`. Migration 020 adds `'bulk'`.
-- `pending_triggers` is already in the `supabase_realtime` publication. No publication changes needed.
-- `ct_cases.reopen_count` column already exists (migration 002b era). The RPC stamps it per-row based on count of prior `resolution='resolved'` or `resolution='reclassified'` rows for the same `case_number`.
-- `case_events` already allows `type='reclassified'` (migration 008 expanded the enum).
-- The relay iframe at `meridian-relay.html` already exposes `SUPABASE_INSERT_TRIGGER` for inserts to `pending_triggers`. This is the mechanism the bookmarklet uses. No relay changes needed.
-- Anon-key RLS on `pending_triggers` allows inserts with `WITH CHECK (true)` (established in prior tracks). The bookmarklet continues to use the anon key via the relay.
-- The PiP window is implemented in `src/mpl/MplApp.jsx` (despite the filename, this is the unified PiP surface post-refactor). New modals render inside its component tree.
+- Relay URL: `https://meridian-hlag.vercel.app/meridian-relay.html`. Hosted alongside `ct-widget.js` and `meridian-trigger.js` on Vercel.
+- Bookmarklet anon key is baked into `meridian-relay.html` as `SUPABASE_ANON_KEY` (line ~27 of that file). Same key is used by the new SUPABASE_RPC action.
+- `bulk_reclassify_cases` and `undo_mass_reclass_batch` were created in migration 020 with `auth.uid()` guards. Migration 022 in this PRD REPLACES both with versions that take `p_user_id uuid` as an explicit parameter.
+- `ct_cases.source` CHECK constraint already allows `'bulk'` (migration 020). `batch_id uuid` columns on `ct_cases` and `case_events` already exist. No further schema changes needed beyond 022.
+- `pending_triggers_type_check` constraint still lists `MERIDIAN_MASS_RECLASS` (migration 021). Harmless, unused after this PRD ships. Do NOT remove.
+- Vercel auto-deploys `main`. Merging this branch to main is how the new trigger and widget code reach production.
 
 ---
 
 ## Tasks
 
-### Phase 1: Database Migration
+### Phase 0: Branch setup
 
-- [x] **Task 1: Create migration 020_mass_reclass.sql**
-  - Create `supabase/migrations/020_mass_reclass.sql` with the following SQL, all in one transaction:
-  - **Add `'bulk'` to the source CHECK constraint on `ct_cases`:**
+- [x] **Task 0: Create clean branch off main**
+  - Run: `git checkout main && git pull && git checkout -b feat/unified-start-button`
+  - Verify HEAD is at the latest main commit, NOT on `feat/mass-reclass`.
+  - Test: `git log --oneline -1` shows the latest main commit. `git branch --show-current` returns `feat/unified-start-button`.
+
+### Phase 1: Database migration
+
+- [ ] **Task 1: Create migration 022 with user_id-parameterized RPCs**
+  - Create `supabase/migrations/022_unified_start_rpc_user_id.sql` with the following contents (one transaction):
     ```sql
-    ALTER TABLE public.ct_cases DROP CONSTRAINT IF EXISTS ct_cases_source_check;
-    ALTER TABLE public.ct_cases ADD CONSTRAINT ct_cases_source_check
-      CHECK (source IN ('pip', 'manual', 'bulk'));
-    ```
-  - **Add `batch_id` columns** to `ct_cases` and `case_events` for undo tracking:
-    ```sql
-    ALTER TABLE public.ct_cases ADD COLUMN IF NOT EXISTS batch_id uuid;
-    ALTER TABLE public.case_events ADD COLUMN IF NOT EXISTS batch_id uuid;
-    CREATE INDEX IF NOT EXISTS idx_ct_cases_batch_id ON public.ct_cases(batch_id) WHERE batch_id IS NOT NULL;
-    CREATE INDEX IF NOT EXISTS idx_case_events_batch_id ON public.case_events(batch_id) WHERE batch_id IS NOT NULL;
-    ```
-  - **Create the RPC `bulk_reclassify_cases`:**
-    ```sql
-    CREATE OR REPLACE FUNCTION public.bulk_reclassify_cases(p_case_refs jsonb)
+    -- ============================================================
+    -- 022_unified_start_rpc_user_id.sql
+    -- Replace bulk_reclassify_cases and undo_mass_reclass_batch
+    -- to accept explicit p_user_id instead of relying on auth.uid().
+    -- Needed because the widget invokes these via the relay using the
+    -- anon key — auth.uid() would be null.
+    -- The widget passes state.userId (baked in at bookmarklet install
+    -- via MERIDIAN_PAYLOAD), same trust model as pending_triggers inserts.
+    -- ============================================================
+
+    DROP FUNCTION IF EXISTS public.bulk_reclassify_cases(jsonb);
+    DROP FUNCTION IF EXISTS public.undo_mass_reclass_batch(uuid);
+
+    CREATE OR REPLACE FUNCTION public.bulk_reclassify_cases(
+      p_user_id uuid,
+      p_case_refs jsonb
+    )
     RETURNS TABLE (batch_id uuid, case_count int)
     LANGUAGE plpgsql
     SECURITY DEFINER
     SET search_path = public
     AS $$
     DECLARE
-      v_user_id uuid := auth.uid();
       v_batch_id uuid := gen_random_uuid();
       v_now timestamptz := now();
       v_today date := (now() AT TIME ZONE 'America/New_York')::date;
@@ -103,8 +155,12 @@ supabase/migrations/001-019                ← existing migrations, never edit
       v_new_case_id uuid;
       v_inserted int := 0;
     BEGIN
-      IF v_user_id IS NULL THEN
-        RAISE EXCEPTION 'bulk_reclassify_cases: not authenticated';
+      IF p_user_id IS NULL THEN
+        RAISE EXCEPTION 'bulk_reclassify_cases: p_user_id is required';
+      END IF;
+      -- Sanity: user_id must exist in platform_users to prevent spoofing
+      IF NOT EXISTS (SELECT 1 FROM platform_users WHERE id = p_user_id) THEN
+        RAISE EXCEPTION 'bulk_reclassify_cases: unknown user_id %', p_user_id;
       END IF;
       IF jsonb_typeof(p_case_refs) <> 'array' THEN
         RAISE EXCEPTION 'bulk_reclassify_cases: p_case_refs must be a JSON array';
@@ -127,7 +183,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
           status, resolution, is_rfc, source,
           entry_date, reopen_count, batch_id
         ) VALUES (
-          v_user_id, v_case_number, v_sf_case_id,
+          p_user_id, v_case_number, v_sf_case_id,
           v_now, v_now, NULL,
           'closed', 'reclassified', false, 'bulk',
           v_today, v_reopen_count, v_batch_id
@@ -137,7 +193,7 @@ supabase/migrations/001-019                ← existing migrations, never edit
         INSERT INTO public.case_events (
           session_id, user_id, type, excluded, rfc, sf_case_id, batch_id
         ) VALUES (
-          v_new_case_id, v_user_id, 'reclassified', false, false, v_sf_case_id, v_batch_id
+          v_new_case_id, p_user_id, 'reclassified', false, false, v_sf_case_id, v_batch_id
         );
 
         v_inserted := v_inserted + 1;
@@ -147,213 +203,494 @@ supabase/migrations/001-019                ← existing migrations, never edit
     END;
     $$;
 
-    GRANT EXECUTE ON FUNCTION public.bulk_reclassify_cases(jsonb) TO authenticated;
-    ```
-  - **Create the RPC `undo_mass_reclass_batch`:**
-    ```sql
-    CREATE OR REPLACE FUNCTION public.undo_mass_reclass_batch(p_batch_id uuid)
+    CREATE OR REPLACE FUNCTION public.undo_mass_reclass_batch(
+      p_user_id uuid,
+      p_batch_id uuid
+    )
     RETURNS int
     LANGUAGE plpgsql
     SECURITY DEFINER
     SET search_path = public
     AS $$
     DECLARE
-      v_user_id uuid := auth.uid();
       v_deleted int;
     BEGIN
-      IF v_user_id IS NULL THEN
-        RAISE EXCEPTION 'undo_mass_reclass_batch: not authenticated';
+      IF p_user_id IS NULL OR p_batch_id IS NULL THEN
+        RAISE EXCEPTION 'undo_mass_reclass_batch: p_user_id and p_batch_id required';
       END IF;
 
       DELETE FROM public.case_events
-      WHERE batch_id = p_batch_id AND user_id = v_user_id;
+      WHERE batch_id = p_batch_id AND user_id = p_user_id;
 
       DELETE FROM public.ct_cases
-      WHERE batch_id = p_batch_id AND user_id = v_user_id;
+      WHERE batch_id = p_batch_id AND user_id = p_user_id;
       GET DIAGNOSTICS v_deleted = ROW_COUNT;
 
       RETURN v_deleted;
     END;
     $$;
 
-    GRANT EXECUTE ON FUNCTION public.undo_mass_reclass_batch(uuid) TO authenticated;
+    GRANT EXECUTE ON FUNCTION public.bulk_reclassify_cases(uuid, jsonb) TO anon, authenticated;
+    GRANT EXECUTE ON FUNCTION public.undo_mass_reclass_batch(uuid, uuid) TO anon, authenticated;
+
+    SELECT proname, pronargs
+    FROM pg_proc
+    WHERE proname IN ('bulk_reclassify_cases', 'undo_mass_reclass_batch');
     ```
-  - Test: `node -e "require('fs').readFileSync('supabase/migrations/020_mass_reclass.sql', 'utf8').length > 0 && console.log('ok')"` prints `ok`.
-  - Note: Ralph does NOT apply this migration to the live database. Davis applies it manually via Supabase SQL Editor after reviewing the commit. Do not `supabase db push` or similar.
+  - Test: `node -e "const s=require('fs').readFileSync('supabase/migrations/022_unified_start_rpc_user_id.sql','utf8'); if(s.length>500 && s.includes('p_user_id')) console.log('ok')"` prints `ok`.
+  - Ralph does NOT apply the migration. Davis applies manually.
 
-### Phase 2: Bookmarklet Context Detection
+### Phase 2: Relay — add SUPABASE_RPC action
 
-- [x] **Task 2: Add list-view detection to `meridian-trigger.js`**
-  - Modify `public/meridian-trigger.js`. After the existing `isSalesforce` check and BEFORE the relay FETCH_CODE postMessage for `ct-widget.js`, add a list-view detection branch.
-  - Detect list view using BOTH signals (either one is sufficient):
-    - URL match: `window.location.pathname.includes('/lightning/o/Case/list')`
-    - DOM presence: a `tr` element with a `data-row-key-value` attribute starting with `500` (SF Case Id prefix), found via the recursive shadow-DOM walker added in Task 3.
-  - If list view is detected, call a new function `handleListViewContext(relay, userId, showToast)` (implemented in Task 3). Do NOT fall through to the single-case widget flow in this case.
-  - If NOT list view, keep the existing flow: ask relay to FETCH_CODE `ct-widget.js` exactly as today.
-  - Test: `node -c public/meridian-trigger.js` exits 0 (syntax check).
-  - Test: `grep -c "handleListViewContext" public/meridian-trigger.js` prints `>= 2` (declaration + invocation).
-
-- [x] **Task 3: Implement list-view DOM scrape in `meridian-trigger.js`**
-  - Add a recursive shadow-DOM walker `function walkShadow(root, visitor)` at the top of the IIFE. It calls `visitor(node)` for every descendant in both light DOM and shadow DOM, recursing into any `node.shadowRoot` it finds. Mirrors the `dS()` pattern from the original bookmarklet.
-  - Add `function collectSelectedCases()`:
-    - Walks the document via `walkShadow`, collecting every `tr` element that has a `data-row-key-value` attribute starting with `500`.
-    - For each such `tr`:
-      - Find its checkbox: `tr.querySelector('input[type="checkbox"]')`. If missing or `!checkbox.checked`, skip this row.
-      - Extract `sf_case_id` from `tr.getAttribute('data-row-key-value')`.
-      - Extract `case_number` via primary selector first: `tr.querySelector('th[data-label="Case Number"] span[title]')?.getAttribute('title')`. If missing, fallback: scan all `<span title>` elements in the row and return the first whose `title` matches `/^\d{8,}$/`.
-      - If `case_number` is truthy, push `{ case_number, sf_case_id }` onto the result array.
-    - Returns the array. May be empty.
-  - Add `function handleListViewContext(relay, userId, showToast)`:
-    - Calls `collectSelectedCases()`.
-    - If empty: `showToast('Meridian: Select cases in the list, then click again.', 'info')` and returns.
-    - If non-empty: builds a `pending_triggers` payload with:
-      ```js
-      {
-        user_id: userId,
-        type: 'MERIDIAN_MASS_RECLASS',      // matches existing 'type' column naming
-        action: 'mass_reclass',              // for future-proofing / symmetry
-        page_url: window.location.href,
-        // Store the cases array as JSON text in case_number for now to reuse existing schema
-        // (see Task 4 decision note)
-        case_number: JSON.stringify(cases)
-      }
-      ```
-      — and sends it to the relay via `relay.postMessage({ relay: 'MERIDIAN_TRIGGER', id, action: 'SUPABASE_INSERT_TRIGGER', payload })`.
-    - On success response: `showToast('Meridian: Opened with ' + cases.length + ' cases', 'success')`.
-    - On failure response: `showToast('Meridian: Failed — ' + err, 'error')`.
-  - Test: `node -c public/meridian-trigger.js` exits 0.
-  - Test: `grep -c "walkShadow\|collectSelectedCases\|handleListViewContext" public/meridian-trigger.js` prints `>= 6`.
-  - Decision note to preserve in progress.txt: We reuse the existing `pending_triggers` schema (no migration for a new `payload` column) by stuffing the JSON cases array into `case_number`. The PiP-side handler parses it back out. This keeps the migration surface minimal. If a future trigger type needs richer payloads, a proper `payload jsonb` column is a separate track.
-
-### Phase 3: Pending-Trigger Routing
-
-- [x] **Task 4: Extend `usePendingTriggers.js` to route mass_reclass**
-  - Modify `src/hooks/usePendingTriggers.js`. The hook currently subscribes to inserts on `pending_triggers` and dispatches based on the `type` field (existing types: `MERIDIAN_CASE_START`, etc.).
-  - Add a new case for `type === 'MERIDIAN_MASS_RECLASS'`. When matched:
-    - Parse `row.case_number` as JSON into an array `cases`.
-    - If parsing fails or array is empty, log a warning and delete the trigger row.
-    - If valid, call a new handler `onMassReclass(cases, row.id)` that must be provided to the hook via its options/handlers object (same pattern as existing `onCaseStart`).
-  - Update the hook's TypeScript/JSDoc signature (if applicable) to include `onMassReclass` as an optional handler.
-  - Keep all existing type routing behavior unchanged.
-  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
-  - Test: `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` prints `>= 3`.
-
-- [x] **Task 5: Create `useMassReclass.js` hook**
-  - Create `src/hooks/useMassReclass.js` exporting a default hook that manages mass-reclass modal state.
-  - State shape:
+- [ ] **Task 2: Extend meridian-relay.html with SUPABASE_RPC action**
+  - View `public/meridian-relay.html` lines 46-135 to see the message-relay handler pattern.
+  - Add a new `else if (action === 'SUPABASE_RPC')` branch BEFORE the `else if (action === 'FETCH_CODE')` branch. Pattern:
     ```js
-    {
-      modalState: 'idle' | 'confirming' | 'submitting' | 'success' | 'error',
-      cases: [{case_number, sf_case_id}],    // pending list
-      batchId: null | string,                 // set on success
-      error: null | string,
-      triggerRowId: null | string,            // pending_triggers.id to delete on close
+    else if (action === 'SUPABASE_RPC') {
+      const resp = await fetch(SUPABASE_URL + '/rest/v1/rpc/' + payload.function, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload.args || {})
+      });
+      if (!resp.ok) {
+        var errText = await resp.text();
+        throw new Error(resp.status + ': ' + errText);
+      }
+      result = await resp.json();
     }
     ```
-  - Exposed actions:
-    - `openModal(cases, triggerRowId)` — sets state to `confirming` with the given cases.
-    - `confirm()` — sets state to `submitting`, calls `supabase.rpc('bulk_reclassify_cases', { p_case_refs: cases })`. On success: sets `batchId` from the returned row, state → `success`. On error: state → `error`, populate `error` message.
-    - `undo()` — calls `supabase.rpc('undo_mass_reclass_batch', { p_batch_id: batchId })`. Resets state to `idle` on success.
-    - `close()` — deletes the `pending_triggers` row (`supabase.from('pending_triggers').delete().eq('id', triggerRowId)`) and resets state to `idle`.
-  - Uses the existing Supabase client import pattern from `src/lib/supabase.js` (or wherever the project already imports from — match existing hooks).
-  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
-  - Test: `grep -c "bulk_reclassify_cases\|undo_mass_reclass_batch" src/hooks/useMassReclass.js` prints `>= 2`.
+  - Do NOT modify the existing `SUPABASE_INSERT_TRIGGER`, `SUPABASE_POST`, `SUPABASE_GET`, or `FETCH_CODE` branches.
+  - Do NOT change the outer message handler structure (the `relay: 'MERIDIAN_TRIGGER_RESPONSE'` response envelope stays identical).
+  - Test: `grep -c "action === 'SUPABASE_RPC'" public/meridian-relay.html` returns `1`.
+  - Test: `grep -c "/rest/v1/rpc/" public/meridian-relay.html` returns `1`.
+  - Note: HTML files have no `node -c` check available. Verify structure by reading the file back and confirming the new branch is syntactically inside the async message handler.
 
-### Phase 4: UI
+### Phase 3: Bookmarklet trigger — mode detection
 
-- [x] **Task 6: Create `MassReclassModal.jsx`**
-  - Create `src/components/MassReclassModal.jsx`. Takes props: `{ state, cases, batchId, error, onConfirm, onUndo, onClose }`.
-  - Follow the existing design token system — use CSS variables (`--bg-card`, `--text-pri`, `--text-sec`, `--border`, `--color-accent`, etc.) rather than hardcoded hex. Reference the existing `RFCPrompt` component for styling patterns.
-  - Renders as a modal overlay centered in the PiP window when `state !== 'idle'`. Four visual states:
-    - **confirming:** Header "Reclassify selected cases?" · body lists the case numbers (scrollable if >10, capped max-height ~240px) · footer with two buttons: `Cancel` (calls `onClose`) and `Reclassify N cases` (primary, calls `onConfirm`, where N is `cases.length`).
-    - **submitting:** Header "Working…" · body shows a spinner and "Reclassifying N cases" · no buttons.
-    - **success:** Header "Reclassified N cases" · body "Undo within 10 seconds" with a live countdown (10 → 0) · footer with `Undo` button (calls `onUndo`) and a subtle `Dismiss` link (calls `onClose`). After the countdown hits 0, auto-calls `onClose`.
-    - **error:** Header "Something went wrong" · body shows the error message · footer with a `Close` button (calls `onClose`) and a `Retry` button (calls `onConfirm` again).
-  - Modal width ~ 360px on the PiP viewport. Respect the existing PiP width (widget sizing constants in `src/lib/constants.js` if present).
-  - Countdown implementation: `useEffect` with `setInterval(1000)` that decrements a local `secondsLeft` state, cleared on unmount or state change.
-  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
-  - Test: `grep -c "cases.length\|onConfirm\|onUndo" src/components/MassReclassModal.jsx` prints `>= 3`.
+- [ ] **Task 3: Simplify and re-scope meridian-trigger.js**
+  - Modify `public/meridian-trigger.js`. The goal: detect whether we're on a case record page or a list view, and pass the mode to the widget.
+  - **Keep** the existing `walkShadow` helper (lines 19-31 today), the `isSalesforce` check, the `!userId` guard, the `!isSalesforce` toast branch, the `!relay` guard, the `FETCH_CODE` / widget-load flow, and the `showToast` UI at the bottom.
+  - **Remove** the entire `isListView` / `handleListViewContext` / `collectSelectedCases` / `SUPABASE_INSERT_TRIGGER` mass-reclass flow (current lines ~55-167). The list-view detection and collection logic is MOVING INTO the widget file itself (Task 5), not deleted.
+  - **Add** a small context-probe function that runs before the widget fetch:
+    ```js
+    function detectMode() {
+      // Single-case record page: URL like /lightning/r/Case/500.../view
+      if (window.location.pathname.indexOf('/lightning/r/Case/') === 0) {
+        return 'single';
+      }
+      // List view: URL like /lightning/o/Case/list OR DOM has checked case rows
+      if (window.location.pathname.indexOf('/lightning/o/Case/list') === 0) {
+        return 'mass';
+      }
+      // Fallback: if walkShadow finds any tr[data-row-key-value^="500"], treat as mass
+      var foundCaseRow = false;
+      try {
+        walkShadow(document.documentElement, function (n) {
+          if (foundCaseRow) return;
+          if (!n.getAttribute) return;
+          var kv = n.getAttribute('data-row-key-value');
+          if (kv && kv.indexOf('500') === 0) foundCaseRow = true;
+        });
+      } catch (e) {}
+      return foundCaseRow ? 'mass' : 'single';
+    }
+    ```
+  - Inject the detected mode into the widget via `MERIDIAN_PAYLOAD`. Look at the existing line `(new Function('MERIDIAN_PAYLOAD', e.data.data.code))(MERIDIAN_PAYLOAD)` — the payload object passed is the same `MERIDIAN_PAYLOAD` the bookmarklet href originally built. Just before calling `new Function(...)`, add: `MERIDIAN_PAYLOAD.mode = detectMode();`
+  - Verify the trigger file is now significantly shorter than before (rough target: under 130 lines vs. 205 today).
+  - Test: `node -c public/meridian-trigger.js` exits 0.
+  - Test: `grep -c "function detectMode" public/meridian-trigger.js` returns `1`.
+  - Test: `grep -c "MERIDIAN_MASS_RECLASS" public/meridian-trigger.js` returns `0` (all references removed).
+  - Test: `grep -c "SUPABASE_INSERT_TRIGGER" public/meridian-trigger.js` returns `0` (trigger no longer writes pending_triggers rows from this flow).
+  - Test: `grep -c "handleListViewContext\|collectSelectedCases" public/meridian-trigger.js` returns `0` (logic moved to widget).
 
-- [x] **Task 7: Wire `useMassReclass` + `MassReclassModal` into `MplApp.jsx`**
-  - Modify `src/mpl/MplApp.jsx`. Import `useMassReclass` and `MassReclassModal`.
-  - Inside the `MplApp` component:
-    - Call `const massReclass = useMassReclass()` near other hook calls.
-    - Pass `onMassReclass: (cases, triggerRowId) => massReclass.openModal(cases, triggerRowId)` into the existing `usePendingTriggers` options object alongside `onCaseStart` etc.
-    - Render `<MassReclassModal {...massReclass.modalProps} />` (or equivalent — if the hook exposes individual props, spread them explicitly) inside the main PiP render tree, AFTER the existing child content but BEFORE closing the root wrapper, so it overlays everything else.
-  - Do NOT modify any existing trigger handlers, timer logic, or MPL state.
-  - Test: `npx vite build 2>&1 | tail -10` contains no errors.
-  - Test: `grep -c "MassReclassModal\|useMassReclass\|onMassReclass" src/mpl/MplApp.jsx` prints `>= 3`.
+### Phase 4: Widget — add mode + mass-mode rendering
 
-### Phase 5: Regression Guard
+- [ ] **Task 4: Add mode to ct-widget.js state**
+  - View `public/ct-widget.js` lines 45-65 to see the state object.
+  - Add a new field to the state object literal: `mode: MERIDIAN_PAYLOAD.mode || 'single',`
+  - Also add these new fields (for mass-mode state machine):
+    ```js
+    massSubState: 'idle',   // 'idle' | 'confirm' | 'success' | 'error'
+    massCases:    [],        // collected at Start click, array of {case_number, sf_case_id}
+    massBatchId:  null,      // returned by bulk_reclassify_cases on success
+    massError:    null,      // error message string on error
+    massCountdown: 10,       // seconds remaining in undo window
+    massCountdownTimer: null // interval id for countdown
+    ```
+  - Also refresh the MERIDIAN_PAYLOAD comment at the top of the file (line 4) to include `mode` in the destructure comment.
+  - Test: `node -c public/ct-widget.js` exits 0.
+  - Test: `grep -c "state.mode\|mode:.*MERIDIAN_PAYLOAD.mode" public/ct-widget.js` returns `>= 2`.
 
-- [x] **Task 8: Verify no changes to protected files**
-  - Run these checks and fail the task if any produce output:
-    - `git diff --stat HEAD~7..HEAD -- public/ct-widget.js` — must be empty (widget file untouched).
-    - `git diff --stat HEAD~7..HEAD -- public/meridian-relay.html` — must be empty (relay untouched).
-    - `git diff --stat HEAD~7..HEAD -- src/ct/CtApp.jsx` — must be empty (CT dashboard untouched).
-  - If any of these files show changes, halt and log the violation to progress.txt. Do NOT attempt to revert — let Davis review.
-  - Test: Write the check commands into `scripts/check-mass-reclass-scope.sh` and run it. Exit 0 means all protected files are clean.
+- [ ] **Task 5: Add handleStartMass function + deep-walk collector**
+  - In `public/ct-widget.js`, add a new function `collectSelectedCasesFromDom()` near the existing helpers. Use the same deep-walk pattern established in Task 3 of the previous Mass Reclass PRD — the specific version that correctly pierces `<lightning-primitive-custom-cell>` shadow roots:
+    ```js
+    function walkShadowLocal(root, visitor) {
+      var stack = [root];
+      while (stack.length) {
+        var node = stack.pop();
+        visitor(node);
+        if (node.shadowRoot) stack.push(node.shadowRoot);
+        var children = node.childNodes || [];
+        for (var ci = children.length - 1; ci >= 0; ci--) {
+          stack.push(children[ci]);
+        }
+      }
+    }
 
-- [x] **Task 9: Final build + commit summary**
+    function collectSelectedCasesFromDom() {
+      var cases = [];
+      walkShadowLocal(document.documentElement, function (node) {
+        if (!node.getAttribute) return;
+        var kv = node.getAttribute('data-row-key-value');
+        if (!kv || kv.indexOf('500') !== 0) return;
+        var checkbox = node.querySelector && node.querySelector('input[type="checkbox"]');
+        if (!checkbox || !checkbox.checked) return;
+
+        // Deep-walk the Case Number <th> to pierce the custom-cell shadow root.
+        var caseNumber = null;
+        var caseCell = node.querySelector('th[data-label="Case Number"]');
+        if (caseCell) {
+          walkShadowLocal(caseCell, function (inner) {
+            if (caseNumber) return;
+            if (!inner.getAttribute) return;
+            var t = inner.getAttribute('title');
+            if (t && /^\d{8,}$/.test(t)) caseNumber = t;
+          });
+        }
+
+        if (caseNumber) cases.push({ case_number: caseNumber, sf_case_id: kv });
+      });
+      return cases;
+    }
+    ```
+  - Add a new function `handleStartMass()`:
+    ```js
+    function handleStartMass() {
+      var cases = collectSelectedCasesFromDom();
+      if (!cases.length) {
+        showWidgetToast('No cases selected. Check rows in the list, then Start.');
+        return;
+      }
+      state.massCases = cases;
+      state.massSubState = 'confirm';
+      render();
+    }
+    ```
+  - Add `handleConfirmMass()`, which calls the RPC via the relay:
+    ```js
+    function handleConfirmMass() {
+      state.massSubState = 'submitting';
+      render();
+      relayRpc('bulk_reclassify_cases', {
+        p_user_id: state.userId,
+        p_case_refs: state.massCases
+      }).then(function (rows) {
+        var batchId = (rows && rows[0] && rows[0].batch_id) || null;
+        if (!batchId) throw new Error('RPC returned no batch_id');
+        state.massBatchId = batchId;
+        state.massSubState = 'success';
+        state.massCountdown = 10;
+        render();
+        // Start countdown
+        state.massCountdownTimer = setInterval(function () {
+          state.massCountdown -= 1;
+          if (state.massCountdown <= 0) {
+            clearInterval(state.massCountdownTimer);
+            state.massCountdownTimer = null;
+            handleDismissMass();
+          } else {
+            render();
+          }
+        }, 1000);
+      }).catch(function (err) {
+        state.massSubState = 'error';
+        state.massError = err.message || 'Unknown error';
+        render();
+      });
+    }
+    ```
+  - Add `handleUndoMass()`:
+    ```js
+    function handleUndoMass() {
+      if (!state.massBatchId) return;
+      if (state.massCountdownTimer) {
+        clearInterval(state.massCountdownTimer);
+        state.massCountdownTimer = null;
+      }
+      relayRpc('undo_mass_reclass_batch', {
+        p_user_id: state.userId,
+        p_batch_id: state.massBatchId
+      }).then(function () {
+        handleDismissMass();
+      }).catch(function (err) {
+        state.massError = 'Undo failed: ' + (err.message || 'Unknown error');
+        state.massSubState = 'error';
+        render();
+      });
+    }
+    ```
+  - Add `handleDismissMass()` — resets mass state back to idle:
+    ```js
+    function handleDismissMass() {
+      state.massCases = [];
+      state.massBatchId = null;
+      state.massError = null;
+      state.massSubState = 'idle';
+      state.massCountdown = 10;
+      if (state.massCountdownTimer) {
+        clearInterval(state.massCountdownTimer);
+        state.massCountdownTimer = null;
+      }
+      render();
+    }
+    ```
+  - Add `handleCancelConfirm()` — from confirm sub-state back to idle without firing:
+    ```js
+    function handleCancelConfirm() {
+      state.massCases = [];
+      state.massSubState = 'idle';
+      render();
+    }
+    ```
+  - Test: `node -c public/ct-widget.js` exits 0.
+  - Test: `grep -c "function handleStartMass\|function handleConfirmMass\|function handleUndoMass\|function handleDismissMass\|function handleCancelConfirm\|function collectSelectedCasesFromDom" public/ct-widget.js` returns `>= 6`.
+
+- [ ] **Task 6: Add relayRpc helper to ct-widget.js**
+  - Study the existing `relayPost` and `relayGet` patterns in `public/ct-widget.js` (search for `function relayPost`, `function relayGet`). Match that pattern exactly for `relayRpc`.
+  - Add a new helper:
+    ```js
+    function relayRpc(fnName, args) {
+      return new Promise(function (resolve, reject) {
+        if (!state.relay) { reject(new Error('No relay available')); return; }
+        var id = 'rpc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+        function onResponse(e) {
+          if (!e.data || e.data.relay !== 'MERIDIAN_TRIGGER_RESPONSE') return;
+          if (e.data.id !== id) return;
+          window.removeEventListener('message', onResponse);
+          if (e.data.success) resolve(e.data.data);
+          else reject(new Error(e.data.error || 'Unknown relay error'));
+        }
+        window.addEventListener('message', onResponse);
+        state.relay.postMessage({
+          relay: 'MERIDIAN_TRIGGER',
+          id: id,
+          action: 'SUPABASE_RPC',
+          payload: { function: fnName, args: args }
+        }, '*');
+        setTimeout(function () {
+          window.removeEventListener('message', onResponse);
+          reject(new Error('Relay RPC timeout'));
+        }, 15000);
+      });
+    }
+    ```
+  - Test: `grep -c "function relayRpc" public/ct-widget.js` returns `1`.
+  - Test: `node -c public/ct-widget.js` exits 0.
+
+- [ ] **Task 7: Upgrade handleStartCase to scrape type/subtype/sf_case_id/account_id**
+  - View the existing `handleStartCase` (around line 374 today). It only scrapes `document.title` for the case number. Replace its body with a version that does a shadow-DOM walk for the other fields.
+  - Target implementation (replaces the function body, keeps the name/signature):
+    ```js
+    function handleStartCase() {
+      var m = document.title.match(/(\d{8,})/);
+      if (!m) {
+        showWidgetToast('No case detected on this page');
+        return;
+      }
+      var typeVal = '', subtypeVal = '', accountId = '', sfCaseId = '';
+      function scrape(n, d) {
+        if (d > 50) return;
+        if (!typeVal && n.classList && n.classList.contains('slds-p-around_small')) {
+          var tt = (n.textContent || '').trim();
+          if (tt.indexOf('Type / Sub-Type') === 0) {
+            var v = tt.replace('Type / Sub-Type', '').trim();
+            var p = v.split(' / ');
+            typeVal = p[0] || '';
+            subtypeVal = p[1] || '';
+          }
+        }
+        if (n.tagName === 'A') {
+          var href = n.getAttribute && n.getAttribute('href');
+          if (href) {
+            if (!accountId && href.indexOf('/lightning/r/Account/001') === 0) {
+              var ai = href.match(/001[a-zA-Z0-9]{12,15}/);
+              if (ai && ai[0]) accountId = ai[0];
+            }
+            if (!sfCaseId && href.indexOf('/lightning/r/Case/500') === 0) {
+              var ci = href.match(/500[a-zA-Z0-9]{12,15}/);
+              if (ci && ci[0]) sfCaseId = ci[0];
+            }
+          }
+        }
+        if (n.shadowRoot) {
+          var sroots = n.shadowRoot.children || [];
+          for (var i = 0; i < sroots.length; i++) scrape(sroots[i], d + 1);
+        }
+        var kids = n.children || [];
+        for (var j = 0; j < kids.length; j++) scrape(kids[j], d + 1);
+      }
+      try { scrape(document.body, 0); } catch (e) { /* non-fatal */ }
+
+      state.caseNumber  = m[1];
+      state.caseType    = typeVal || '';
+      state.caseSubtype = subtypeVal || '';
+      state.accountId   = accountId || '';
+      state.sfCaseId    = sfCaseId || '';
+      state.sessionId   = newSessionId();
+      state.elapsed     = 0;
+      state.isAwaiting  = false;
+      startTimer();
+      render();
+    }
+    ```
+  - Test: `grep -c "function handleStartCase" public/ct-widget.js` returns `1`.
+  - Test: `grep -c "Type / Sub-Type" public/ct-widget.js` returns `>= 1`.
+  - Test: `node -c public/ct-widget.js` exits 0.
+
+- [ ] **Task 8: Split render() into renderSingle() and renderMass(), add dispatcher**
+  - The existing `render()` function (around line 402) is ~120 lines of innerHTML assembly for the single-case widget. Rename it to `renderSingle()`.
+  - Add a new `renderMass()` that produces the mass-mode UI across its sub-states:
+    - **idle sub-state:** compact bar, same footprint as single mode. Contents: `[M° logo] 3 cases selected  [Start]  [×]`. The Start button has `data-action="start-mass"`. The × has `data-action="close"` (reuses existing close handler).
+    - **confirm sub-state:** expanded panel. Contents: `[M° logo] Reclassify 3 cases?` (top row, compact), followed by a scrollable list (max-height 180px) of case numbers, followed by a row with `[Cancel] [Confirm Reclassify]` buttons. Cancel has `data-action="cancel-mass"` (fires `handleCancelConfirm`). Confirm has `data-action="confirm-mass"` (fires `handleConfirmMass`).
+    - **submitting sub-state:** compact: `[M° logo] Working…` with a simple text placeholder (no spinner animation — keep it simple, no CSS keyframes needed). No buttons.
+    - **success sub-state:** compact: `[M° logo] Reclassified 3 cases. [Undo (10s)]  [Dismiss]`. Countdown is read from `state.massCountdown` and rendered as `(10s)`, `(9s)`, etc. Undo has `data-action="undo-mass"`. Dismiss has `data-action="dismiss-mass"` (fires `handleDismissMass`).
+    - **error sub-state:** compact: `[M° logo] Error: <message>. [Retry]  [Close]`. Retry fires `handleConfirmMass` again. Close fires `handleDismissMass`.
+  - Use inline styles in the same style as `renderSingle()` — same colors, same height (`28px` buttons, `#22c55e` for confirm button green, `#ef4444` for cancel red if needed, white text, dark bg). The mass mode should FEEL like the single mode, just with different buttons.
+  - Add a new top-level `render()` that dispatches:
+    ```js
+    function render() {
+      if (state.mode === 'mass') renderMass();
+      else renderSingle();
+    }
+    ```
+  - Add event-delegation entries in the existing shadow-DOM click handler at line ~567 for the new `data-action` values: `start-mass`, `cancel-mass`, `confirm-mass`, `undo-mass`, `dismiss-mass`. Each routes to the corresponding handler.
+  - Test: `grep -c "function renderSingle\|function renderMass\|function render\b" public/ct-widget.js` returns `>= 3`.
+  - Test: `grep -c "data-action=\"start-mass\"\|data-action=\"confirm-mass\"\|data-action=\"undo-mass\"" public/ct-widget.js` returns `>= 3`.
+  - Test: `node -c public/ct-widget.js` exits 0.
+  - Test: `npx vite build 2>&1 | tail -10` — no errors.
+  - **Optional visual verification** (manual, Ralph cannot run a browser): the final artifact of this task is that the widget file still opens and renders single-mode correctly. Ralph should skip any visual check and trust the grep assertions.
+
+### Phase 5: Delete dead mass-reclass code
+
+- [ ] **Task 9: Delete useMassReclass hook and MassReclassModal component**
+  - Delete `src/hooks/useMassReclass.js`.
+  - Delete `src/components/MassReclassModal.jsx`.
+  - Test: `ls src/hooks/useMassReclass.js 2>&1 | grep -c "No such"` returns `1`.
+  - Test: `ls src/components/MassReclassModal.jsx 2>&1 | grep -c "No such"` returns `1`.
+
+- [ ] **Task 10: Remove MERIDIAN_MASS_RECLASS routing from usePendingTriggers.js**
+  - View `src/hooks/usePendingTriggers.js`. Remove the entire `else if (trigger.type === 'MERIDIAN_MASS_RECLASS')` branch and its body. Keep the existing `handleCaseStart` and `handleProcessStart` branches intact.
+  - Remove the `shouldDelete` flag pattern introduced by that branch IF it's no longer needed (i.e., if all remaining branches use the default immediate delete). If the flag is still structurally useful for something else, leave it — it's harmless.
+  - Remove `onMassReclass` from the JSDoc handlers type declaration.
+  - Test: `grep -c "MERIDIAN_MASS_RECLASS\|onMassReclass" src/hooks/usePendingTriggers.js` returns `0`.
+  - Test: `npx vite build 2>&1 | tail -10` — no errors.
+
+- [ ] **Task 11: Remove mass-reclass wiring from MplApp.jsx**
+  - View `src/mpl/MplApp.jsx`. Remove:
+    - The `import useMassReclass from '../hooks/useMassReclass'` line.
+    - The `import MassReclassModal from '../components/MassReclassModal'` line.
+    - The `const massReclass = useMassReclass()` call.
+    - The `onMassReclass: ...` key in the `usePendingTriggers` options object.
+    - The `<MassReclassModal .../>` element in the render tree.
+  - Leave everything else in `MplApp.jsx` completely untouched.
+  - Test: `grep -c "useMassReclass\|MassReclassModal" src/mpl/MplApp.jsx` returns `0`.
+  - Test: `npx vite build 2>&1 | tail -10` — no errors.
+
+### Phase 6: Verification
+
+- [ ] **Task 12: Regression check — protected files**
+  - Run `git diff --stat main...HEAD` and verify the modified/created/deleted file list matches the PRD's File Structure section exactly.
+  - Files expected in the diff:
+    - MODIFIED: `public/ct-widget.js`, `public/meridian-trigger.js`, `public/meridian-relay.html`, `src/hooks/usePendingTriggers.js`, `src/mpl/MplApp.jsx`
+    - CREATED: `supabase/migrations/022_unified_start_rpc_user_id.sql`
+    - DELETED: `src/hooks/useMassReclass.js`, `src/components/MassReclassModal.jsx`
+  - NOT expected in the diff:
+    - `src/ct/CtApp.jsx` (protected)
+    - `supabase/migrations/020_mass_reclass.sql`, `021_expand_pending_triggers_types.sql` (existing migrations, never touched)
+    - `src/lib/api.js` (unrelated)
+    - `src/components/onboarding/Step3Bookmarklet.jsx` (bookmarklet href unchanged)
+  - If any unexpected file appears, investigate and revert before committing.
+  - Test: Save the full `git diff --stat main...HEAD` output to `scripts/unified-start-button-scope-check.txt` for Davis's review.
+
+- [ ] **Task 13: Final build check**
   - Run `npx vite build 2>&1 | tail -20`. Must complete without errors.
-  - Run `git log --oneline HEAD~8..HEAD`. Log the full commit list to progress.txt under a "Mass Reclass: final commits" heading.
-  - Append to progress.txt a "Davis: manual steps to ship" section listing:
-    1. Review commits on the `feat/mass-reclass` branch.
-    2. Apply `supabase/migrations/020_mass_reclass.sql` via Supabase SQL Editor.
-    3. Verify RPCs exist: `SELECT proname FROM pg_proc WHERE proname IN ('bulk_reclassify_cases', 'undo_mass_reclass_batch');` should return 2 rows.
-    4. Push branch, open PR, merge when ready.
-    5. End-to-end test: check 3 cases in an SF list view, click Meridian bookmarklet, confirm in PiP modal, verify 3 `ct_cases` rows with `source='bulk'` and matching `batch_id`.
+  - Run `node -c public/meridian-trigger.js`. Exit 0.
+  - Run `node -c public/ct-widget.js`. Exit 0.
+  - Confirm `public/meridian-relay.html` is well-formed HTML (no truncation, closing `</script>` and `</body>` and `</html>` tags intact).
+
+- [ ] **Task 14: Commit summary**
+  - Run `git log --oneline main..HEAD`. Log the commit list to `progress.txt` under a heading "Unified Start Button — final commits".
+  - Append a "Davis: manual steps to ship" section to `progress.txt`:
+    1. Review the branch diff.
+    2. Apply `supabase/migrations/022_unified_start_rpc_user_id.sql` via Supabase SQL Editor. The verification `SELECT` at the bottom of the migration should return two rows (one for each RPC) with `pronargs = 2` each.
+    3. Push `feat/unified-start-button`, open PR against main.
+    4. Merge. Vercel auto-deploys.
+    5. Hard-refresh both the Salesforce tab and any Meridian tab.
+    6. Test single-case flow: open an SF case record page, click bookmarklet. Widget injects in single mode. Click Start Case. Verify `ct_cases` row has `case_type`, `case_subtype`, `sf_case_id`, `account_id` populated.
+    7. Test mass flow: open an SF case list view, check 3 rows. Click bookmarklet. Widget injects in mass mode showing "3 cases selected — Start". Click Start. Confirmation panel expands. Click "Confirm Reclassify". See success state with "Reclassified 3 cases. Undo (10s)". Verify 3 `ct_cases` rows with `source='bulk'` and matching `batch_id`.
+    8. Test undo: do the mass flow again, click Undo within the countdown. Verify the `ct_cases` rows are gone.
 
 ---
 
 ## Testing Strategy
 
-- **Primary build check:** `npx vite build 2>&1 | tail -10` — run after every task that modifies `src/` or `public/`. No errors permitted.
-- **Syntax check for public JS:** `node -c public/meridian-trigger.js` — run after Tasks 2 and 3. Must exit 0.
-- **Migration validity:** Migration SQL is NOT applied automatically. Ralph only verifies the file exists and is non-empty. Davis applies it manually.
-- **No `npm test` requirement:** This project does not have a Jest/Vitest suite. Do not invent tests; rely on build + grep assertions specified per task.
+- **Primary build check:** `npx vite build 2>&1 | tail -10` after every `src/` or `public/` change.
+- **Vanilla JS syntax:** `node -c public/ct-widget.js`, `node -c public/meridian-trigger.js`. These files are NOT transformed by Vite — syntax errors will only surface at runtime without this check.
+- **No test suite exists.** Do not invent tests. Rely on grep assertions and build + node -c.
+- **Migrations are not auto-applied.** Ralph verifies file existence and content; Davis applies manually.
+- **Browser testing is out of scope for Ralph.** Visual verification happens during Davis's manual test pass after merge.
 
 ---
 
 ## Out of Scope
 
-**These are explicitly NOT part of this PRD. Do NOT build them, even if they seem like natural extensions.**
+**Do NOT do any of the following, even if they seem related or better:**
 
-- Mass *resolve* (only mass reclassify, per scope).
-- Bulk actions triggered from the Meridian dashboard queue screen — that's a separate track.
-- Any change to `public/ct-widget.js` (the single-case widget).
-- Any change to `public/meridian-relay.html`.
-- Changes to the bookmarklet href or onboarding flow — the bookmarklet code itself (the `javascript:...` string in `BookmarkletModal.jsx` etc.) is unchanged. Only the fetched `meridian-trigger.js` gains new behavior.
-- Merge-case handling (separate feature, separate PRD).
-- Concurrent cases / pause-resume (separate feature, separate PRD).
-- Adding Mass Reclass to MPL side — MPL has no reclass concept.
-- Reading any SF list-view column OTHER than checkbox state, `data-row-key-value`, and the Case Number cell.
-- Modifying RLS policies on `ct_cases` or `case_events` (SECURITY DEFINER on the RPCs handles auth).
+- Autolaunching the PiP window from the bookmarklet. Out of scope per Davis's direction — that's a separate product conversation about non-SF MPL capture.
+- Modifying `src/ct/CtApp.jsx` or any dashboard route. The dashboard has nothing to do with this flow.
+- Modifying `src/components/onboarding/Step3Bookmarklet.jsx` or the bookmarklet HREF. The bookmarklet is unchanged — it still loads `meridian-trigger.js` via the relay. The trigger has gained mode detection; the href is unchanged.
+- Adding new tables, columns, or constraints beyond what's in migration 022.
+- Rolling back or modifying migrations 020 or 021. They stay in place — 020's `source='bulk'` and `batch_id` columns are reused; 021's constraint expansion is harmless dead weight.
+- Adding spinner animations, keyframes, or any CSS beyond inline styles matching the existing widget.
+- Implementing swim-lanes or mass-mode visual variants beyond the four sub-states specified (idle / confirm / submitting / success / error).
+- Improving or refactoring `renderSingle()` — this is a move/rename only.
+- Implementing concurrent-case tracking, pause-resume, or any other feature from Davis's roadmap.
+- "While we're in here" cleanups of unrelated code.
 
 ---
 
 ## Notes for Ralph
 
-- **The existing shadow-DOM walker pattern is the reference.** Look at `public/ct-widget.js` lines ~100–110 for how shadow roots are attached and how the CT 1.0 bookmarklet style pattern works. You are not adding shadow roots; you are *traversing* SF's shadow roots to find the datatable. Read-only traversal.
-- **The list-view DOM evidence (grabbed from a live SF case list view on April 22, 2026):**
-  - Row element: `<tr ... data-row-key-value="500cz00000yTp3fAAC" aria-selected="false" ...>` — `data-row-key-value` holds the SF Case Id even when `aria-selected` is `"false"`. Do NOT trust `aria-selected`.
-  - Case number cell: `<th data-label="Case Number" ...> ... <span title="137480795">137480795</span> ... </th>` — `data-label` and `title` are the anchors. The visible text and `title` attribute carry the same value; prefer `title` for robustness.
-  - Checkbox: `<input type="checkbox" name="lgt-datatable-8-options-60" ...>` — native HTML input, `.checked` is trustworthy. The checkbox name includes a per-datatable prefix (`lgt-datatable-8-`), so do NOT match by name — match by `input[type="checkbox"]` scoped to the row.
-- **PiP window context.** `MplApp.jsx` is the root component rendered inside the PiP window (via `documentPictureInPicture`). It is NOT the Salesforce page. CSS custom properties are injected into the PiP document's `<head>` at mount — this is already working, you do not need to re-inject for the modal. Just use the tokens.
-- **Supabase client auth.** Inside `MplApp.jsx` and its hooks, the Supabase client is authenticated with the user's session (JWT). `auth.uid()` in the RPC resolves to the real user. This is different from the bookmarklet path, which uses the anon key via the relay. Do not conflate the two auth contexts.
-- **If a task's grep assertion fails**, it means the task's implementation is incomplete — DO NOT loosen the grep. Revisit the code.
-- **If the build fails after a task**, revert that task's changes (git stash / reset), re-read the task, try again. Do NOT commit a broken build.
-- **Commit style:** one commit per task. Commit message format: `mass-reclass: [task N] <short description>`.
-- **Branch:** work on `feat/mass-reclass`. Create it off `main` at start of run if not already there.
+- **Ground truth of the widget file is ~646 lines with a clear structure.** State at top (~45), host+shadow setup (~66), helpers (~100), action handlers (~255), handleStartCase (~374), handleDismissCase (~388), render (~402), click delegation (~567). Use these line numbers as rough orientation, but always re-view before editing — they will shift as you add code.
+- **The click handler uses event delegation on the shadow root** (around line 567). All new `data-action` values must be wired there. Look at how existing values like `resolve`, `reclass`, `call`, `start`, `dismiss`, `close`, `minimize` are routed — add new entries in the same switch/if-else pattern.
+- **The widget lives in shadow DOM.** All new DOM must be emitted as innerHTML strings inside `renderMass()`. Do not use `createElement`. Do not attach external event listeners. Let the existing click-delegation pattern handle routing.
+- **The `showWidgetToast` helper exists** (search for it in the file). Use it for user-facing messages like "No cases selected." Do NOT create a second toast system.
+- **State is a plain object, mutated directly.** No reactivity, no setState. After mutating state, call `render()` to repaint.
+- **Carousel of truth for "how to scrape SF":** the version inside `handleStartCase` after Task 7, and `collectSelectedCasesFromDom` from Task 5, are the two scrapers. They are deliberately independent — `handleStartCase` walks the whole body for four fields, `collectSelectedCasesFromDom` walks specifically to find checked rows + their case numbers. Do not try to unify them into one.
+- **Commit style:** one commit per task. Message format: `unified-start: [task N] <short description>`.
+- **If a task's grep check fails**, the task is not done. Revisit the code. Do NOT loosen the grep assertion.
+- **If `npx vite build` fails**, revert the task's changes and retry. Do NOT commit a broken build.
+- **When in doubt about UI details in renderMass()**, keep it minimal and functional over polished. Davis can hand-tune visuals after the plumbing works.
 
 ---
 
 ## Order of Operations
 
-1. Task 1 (migration file) — can run first; no dependencies.
-2. Tasks 2 and 3 (bookmarklet) — Task 3 depends on Task 2's skeleton.
-3. Tasks 4 and 5 (trigger routing + hook) — Task 5 depends on Task 4 conceptually but files are independent.
-4. Task 6 (modal) — depends on Task 5's hook shape being stable.
-5. Task 7 (wire into MplApp) — depends on Tasks 5 and 6.
-6. Task 8 (regression check) — always last before 9.
-7. Task 9 (summary) — final.
+1. Task 0 — branch setup. Must be first.
+2. Task 1 — migration file. No dependencies; can run anytime before Task 14.
+3. Task 2 — relay SUPABASE_RPC action. Required before Task 6 can be tested end-to-end but build-wise independent.
+4. Task 3 — trigger simplification and mode detection. Depends on nothing.
+5. Task 4 — state fields. Must come before Tasks 5, 6, 7, 8 (they reference the new state fields).
+6. Task 5 — mass handlers. Depends on Task 4.
+7. Task 6 — relayRpc helper. Depends on Task 4 (`state.relay` access).
+8. Task 7 — handleStartCase scrape upgrade. Independent but conceptually part of the widget refactor.
+9. Task 8 — render split. Depends on Tasks 4, 5, 6 (handlers + state must exist for the render to dispatch to them).
+10. Tasks 9, 10, 11 — dead-code removal. Independent; can interleave with the widget tasks.
+11. Task 12 — regression check. Must run after all file changes are committed.
+12. Task 13 — final build. Must run last before Task 14.
+13. Task 14 — summary. Final.

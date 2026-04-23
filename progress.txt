@@ -4798,3 +4798,21 @@ Tests passed:
 Learnings for future iterations:
   - All 9 tasks of the mass-reclass PRD are complete. No further iterations needed on this branch.
 ---
+
+## Iteration 38 (unified-start-button) - Task 0: Create clean branch off main
+- Created `feat/unified-start-button` branch off main
+- Stashed the new PRD.md (Unified Start Button PRD) from fix/ct-widget-start-scrape, switched to main, created new branch, popped stash
+- Marked Task 0 [x] in PRD.md
+
+Files changed:
+  PRD.md (replaced Mass Reclass PRD with Unified Start Button PRD; Task 0 marked [x])
+
+Tests passed:
+  - `git log --oneline -1` → c0e2db0 (latest main commit) ✓
+  - `git branch --show-current` → feat/unified-start-button ✓
+
+Learnings for future iterations:
+  - New PRD completely replaces old Mass Reclass PRD — all tasks are fresh [ ]
+  - Branch must be off main (c0e2db0), NOT off feat/mass-reclass
+  - progress.txt was ~4800 lines from previous PRD iterations — Learnings section is at the end
+---
