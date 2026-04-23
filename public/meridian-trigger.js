@@ -3,33 +3,18 @@
 // host page via new Function('MERIDIAN_PAYLOAD', code)(payload).
 //
 // MERIDIAN_PAYLOAD is injected by the bookmarklet and contains:
-//   { userId, relayFrame, mode }
+//   { userId, relayFrame }
 //   - userId: the Meridian user's UUID, baked into the bookmarklet at onboarding
 //   - relayFrame: reference to the relay iframe's contentWindow
-//   - mode: 'single' or 'mass', detected at trigger time and injected before widget load
 //
 // Flow:
 // 1. Detects whether the current page is Salesforce
 // 2. On non-SF: shows a toast and returns
-// 3. On SF: detects mode (single/mass), asks relay to load ct-widget.js
+// 3. On SF: asks relay to load ct-widget.js
 
 (function() {
   var userId = MERIDIAN_PAYLOAD.userId;
   var relay = MERIDIAN_PAYLOAD.relayFrame;
-
-  // ── Shadow-DOM walker ────────────────────────────────────────────────────
-  function walkShadow(root, visitor) {
-    var stack = [root];
-    while (stack.length) {
-      var node = stack.pop();
-      visitor(node);
-      if (node.shadowRoot) stack.push(node.shadowRoot);
-      var children = node.childNodes || [];
-      for (var ci = children.length - 1; ci >= 0; ci--) {
-        stack.push(children[ci]);
-      }
-    }
-  }
 
   var isSalesforce =
     window.location.hostname.includes('force.com') ||
@@ -53,29 +38,6 @@
     return;
   }
 
-  // ── Mode detection ───────────────────────────────────────────────────────
-  function detectMode() {
-    // Single-case record page: URL like /lightning/r/Case/500.../view
-    if (window.location.pathname.indexOf('/lightning/r/Case/') === 0) {
-      return 'single';
-    }
-    // List view: URL like /lightning/o/Case/list OR DOM has checked case rows
-    if (window.location.pathname.indexOf('/lightning/o/Case/list') === 0) {
-      return 'mass';
-    }
-    // Fallback: if walkShadow finds any tr[data-row-key-value^="500"], treat as mass
-    var foundCaseRow = false;
-    try {
-      walkShadow(document.documentElement, function (n) {
-        if (foundCaseRow) return;
-        if (!n.getAttribute) return;
-        var kv = n.getAttribute('data-row-key-value');
-        if (kv && kv.indexOf('500') === 0) foundCaseRow = true;
-      });
-    } catch (e) {}
-    return foundCaseRow ? 'mass' : 'single';
-  }
-
   // ── Ask relay to fetch ct-widget.js ─────────────────────────────────────
   var msgId = 'mt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 
@@ -86,7 +48,6 @@
 
     if (e.data.success && e.data.data && e.data.data.code) {
       try {
-        MERIDIAN_PAYLOAD.mode = detectMode();
         (new Function('MERIDIAN_PAYLOAD', e.data.data.code))(MERIDIAN_PAYLOAD);
       } catch (err) {
         showToast('Meridian: Widget error — ' + err.message, 'error');

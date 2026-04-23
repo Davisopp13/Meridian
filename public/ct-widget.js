@@ -1,7 +1,7 @@
 // ct-widget.js
 // Vanilla JS CT overlay widget — injected into Salesforce pages via meridian-trigger.js
 // Received via: new Function('MERIDIAN_PAYLOAD', code)(payload)
-// MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId, mode }
+// MERIDIAN_PAYLOAD = { userId, relayFrame, caseNumber, caseType, caseSubtype, accountId, sfCaseId }
 
 (function () {
 
@@ -47,7 +47,7 @@
   var state = {
     userId:       MERIDIAN_PAYLOAD.userId    || '',
     relay:        MERIDIAN_PAYLOAD.relayFrame || null,
-    mode:         MERIDIAN_PAYLOAD.mode      || 'single',
+    mode:         'idle',
     caseNumber:   '',
     caseType:     '',
     caseSubtype:  '',
@@ -240,6 +240,33 @@
         stack.push(children[ci]);
       }
     }
+  }
+
+  function detectModeAtStart() {
+    // Single-case record page: /lightning/r/Case/500.../view
+    if (window.location.pathname.indexOf('/lightning/r/Case/') === 0) {
+      return 'single';
+    }
+    // Case list view: /lightning/o/Case/list
+    if (window.location.pathname.indexOf('/lightning/o/Case/list') === 0) {
+      return 'mass';
+    }
+    // Fallback: if any checked case rows exist in the DOM, treat as mass
+    var foundCheckedRow = false;
+    try {
+      walkShadowLocal(document.documentElement, function (n) {
+        if (foundCheckedRow) return;
+        if (!n.getAttribute) return;
+        var kv = n.getAttribute('data-row-key-value');
+        if (!kv || kv.indexOf('500') !== 0) return;
+        var cb = n.querySelector && n.querySelector('input[type="checkbox"]');
+        if (cb && cb.checked) foundCheckedRow = true;
+      });
+    } catch (e) {}
+    if (foundCheckedRow) return 'mass';
+    // Last fallback: if the document title has an 8+ digit number, treat as single
+    if (document.title && /\d{8,}/.test(document.title)) return 'single';
+    return 'none';
   }
 
   function collectSelectedCasesFromDom() {
@@ -512,15 +539,26 @@
   }
 
   // ── Mass-mode handlers ───────────────────────────────────────────────────
-  function handleStartMass() {
-    var cases = collectSelectedCasesFromDom();
-    if (!cases.length) {
-      showWidgetToast('No cases selected. Check rows in the list, then Start.');
+  function handleStart() {
+    var mode = detectModeAtStart();
+    if (mode === 'single') {
+      state.mode = 'single';
+      handleStartCase();
       return;
     }
-    state.massCases = cases;
-    state.massSubState = 'confirm';
-    render();
+    if (mode === 'mass') {
+      var cases = collectSelectedCasesFromDom();
+      if (!cases.length) {
+        showWidgetToast('No cases selected. Check rows, then click Start.');
+        return;
+      }
+      state.mode = 'mass';
+      state.massCases = cases;
+      state.massSubState = 'confirm';
+      render();
+      return;
+    }
+    showWidgetToast('Open a Salesforce case or list view to start tracking.');
   }
 
   function handleConfirmMass() {
@@ -592,8 +630,8 @@
 
   // ── Render ───────────────────────────────────────────────────────────────
   function renderSingle() {
+    if (!state.caseNumber) { renderIdle(); return; }  // defensive
     var total    = state.stats.resolved + state.stats.reclass + state.stats.calls;
-    var isActive = !!state.caseNumber;
 
     var mLogo =
       '<div data-action="dashboard" title="Open Meridian Dashboard" style="' +
@@ -642,14 +680,13 @@
 
     // ── Minimized ────────────────────────────────────────────────────────────
     if (state.isMinimized) {
-      var minContent = isActive
-        ? '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
-          '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;margin-left:6px;">' + fmtTime(state.elapsed) + '</span>'
-        : '';
+      var minContent =
+        '<span style="color:#E8540A;font-family:monospace;font-weight:700;font-size:12px;">' + state.caseNumber + '</span>' +
+        '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;margin-left:6px;">' + fmtTime(state.elapsed) + '</span>';
       shadow.innerHTML =
         '<div id="ct-header" style="' + barStyle + '">' +
           mLogo +
-          (minContent ? '<div style="display:flex;align-items:center;flex-shrink:0;">' + minContent + '</div>' : '') +
+          '<div style="display:flex;align-items:center;flex-shrink:0;">' + minContent + '</div>' +
           spacer +
           minBtn + '\u25b2</button>' +
           closeBtn +
@@ -666,25 +703,6 @@
           'box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;' +
         '">' + state.toastMsg + '</div>'
       : '';
-
-    // ── Idle (no case) ───────────────────────────────────────────────────────
-    if (!isActive) {
-      shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
-          mLogo +
-          '<button data-action="startcase" style="' +
-            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
-            'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
-          '">Start Case</button>' +
-          divider +
-          statPills +
-          spacer +
-          minBtn + '\u25bc</button>' +
-          closeBtn +
-          toastHtml +
-        '</div>';
-      return;
-    }
 
     // ── Active (case loaded) ─────────────────────────────────────────────────
     var awaitBtn =
@@ -715,7 +733,92 @@
       '</div>';
   }
 
+  function renderIdle() {
+    var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
+
+    var mLogo =
+      '<div data-action="dashboard" title="Open Meridian Dashboard" style="' +
+        'width:28px;height:28px;border-radius:7px;background:#003087;' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'cursor:pointer;flex-shrink:0;' +
+      '"><img src="' + MERIDIAN_ICON_B64 + '" alt="Meridian" style="' +
+        'width:20px;height:20px;display:block;pointer-events:none;' +
+      '"/></div>';
+
+    var statPills =
+      '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + state.stats.resolved + ' Resolved</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + state.stats.reclass + ' Reclass</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + state.stats.calls + ' Calls</button>' +
+        '<button style="' +
+          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+        '">' + total + ' Total</button>' +
+      '</div>';
+
+    var divider = '<div style="width:1px;height:20px;background:rgba(255,255,255,0.1);flex-shrink:0;"></div>';
+    var spacer  = '<div style="flex:1;"></div>';
+    var minBtn  = '<button data-action="minimize" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:12px;cursor:pointer;padding:0 2px;flex-shrink:0;">';
+    var closeBtn =
+      '<button data-action="close" style="' +
+        'background:none;border:none;color:rgba(255,255,255,0.4);' +
+        'font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;' +
+      '">×</button>';
+
+    var barStyle =
+      'height:44px;background:' + T.bg + ';' +
+      'border:1px solid ' + T.border + ';border-radius:10px;' +
+      'display:flex;align-items:center;gap:6px;padding:0 10px;' +
+      'box-shadow:0 4px 16px rgba(0,0,0,0.4);' +
+      'font-family:' + T.font + ';cursor:move;user-select:none;';
+
+    var toastHtml = state.toastMsg
+      ? '<div style="' +
+          'position:absolute;bottom:-28px;left:50%;transform:translateX(-50%);' +
+          'background:#065f46;color:#fff;padding:4px 12px;border-radius:6px;' +
+          'font-size:11px;font-weight:600;white-space:nowrap;' +
+          'box-shadow:0 2px 8px rgba(0,0,0,0.3);pointer-events:none;' +
+        '">' + state.toastMsg + '</div>'
+      : '';
+
+    if (state.isMinimized) {
+      shadow.innerHTML =
+        '<div id="ct-header" style="' + barStyle + '">' +
+          mLogo +
+          spacer +
+          minBtn + '▲</button>' +
+          closeBtn +
+        '</div>';
+      return;
+    }
+
+    shadow.innerHTML =
+      '<div id="ct-header" style="position:relative;' + barStyle + '">' +
+        mLogo +
+        '<button data-action="start" style="' +
+          'height:26px;padding:0 12px;border-radius:6px;border:none;' +
+          'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+        '">Start</button>' +
+        divider +
+        statPills +
+        spacer +
+        minBtn + '▼</button>' +
+        closeBtn +
+        toastHtml +
+      '</div>';
+  }
+
   function renderMass() {
+    if (state.massSubState === 'idle') { renderIdle(); return; }  // defensive
     var total = state.stats.resolved + state.stats.reclass + state.stats.calls;
     var sub = state.massSubState;
     var n = state.massCases.length || state.massCount || 0;
@@ -786,29 +889,6 @@
           spacer +
           minBtn + '▲</button>' +
           closeBtn +
-        '</div>';
-      return;
-    }
-
-    // ── Sub-state: idle ──────────────────────────────────────────────────
-    if (sub === 'idle') {
-      var countBadge = n > 0
-        ? '<span style="color:#E8540A;font-weight:700;font-size:12px;flex-shrink:0;">' + n + ' Cases Selected</span>'
-        : '<span style="color:rgba(255,255,255,0.55);font-size:12px;flex-shrink:0;">Cases Selected</span>';
-      shadow.innerHTML =
-        '<div id="ct-header" style="position:relative;' + barStyle + '">' +
-          mLogo +
-          '<button data-action="start-mass" style="' +
-            'height:26px;padding:0 12px;border-radius:6px;border:none;' +
-            'background:#E8540A;color:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
-          '">Start</button>' +
-          countBadge +
-          divider +
-          statPills +
-          spacer +
-          minBtn + '▼</button>' +
-          closeBtn +
-          toastHtml +
         '</div>';
       return;
     }
@@ -913,7 +993,8 @@
 
   function render() {
     if (state.mode === 'mass') renderMass();
-    else renderSingle();
+    else if (state.mode === 'single') renderSingle();
+    else renderIdle();
   }
 
   // Initial render (stats show 0 until hydration completes)
@@ -940,7 +1021,7 @@
 
   // ── Expose refresh hook for double-injection guard ────────────────────────
   host._meridianRefresh = function (payload) {
-    if (payload && payload.mode) state.mode = payload.mode;
+
     if (payload && payload.caseNumber) {
       state.caseNumber  = payload.caseNumber;
       state.caseType    = payload.caseType    || '';
@@ -971,8 +1052,8 @@
     } else if (action === 'close') {
       stopTimer();
       host.remove();
-    } else if (action === 'startcase') {
-      handleStartCase();
+    } else if (action === 'start') {
+      handleStart();
     } else if (action === 'dismisscase') {
       handleDismissCase();
     } else if (action === 'resolve') {
@@ -992,8 +1073,6 @@
         stopTimer();
       }
       render();
-    } else if (action === 'start-mass') {
-      handleStartMass();
     } else if (action === 'cancel-mass') {
       handleCancelConfirm();
     } else if (action === 'confirm-mass') {

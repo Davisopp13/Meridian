@@ -5123,3 +5123,271 @@ Learnings for future iterations:
   - All 14 tasks on feat/unified-start-button are complete; PRD is fully done
   - Migration 022 must be applied manually by Davis before the mass-flow works in production
 ---
+
+## Iteration DAS-0 - Task 0 (Detect-at-Start PRD): Create feat/detect-at-start branch
+- Ran `git checkout -b feat/detect-at-start` from main (94cc98b)
+- Verified `git branch --show-current` returns `feat/detect-at-start`
+- Verified `git log --oneline -1` shows `94cc98b Merge fix/mass-mode-visual-parity into main`
+- Both tests pass
+
+Files changed:
+  PRD.md (Task 0 marked [x])
+
+Learnings for future iterations:
+  - This PRD lives in the current PRD.md (Meridian Unified Start — Detect-At-Click PRD)
+  - All commits use format: `detect-at-start: [task N] <short description>`
+  - Tasks 1-12 remain; next is Task 1 (remove detectMode from meridian-trigger.js)
+---
+
+## Iteration DAS-1 - Task 1 (Detect-at-Start PRD): Remove detectMode from meridian-trigger.js
+- Deleted entire `function detectMode() { ... }` block
+- Deleted `MERIDIAN_PAYLOAD.mode = detectMode();` line
+- Deleted `walkShadow` helper (was only used by detectMode)
+- Updated top-of-file comment block to remove `mode:` entry
+
+Files changed:
+  public/meridian-trigger.js (3 deletions + comment update)
+  PRD.md (Task 1 marked [x])
+
+Tests passed:
+  - node -c public/meridian-trigger.js → exit 0 ✓
+  - grep -c "function detectMode" → 0 ✓
+  - grep -c "MERIDIAN_PAYLOAD.mode" → 0 ✓
+  - wc -l → 110 (down from 149, 39 lines removed) ✓
+
+Learnings for future iterations:
+  - walkShadow in the trigger was solely used by detectMode; safe to delete both together
+  - The file now cleanly just: checks SF, checks relay, fetches widget, executes it
+  - Next task: Task 2 (change state.mode default to 'idle' in ct-widget.js)
+---
+
+## Iteration DAS-2 - Task 2 (Detect-at-Start PRD): Change state.mode default to 'idle'
+- Changed `mode: MERIDIAN_PAYLOAD.mode || 'single'` → `mode: 'idle'` (line 50)
+- Removed `mode:` from top-of-file MERIDIAN_PAYLOAD comment (line 4)
+- Removed `if (payload && payload.mode) state.mode = payload.mode;` from `_meridianRefresh` (line 943)
+
+Files changed:
+  public/ct-widget.js (3 targeted changes)
+  PRD.md (Task 2 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep mode:.*idle → 1 match at line 50 ✓
+  - grep MERIDIAN_PAYLOAD.mode → 0 matches ✓
+
+Learnings for future iterations:
+  - The bash `grep -c "mode: 'idle'"` returned 0 due to shell quoting; use the Grep tool with regex `mode:.*idle` instead
+  - _meridianRefresh is around line 942; the mode propagation line was the first line of the function body
+  - Next task: Task 3 (update render() dispatcher to route three modes)
+---
+
+## Iteration N - Task 3: Update render() dispatcher to route three modes
+- Changed render() from a two-way (mass | single) to a three-way dispatch:
+  if mass → renderMass(); else if single → renderSingle(); else → renderIdle()
+- renderIdle() does not exist yet — added in Task 4. The dispatcher is wired first per PRD order of operations.
+
+Files changed:
+  public/ct-widget.js (render() at line 914, 1-line change)
+  PRD.md (Task 3 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "renderIdle\|renderSingle\|renderMass" → 6 ✓
+
+Learnings for future iterations:
+  - render() is at line 914; grep found it instantly
+  - The grep count of 6 includes: dispatcher (3 references) + renderSingle declaration + renderMass declaration = 5 existing, plus the new renderIdle reference = 6 total (renderIdle declaration comes in Task 4)
+  - Next task: Task 4 (add renderIdle() function)
+---
+
+## Iteration DAS-4 - Task 4 (Detect-at-Start PRD): Add renderIdle() function
+- Inserted new `renderIdle()` function between `renderSingle()` (line 716) and `renderMass()` (line 718)
+- Stat pills have `cursor:default` and no `data-action` — display-only in idle state
+- Start button uses `data-action="start"` (unified), not "startcase"
+- Minimized branch shows only mLogo + spacer + minBtn + closeBtn (no case content)
+- Used Unicode literals ▲/▼ directly as ▲/▼ (same visual result)
+
+Files changed:
+  public/ct-widget.js (renderIdle function added, ~80 lines)
+  PRD.md (Task 4 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function renderIdle" → 1 ✓
+  - grep -c 'data-action="start"' → 1 ✓
+  - grep -c "renderIdle\|renderSingle\|renderMass" → 7 (≥6) ✓
+
+Learnings for future iterations:
+  - renderIdle sits between renderSingle and renderMass in the file
+  - The closeBtn in renderIdle uses the × character directly rather than × — both work, × is cleaner
+  - Next task: Task 5 (simplify renderSingle to handle only the active-case state — remove the !isActive idle branch)
+---
+
+## Iteration [detect-at-start] - Task 5: Simplify renderSingle() to active-case only
+- Added defensive guard `if (!state.caseNumber) { renderIdle(); return; }` at top of renderSingle()
+- Removed `var isActive = !!state.caseNumber;` declaration
+- Simplified minimized branch: removed ternary since caseNumber is always set; minContent now always shows case+timer
+- Removed the `if (!isActive)` idle branch entirely (15 lines deleted)
+
+Files changed:
+  public/ct-widget.js (renderSingle simplified, ~20 lines removed)
+  PRD.md (Task 5 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function renderSingle" → 1 ✓
+  - grep -c "if (!isActive)" → 0 ✓
+  - grep -c 'data-action="startcase"' → 0 ✓
+
+Learnings for future iterations:
+  - File has UTF-8 box-drawing characters in comment lines (──) that the Edit tool cannot match — use Python regex with re.DOTALL for deletions spanning these lines
+  - The Edit tool's unicode swap logic handles \uXXXX ↔ actual char but NOT multi-byte UTF-8 sequences embedded in strings
+  - Next task: Task 6 (remove renderMass's idle sub-state)
+---
+
+## Iteration [detect-at-start] - Task 6: Remove renderMass idle sub-state
+- Added defensive fallback at top of renderMass(): `if (state.massSubState === 'idle') { renderIdle(); return; }`
+- Removed entire `if (sub === 'idle')` block (23 lines): the "N Cases Selected" badge, the start-mass button, and the count badge logic
+- renderMass() now only handles: confirm, submitting, success, error, and the generic minimized branch
+
+Files changed:
+  public/ct-widget.js (renderMass simplified, 23 lines removed + 1 added)
+  PRD.md (Task 6 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function renderMass" → 1 ✓
+  - grep -c 'data-action="start-mass"' → 0 ✓
+  - grep -c "Cases Selected" → 0 ✓
+
+Learnings for future iterations:
+  - The Edit tool handled multi-line UTF-8 comment blocks correctly in this case (used plain ASCII in the deleted block)
+  - Next task: Task 7 (add detectModeAtStart() function)
+---
+
+## Iteration [7-Task] - Task 7: Add detectModeAtStart() function
+- Inserted `detectModeAtStart()` between `walkShadowLocal` and `collectSelectedCasesFromDom` at line 245 of public/ct-widget.js
+- Function returns 'single' for /lightning/r/Case/ URLs, 'mass' for /lightning/o/Case/list URLs
+- Fallback: walks shadow DOM for checked case rows (mass), then checks document.title for 8+ digit number (single), else 'none'
+
+Files changed:
+  public/ct-widget.js (new function inserted)
+  PRD.md (Task 7 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function detectModeAtStart" → 1 ✓
+
+Learnings for future iterations:
+  - Insertion point between walkShadowLocal (line 232) and collectSelectedCasesFromDom (line 245)
+  - Next task: Task 8 (add handleStart() dispatcher)
+---
+
+## Iteration [8-Task] - Task 8: Add handleStart() dispatcher
+- Inserted `handleStart()` between `handleStartMass` and `handleConfirmMass` in public/ct-widget.js
+- Function calls detectModeAtStart(), dispatches to handleStartCase() for 'single', collects cases and transitions to mass confirm for 'mass', shows toast for 'none'
+- Sets state.mode = 'single' before calling handleStartCase() so render() picks the right branch
+
+Files changed:
+  public/ct-widget.js (new function inserted)
+  PRD.md (Task 8 marked [x])
+
+Tests passed:
+  - node -c public/ct-widget.js → exit 0 ✓
+  - grep -c "function handleStart\b" → 1 ✓
+  - grep -c "function handleStart|function handleStartCase|function handleStartMass" → 3 ✓
+
+Learnings for future iterations:
+  - handleStart() was inserted between handleStartMass (line 551) and handleConfirmMass
+  - Next task: Task 9 (delete handleStartMass as dead code)
+---
+---
+
+## Iteration N - Task 9: Delete now-dead handleStartMass
+- Removed `function handleStartMass()` block (was lines 542-551, 10 lines)
+- Also removed the `action === 'start-mass'` caller from event delegation (Task 9 tests require zero references to handleStartMass, so the caller had to go here)
+
+Files changed:
+  public/ct-widget.js (handleStartMass function + caller removed)
+  PRD.md (Task 9 marked [x])
+
+Tests passed:
+  - grep -c "function handleStartMass" → 0 ✓
+  - grep -c "handleStartMass" → 0 ✓
+  - node -c public/ct-widget.js → exit 0 ✓
+
+Learnings for future iterations:
+  - The 'start-mass' event delegation branch was the only caller of handleStartMass — removing both together satisfied Task 9's grep-c "handleStartMass" === 0 requirement
+  - Task 10 still needs to add 'start' action routing and verify 'startcase'/'start-mass' are gone; the latter is already gone after Task 9
+
+## Iteration N - Task 10: Update event delegation to route data-action="start" to handleStart
+- Replaced `action === 'startcase'` branch (calling handleStartCase) with `action === 'start'` branch (calling handleStart)
+- No `action === 'start-mass'` existed (was already removed in Task 9 iteration)
+
+Files changed:
+  public/ct-widget.js (event delegation updated at line ~1055)
+  PRD.md (Task 10 marked [x])
+
+Tests passed:
+  - grep -c "action === 'start'" → 1 ✓
+  - grep -c "action === 'startcase'" → 0 ✓
+  - grep -c "action === 'start-mass'" → 0 ✓
+  - grep -cE mass sub-state actions → 4 ✓
+  - node -c public/ct-widget.js → syntax ok ✓
+
+Learnings for future iterations:
+  - start-mass was already gone from Task 9; Task 10 only needed to swap startcase → start
+  - Next tasks: Task 11 (verification), Task 12 (commit summary)
+---
+
+## Iteration N - Task 11: Run the full test matrix
+- Ran full verification suite for feat/detect-at-start branch
+- Build: `npx vite build` — ✓ built in 1.36s, 0 errors
+- Syntax: `node -c public/ct-widget.js` and `node -c public/meridian-trigger.js` — both OK
+- Relay untouched: `git diff --stat public/meridian-relay.html` — empty (no output)
+- Scope: `git diff --stat main...HEAD` — only 4 files: PRD.md, progress.txt, public/ct-widget.js, public/meridian-trigger.js
+
+Files changed:
+  PRD.md (Task 11 marked [x])
+  progress.txt (this entry)
+
+Learnings for future iterations:
+  - Verification tasks: run commands, record output, mark done if all pass
+  - All detect-at-start tasks (1-11) now verified; Task 12 is the summary commit
+---
+
+## Iteration DAS-12 - Task 12: Commit summary
+
+### Detect-at-Start — final commits
+dd9fbcd detect-at-start: [task 0] create feat/detect-at-start branch
+e440aca detect-at-start: [task 1] remove detectMode from meridian-trigger.js
+73bcc92 detect-at-start: [task 2] change state.mode default to 'idle', strip payload.mode from refresh
+3b6ee7e detect-at-start: [task 3] update render() dispatcher to three-way mode routing
+e76c352 detect-at-start: [task 4] add renderIdle() as the neutral pre-Start bar
+7cf768d detect-at-start: [task 5] simplify renderSingle() to active-case state only
+0c0bf17 detect-at-start: [task 6] remove renderMass idle sub-state
+dd1916a detect-at-start: [task 7] add detectModeAtStart() helper
+89b36e8 detect-at-start: [task 8] add handleStart() dispatcher
+34b8eb7 detect-at-start: [task 9] delete now-dead handleStartMass
+dcbe16a detect-at-start: [task 10] route data-action=start to handleStart in event delegation
+f17b2ea detect-at-start: [task 11] run full test matrix — build, syntax, relay, scope all pass
+
+### Davis: manual steps
+1. Review `git diff main...feat/detect-at-start`.
+2. Push branch: `git push -u origin feat/detect-at-start`
+3. Open PR, merge. Vercel auto-deploys. Hard-refresh SF tab.
+4. Test Scenario A: On a case record page, click bookmarklet → widget appears with Start button. Click Start → single-case timer starts with case populated. Verify `ct_cases` row has case_type, case_subtype, sf_case_id, account_id.
+5. Test Scenario B: On a case list view with 3 rows checked, click bookmarklet → widget appears with Start button (same appearance as Scenario A). Click Start → confirm panel expands showing 3 case numbers. Confirm → success state.
+6. Test Scenario C (mode switch): widget open in mass-confirm state → click Cancel to return to idle → navigate to a case record page → click Start → single-case timer starts. No close-and-reopen needed.
+7. Test Scenario D (empty list): On a list view with 0 rows checked, click bookmarklet → widget appears. Click Start → toast: "No cases selected. Check rows, then click Start." Widget stays in idle.
+8. Test Scenario E (unrecognized page): On an account page or random SF page, click bookmarklet → widget appears. Click Start → toast: "Open a Salesforce case or list view to start tracking." Widget stays in idle.
+
+Files changed:
+  PRD.md (Task 12 marked [x])
+  progress.txt (this entry)
+
+Learnings for future iterations:
+  - All detect-at-start tasks (0-12) are complete — PRD is fully done
+  - No migration needed for this branch (pure client JS refactor)
+  - The two changed files are public/ct-widget.js and public/meridian-trigger.js
+---
