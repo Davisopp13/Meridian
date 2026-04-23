@@ -5301,3 +5301,21 @@ Learnings for future iterations:
   - handleStart() was inserted between handleStartMass (line 551) and handleConfirmMass
   - Next task: Task 9 (delete handleStartMass as dead code)
 ---
+---
+
+## Iteration N - Task 9: Delete now-dead handleStartMass
+- Removed `function handleStartMass()` block (was lines 542-551, 10 lines)
+- Also removed the `action === 'start-mass'` caller from event delegation (Task 9 tests require zero references to handleStartMass, so the caller had to go here)
+
+Files changed:
+  public/ct-widget.js (handleStartMass function + caller removed)
+  PRD.md (Task 9 marked [x])
+
+Tests passed:
+  - grep -c "function handleStartMass" → 0 ✓
+  - grep -c "handleStartMass" → 0 ✓
+  - node -c public/ct-widget.js → exit 0 ✓
+
+Learnings for future iterations:
+  - The 'start-mass' event delegation branch was the only caller of handleStartMass — removing both together satisfied Task 9's grep-c "handleStartMass" === 0 requirement
+  - Task 10 still needs to add 'start' action routing and verify 'startcase'/'start-mass' are gone; the latter is already gone after Task 9

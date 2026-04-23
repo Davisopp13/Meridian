@@ -331,7 +331,7 @@ src/components/onboarding/Step3Bookmarklet.jsx — bookmarklet HREF stays as-is
   - Test: `grep -c "function handleStart\|function handleStartCase\|function handleStartMass" public/ct-widget.js` returns at least `3`.
   - Test: `node -c public/ct-widget.js` exits 0.
 
-- [ ] **Task 9: Delete now-dead handleStartMass**
+- [x] **Task 9: Delete now-dead handleStartMass**
   - Remove the `function handleStartMass()` declaration and body. `handleStart` does its job now; `handleStartMass` has no callers.
   - Test: `grep -c "function handleStartMass" public/ct-widget.js` returns `0`.
   - Test: `grep -c "handleStartMass" public/ct-widget.js` returns `0` (no callers remain).

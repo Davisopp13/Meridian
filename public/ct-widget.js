@@ -539,17 +539,6 @@
   }
 
   // ── Mass-mode handlers ───────────────────────────────────────────────────
-  function handleStartMass() {
-    var cases = collectSelectedCasesFromDom();
-    if (!cases.length) {
-      showWidgetToast('No cases selected. Check rows in the list, then Start.');
-      return;
-    }
-    state.massCases = cases;
-    state.massSubState = 'confirm';
-    render();
-  }
-
   function handleStart() {
     var mode = detectModeAtStart();
     if (mode === 'single') {
@@ -1084,8 +1073,6 @@
         stopTimer();
       }
       render();
-    } else if (action === 'start-mass') {
-      handleStartMass();
     } else if (action === 'cancel-mass') {
       handleCancelConfirm();
     } else if (action === 'confirm-mass') {
