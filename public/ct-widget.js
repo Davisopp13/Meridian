@@ -284,8 +284,21 @@
     return cases;
   }
 
+  // True if href points to the specific case identified by sfCaseId.
+  // Accepts both Salesforce URL forms:
+  //   /lightning/r/Case/<sfCaseId>/... (long form)
+  //   /lightning/r/<sfCaseId>/...       (short form)
+  // Short-form match requires a trailing slash to prevent partial-ID false matches.
+  function hrefMatchesCase(href, sfCaseId) {
+    if (!href || !sfCaseId) return false;
+    var longForm = '/lightning/r/Case/' + sfCaseId;
+    if (href.indexOf(longForm) !== -1) return true;
+    var shortForm = '/lightning/r/' + sfCaseId + '/';
+    if (href.indexOf(shortForm) !== -1) return true;
+    return false;
+  }
+
   // Cascade extractor — tries three methods in order, returns first success.
-  // `row` is the <tr> element; `sfCaseId` is the 500... ID from data-row-key-value.
   function extractCaseNumberFromRow(row, sfCaseId) {
     // Method 1 (legacy): th[data-label="Case Number"] with deep-walked title
     var caseCell = row.querySelector && row.querySelector('th[data-label="Case Number"]');
@@ -300,31 +313,23 @@
       if (found) return found;
     }
 
-    // Method 2 (new): find an <a> with href matching the row's specific case, read title
+    // Method 2 (new): find an <a> whose href matches THIS row's case, read its title
     var foundTitle = null;
     walkShadowLocal(row, function (inner) {
       if (foundTitle) return;
       if (inner.tagName !== 'A' || !inner.getAttribute) return;
-      var href = inner.getAttribute('href') || '';
-      if (href.indexOf('/lightning/r/Case/' + sfCaseId) !== 0 &&
-          href.indexOf('/lightning/r/Case/' + sfCaseId + '/') === -1) {
-        return;
-      }
+      if (!hrefMatchesCase(inner.getAttribute('href'), sfCaseId)) return;
       var t = inner.getAttribute('title');
       if (t && /^\d{8,}$/.test(t)) foundTitle = t;
     });
     if (foundTitle) return foundTitle;
 
-    // Method 3 (new): same href match, but read textContent
+    // Method 3 (new): same href match, but read textContent instead of title
     var foundText = null;
     walkShadowLocal(row, function (inner) {
       if (foundText) return;
       if (inner.tagName !== 'A' || !inner.getAttribute) return;
-      var href = inner.getAttribute('href') || '';
-      if (href.indexOf('/lightning/r/Case/' + sfCaseId) !== 0 &&
-          href.indexOf('/lightning/r/Case/' + sfCaseId + '/') === -1) {
-        return;
-      }
+      if (!hrefMatchesCase(inner.getAttribute('href'), sfCaseId)) return;
       var text = (inner.textContent || '').trim();
       if (/^\d{8,}$/.test(text)) foundText = text;
     });
