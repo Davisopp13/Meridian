@@ -39,6 +39,7 @@ function normalizeCaseEvent(row) {
     category: '',
     dur: row.ct_cases?.duration_s || 0,
     rfc: row.rfc || false,
+    note: row.note ?? null,
     ts: new Date(row.timestamp || row.created_at),
   };
 }
@@ -59,6 +60,7 @@ function normalizeMplEntry(row) {
     dur: (row.minutes || 0) * 60,
     minutes: row.minutes || 0,
     rfc: false,
+    note: row.note ?? null,
     ts: new Date(row.created_at),
   };
 }
@@ -86,12 +88,12 @@ export function useActivityData({ userId, userIds, rangeDays }) {
     const [caseResult, mplResult] = await Promise.all([
       supabase
         .from('case_events')
-        .select('id, user_id, type, rfc, timestamp, session_id, sf_case_id')
+        .select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, note')
         .in('user_id', resolvedIds)
         .gte('timestamp', cutoff.toISOString()),
       supabase
         .from('mpl_entries')
-        .select('id, user_id, minutes, created_at, category_id, subcategory_id, mpl_categories(name)')
+        .select('id, user_id, minutes, created_at, category_id, subcategory_id, mpl_categories(name), note')
         .in('user_id', resolvedIds)
         .gte('created_at', cutoff.toISOString()),
     ]);

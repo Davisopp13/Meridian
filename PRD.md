@@ -293,7 +293,7 @@ Vanilla JS. The widget's state object is initialized at the top of the file. The
 
 ### Phase 5: Display — ActivityLog
 
-- [ ] **Task 9: Update `useActivityData.js` to select and map `note`**
+- [x] **Task 9: Update `useActivityData.js` to select and map `note`**
   - File: `src/hooks/useActivityData.js`
   - In the `case_events` select (line ~89), append `, note` to the column list: `.select('id, user_id, type, rfc, timestamp, session_id, sf_case_id, note')`.
   - In the `mpl_entries` select (line ~94), append `, note`: `.select('id, user_id, minutes, created_at, category_id, subcategory_id, mpl_categories(name), note')`.
