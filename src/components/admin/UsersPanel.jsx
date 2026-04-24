@@ -19,7 +19,7 @@ function Spinner() {
 }
 
 export default function UsersPanel({ user, profile }) {
-  const { users, loading, error, refetch, updateRole, updateTeam, updateName } = useAdminUsers();
+  const { users, teams, loading, error, refetch, updateRole, updateTeam, updateName } = useAdminUsers();
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const debounceRef = useRef(null);
@@ -39,16 +39,11 @@ export default function UsersPanel({ user, profile }) {
     debounceRef.current = setTimeout(() => setSearch(val), 200);
   }
 
-  // Derive all unique teams from users for the dropdown (includes active flag for filtering)
+  // Canonical teams list from the teams table, sorted by name.
+  // UserRow receives { id, name, active }; extra fields are ignored.
   const allTeams = useMemo(() => {
-    const map = new Map();
-    users.forEach(u => {
-      if (u.team && u.team.id) {
-        map.set(u.team.id, { id: u.team.id, name: u.team.name, active: u.team.active });
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [users]);
+    return [...teams].sort((a, b) => a.name.localeCompare(b.name));
+  }, [teams]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return users;

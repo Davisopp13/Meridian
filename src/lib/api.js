@@ -329,6 +329,14 @@ export async function updatePlatformUserName({ userId, fullName }) {
   return supabase.from('platform_users').update({ full_name: fullName }).eq('id', userId)
 }
 
+// RLS: admins only (migration 011 required). Returns all teams (active + inactive) for admin dropdowns.
+export async function fetchAllTeams() {
+  return supabase
+    .from('teams')
+    .select('id, name, active, haulage_type, department_id')
+    .order('name')
+}
+
 // RLS: admins only (migration 011 required)
 export async function fetchAllDepartmentsWithTeams() {
   return supabase

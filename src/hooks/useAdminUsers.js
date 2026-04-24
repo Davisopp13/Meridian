@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchAllPlatformUsers,
+  fetchAllTeams,
   updatePlatformUserRole,
   updatePlatformUserTeam,
   updatePlatformUserName,
@@ -8,6 +9,7 @@ import {
 
 export function useAdminUsers() {
   const [users, setUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [tick, setTick] = useState(0);
@@ -19,15 +21,21 @@ export function useAdminUsers() {
     setLoading(true);
     setError(null);
 
-    fetchAllPlatformUsers().then(({ data, error: err }) => {
+    Promise.all([fetchAllPlatformUsers(), fetchAllTeams()]).then(([usersRes, teamsRes]) => {
       if (cancelled) return;
-      if (err) {
-        setError(err);
+      if (usersRes.error) {
+        setError(usersRes.error);
         setLoading(false);
-      } else {
-        setUsers(data || []);
-        setLoading(false);
+        return;
       }
+      if (teamsRes.error) {
+        setError(teamsRes.error);
+        setLoading(false);
+        return;
+      }
+      setUsers(usersRes.data || []);
+      setTeams(teamsRes.data || []);
+      setLoading(false);
     });
 
     return () => { cancelled = true; };
@@ -68,5 +76,5 @@ export function useAdminUsers() {
     return null;
   }, [users]);
 
-  return { users, loading, error, refetch, updateRole, updateTeam, updateName };
+  return { users, teams, loading, error, refetch, updateRole, updateTeam, updateName };
 }
