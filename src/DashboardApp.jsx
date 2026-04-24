@@ -12,7 +12,7 @@ import AuthScreen from './components/auth/AuthScreen.jsx'
 import MplPipBar from './mpl/MplPipBar.jsx'
 import { PipErrorBoundary } from './components/PipErrorBoundary.jsx'
 
-const STAT_BUTTONS = ['processes', 'total']
+const STAT_BUTTONS = []  // stat tray merged into action row
 const SWIMLANE_H = 220
 
 export default function DashboardApp() {
@@ -41,7 +41,11 @@ export default function DashboardApp() {
   } = usePipWindow()
 
   // ── Stats (for processCount badge in MPL bar) ───────────────────────────
-  const { processes: processCount, calls: callsCount, refetch } = useStats()
+  const stats = useStats()
+  const processCount = stats.processes || 0
+  const callsCount = stats.calls || 0
+  const totalActivity = (stats.resolved || 0) + (stats.reclass || 0) + (stats.calls || 0) + (stats.processes || 0)
+  const refetch = stats.refetch
 
   // ── Refs ────────────────────────────────────────────────────────────────
   const processTimers = useRef({})
@@ -201,6 +205,7 @@ export default function DashboardApp() {
         quickLogOpen={quickLogOpen}
         onToggleSwimlane={handleToggleSwimlane}
         processCount={processCount}
+        totalActivity={totalActivity}
         onOpenDashboard={handleOpenDashboard}
         onStart={handleStart}
         onQuickLog={handleQuickLog}

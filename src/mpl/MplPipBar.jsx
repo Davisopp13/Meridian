@@ -18,7 +18,7 @@ const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: 
  *   chipStripProcessId   — string|null — process ID whose chip strip is showing
  *   processCount         — number (today's completed processes)
  *   onOpenDashboard      — click M° logo
- *   onStart              — add a new timer (▶ Open when idle, + Add when active)
+ *   onStart              — add a new timer (idle: Processes button; active: + Add)
  *   onQuickLog           — open manual entry
  *   onConfirmProcess(id, categoryId, subcategoryId, durationSeconds) — log a process
  *   onCancelProcess(id)  — discard a process
@@ -40,7 +40,7 @@ export default function MplPipBar({
   swimlaneOpen = false,
   chipStripProcessId = null,
   onToggleSwimlane,
-  processCount = 0,
+  totalActivity = 0,
   onOpenDashboard,
   onStart,
   onQuickLog,
@@ -138,11 +138,12 @@ export default function MplPipBar({
                 onClick={() => onStart && onStart()}
                 style={{
                   height: 28, padding: '0 14px', borderRadius: 14,
-                  background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.3)',
-                  color: '#60a5fa', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                  background: '#3b82f6', border: 'none',
+                  color: '#fff', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
-                ▶ Open
+                {totalActivity} Processes
               </button>
               <button
                 onClick={() => onQuickLog && onQuickLog()}
@@ -231,27 +232,6 @@ export default function MplPipBar({
               </button>
             </>
           )}
-        </div>
-
-        {divider}
-
-        {/* Process count stat */}
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', minWidth: 40, flexShrink: 0,
-        }}>
-          <span style={{
-            fontSize: 14, fontWeight: 700, color: '#60a5fa',
-            lineHeight: 1,
-          }}>
-            {processCount}
-          </span>
-          <span style={{
-            fontSize: 9, fontWeight: 600, color: 'var(--text-dim)',
-            textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 1,
-          }}>
-            Done
-          </span>
         </div>
 
         {divider}

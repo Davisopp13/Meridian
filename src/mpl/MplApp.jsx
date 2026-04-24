@@ -16,7 +16,7 @@ import { getMplSizeForState, getMplBarWidth } from '../lib/constants.js'
 // ── Widget mode detection ──────────────────────────────────────────────────
 const isMplWidget = new URLSearchParams(window.location.search).get('mode') === 'mpl-widget'
 
-const STAT_BUTTONS = ['processes', 'total']
+const STAT_BUTTONS = []  // stat tray merged into action row
 const SWIMLANE_H = 220   // px — tray height below the bar row
 
 export default function MplApp() {
@@ -42,7 +42,11 @@ export default function MplApp() {
   const recoveryCheckedRef = useRef(false)
 
   // ── Stats ──────────────────────────────────────────────────────────────
-  const { processes: processCount, calls: callsCount, refetch } = useStats()
+  const stats = useStats()
+  const processCount = stats.processes || 0
+  const callsCount = stats.calls || 0
+  const totalActivity = (stats.resolved || 0) + (stats.reclass || 0) + (stats.calls || 0) + (stats.processes || 0)
+  const refetch = stats.refetch
 
   // ── Refs ──────────────────────────────────────────────────────────────
   const processTimers = useRef({})  // { [id]: intervalId }
@@ -595,6 +599,7 @@ export default function MplApp() {
           onToggleSwimlane={handleToggleSwimlane}
           processCount={processCount}
           callsCount={callsCount}
+          totalActivity={totalActivity}
           onOpenDashboard={handleOpenDashboard}
           onStart={handleStart}
           onCallLog={handleCallLog}
