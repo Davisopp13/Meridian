@@ -5,7 +5,6 @@ import ManualEntryForm from '../components/ManualEntryForm.jsx'
 import ProcessPicker from '../components/overlays/ProcessPicker.jsx'
 import RecoveryPrompt from './RecoveryPrompt.jsx'
 
-const CONNECTION_COLORS = { connected: '#4ade80', degraded: '#fbbf24', offline: '#f87171' }
 
 /**
  * MplPipBar — MPL widget bar (processes only).
@@ -57,7 +56,7 @@ export default function MplPipBar({
   onMinimize,
   onRestore,
   isMinimized = false,
-  connectionStatus = 'connected',
+  connectionStatus = 'connected', // unused — preserved for future connection-indicator work
   pipToast = null,
   recoveredProcesses = [],
   onRecoveryResume,
@@ -65,7 +64,6 @@ export default function MplPipBar({
   onRecoveryDiscard,
   children,
 }) {
-  const connDotColor = CONNECTION_COLORS[connectionStatus] || '#4ade80'
   const hasProcesses = processes.length > 0
   const runningCount = processes.filter(p => !p.paused).length
 
@@ -94,7 +92,6 @@ export default function MplPipBar({
             {processes.length} timer{processes.length > 1 ? 's' : ''}
           </span>
         )}
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
       </div>
     )
   }
@@ -138,7 +135,7 @@ export default function MplPipBar({
                 onClick={() => onStart && onStart()}
                 style={{
                   height: 28, padding: '0 14px', borderRadius: 14,
-                  background: '#3b82f6', border: 'none',
+                  background: '#60a5fa', border: 'none',
                   color: '#fff', fontSize: 11, fontWeight: 700,
                   cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
@@ -159,7 +156,7 @@ export default function MplPipBar({
                 onClick={() => onCallLog && onCallLog()}
                 style={{
                   height: 28, padding: '0 14px', borderRadius: 14,
-                  background: '#3b82f6', border: 'none',
+                  background: '#0d9488', border: 'none',
                   color: '#fff', fontSize: 11, fontWeight: 700,
                   cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
@@ -223,7 +220,7 @@ export default function MplPipBar({
                 onClick={() => onCallLog && onCallLog()}
                 style={{
                   height: 26, padding: '0 14px', borderRadius: 13,
-                  background: '#3b82f6', border: 'none',
+                  background: '#0d9488', border: 'none',
                   color: '#fff', fontSize: 11, fontWeight: 700,
                   cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
@@ -235,8 +232,6 @@ export default function MplPipBar({
         </div>
 
         {divider}
-
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: connDotColor, flexShrink: 0 }} />
 
         <button
           onClick={() => onMinimize && onMinimize()}

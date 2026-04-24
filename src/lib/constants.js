@@ -129,13 +129,13 @@ export const MPL_HEIGHTS = {
 }
 
 export const MPL_STATE_BASE_WIDTHS = {
-  idle: 320,
-  timerActive: 320,
-  chipStrip: 320,
-  quickLog: 320,
-  quickLogDuration: 320,
-  categoryPicker: 320,
-  manualEntry: 320,
+  idle: 380,
+  timerActive: 380,
+  chipStrip: 380,
+  quickLog: 380,
+  quickLogDuration: 380,
+  categoryPicker: 380,
+  manualEntry: 380,
 }
 
 export const MPL_STAT_BUTTON_WIDTHS = {
