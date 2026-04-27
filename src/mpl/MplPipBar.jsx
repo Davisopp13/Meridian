@@ -40,6 +40,7 @@ export default function MplPipBar({
   chipStripProcessId = null,
   onToggleSwimlane,
   totalActivity = 0,
+  processCount = 0,
   onOpenDashboard,
   onStart,
   onQuickLog,
@@ -140,7 +141,7 @@ export default function MplPipBar({
                   cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
                 }}
               >
-                {totalActivity} Processes
+                {processCount} Processes
               </button>
               <button
                 onClick={() => onQuickLog && onQuickLog()}
