@@ -70,6 +70,7 @@
     massCountdown:       10,
     massCountdownTimer:  null,
     note:                '',
+    relayDeadWarned:     false,
   };
 
   // ── Host element + Shadow DOM ────────────────────────────────────────────
@@ -148,9 +149,31 @@
   }
 
   // ── Relay communication helpers ──────────────────────────────────────────
+  function isRelayAlive(relay) {
+    if (!relay) return false;
+    try {
+      if (!relay.window) return false;
+      if (relay.closed === true) return false;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function checkRelay(reject) {
+    if (isRelayAlive(state.relay)) return true;
+    state.relay = null;
+    if (!state.relayDeadWarned) {
+      state.relayDeadWarned = true;
+      showWidgetToast('Meridian disconnected — re-click bookmarklet');
+    }
+    reject(new Error('Relay disconnected'));
+    return false;
+  }
+
   function relayPost(table, body) {
     return new Promise(function (resolve, reject) {
-      if (!state.relay) { reject(new Error('No relay')); return; }
+      if (!checkRelay(reject)) return;
       var msgId = 'ct_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
       var timeoutId;
       function onResponse(e) {
@@ -177,7 +200,7 @@
 
   function relayGet(table, query, token) {
     return new Promise(function (resolve, reject) {
-      if (!state.relay) { reject(new Error('No relay')); return; }
+      if (!checkRelay(reject)) return;
       var msgId = 'ct_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
       var timeoutId;
       function onResponse(e) {
@@ -204,7 +227,7 @@
 
   function relayRpc(fnName, args) {
     return new Promise(function (resolve, reject) {
-      if (!state.relay) { reject(new Error('No relay available')); return; }
+      if (!checkRelay(reject)) return;
       var id = 'rpc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
       var timeoutId;
       function onResponse(e) {
@@ -842,13 +865,15 @@
 
     var statPills =
       '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
-        '<button style="' +
+        '<button disabled style="' +
           'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-          'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+          'background:#22c55e;color:#fff;font-size:11px;font-weight:700;' +
+          'opacity:0.55;cursor:not-allowed;' +
         '">' + state.stats.resolved + ' Resolved</button>' +
-        '<button style="' +
+        '<button disabled style="' +
           'height:26px;padding:0 10px;border-radius:6px;border:none;' +
-          'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
+          'background:#ef4444;color:#fff;font-size:11px;font-weight:700;' +
+          'opacity:0.55;cursor:not-allowed;' +
         '">' + state.stats.reclass + ' Reclass</button>' +
         '<button data-action="call" style="' +
           'height:26px;padding:0 10px;border-radius:6px;border:none;' +
@@ -1116,6 +1141,10 @@
 
   // ── Expose refresh hook for double-injection guard ────────────────────────
   host._meridianRefresh = function (payload) {
+    if (payload && payload.relayFrame) {
+      state.relay = payload.relayFrame;
+      state.relayDeadWarned = false;
+    }
 
     if (payload && payload.caseNumber) {
       state.caseNumber  = payload.caseNumber;
