@@ -12,3 +12,5 @@ dist/
 
 # Local reference artifacts
 meridian-roadmap.html
+graphify-out/
+.DS_Store
