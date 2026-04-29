@@ -47,9 +47,6 @@ export default function CasePill({
       >
         <span style={{ color: C.activeDot, animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }}>●</span>
         <span>{caseNumber}</span>
-        <span style={{ color: C.textSec, fontVariantNumeric: 'tabular-nums' }}>
-          {formatElapsed(elapsed)}
-        </span>
         <button
           onClick={(e) => { e.stopPropagation(); onPause && onPause(); }}
           style={{
@@ -58,6 +55,9 @@ export default function CasePill({
           }}
           title="Pause (agent stepped away)"
         >⏸</button>
+        <span style={{ color: C.textSec, fontVariantNumeric: 'tabular-nums' }}>
+          {formatElapsed(elapsed)}
+        </span>
         <button
           onClick={(e) => { e.stopPropagation(); onClose && onClose(); }}
           style={{
