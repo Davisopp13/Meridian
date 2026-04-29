@@ -45,3 +45,42 @@ Required entries per PRD §8:
   - Any ambiguity-driven decisions (so Davis can review)
   - Any blockers — STOP if blocked, do not guess]
 
+## Iteration 1 - Wave 1A: Case-pause cleanup (CT)
+- Implemented full Wave 1A: separate Pause from Awaiting as distinct, independent states
+- No migration needed: ct_cases.status is text/varchar (confirmed by absence of enum in migrations)
+- Files changed:
+  - src/ct/CtApp.jsx
+  - src/ct/CtPipBar.jsx
+  - src/components/MinimizedStrip.jsx
+  - PRD.md (marked Wave 1A tasks complete)
+- What was implemented:
+  - restoreCaseFromRow: now handles status='paused' → {paused:true, awaiting:false};
+    uses stored duration_s for paused cases (avoids wall-clock overcount after resume)
+  - handleTruePauseCase: writes status:'paused', persists duration_s=c.elapsed, stops timer
+  - handleResumeFromPauseCase: writes status:'active', clears flags, starts timer
+  - handleAwaitingCase (renamed from handlePauseCase): writes status:'awaiting',
+    sets {paused:false, awaiting:true} — flags are now independent
+  - handleResumeAwaitingCase (renamed from handleResumeCase): clears both flags, starts timer
+  - handleResumeCase: smart router — delegates to awaiting or pause handler by case state
+    (kept so SwimlaneTray's onResumeCase prop still works without touching out-of-scope file)
+  - Deleted duplicate handleAwaitingCase that was at old line 868
+  - MinimizedStrip: two buttons (⏸ Pause + ⏳/Clock Awaiting), each with title tooltip
+    Pause button: green when paused (shows ▶), white when active (shows ⏸)
+    Awaiting button: amber when awaiting (shows ▶), white when active (shows ⏳)
+  - CtPipBar: passes onAwaitingCase + onResumeAwaitingCase to MinimizedStrip
+- Decisions made (for Davis review):
+  - handleTruePauseCase writes duration_s=c.elapsed so elapsed survives tab close while paused.
+    The restoreCaseFromRow then uses duration_s directly for paused cases (no timestamp math).
+    This avoids needing a new paused_since column. PRD said "no migration if text column" and
+    did not mention a new column for paused state, so this is the minimal approach.
+  - handleResumeCase is kept as a smart router (not renamed) so SwimlaneTray's onResumeCase
+    prop keeps working without touching SwimlaneTray.jsx (which is out of PRD scope §7).
+  - Mutual exclusion: both handlers clear the other flag before setting their own.
+    e.g. handleTruePauseCase sets {paused:true, awaiting:false}.
+- Build: npm run build passes clean (✓ 2518 modules, 1.45s)
+- Learnings for future iterations:
+  - ct_cases.status is a plain text column; no migration needed to add 'paused' value
+  - SwimlaneTray.jsx is out-of-scope per §7 — work around it with smart-router pattern
+  - PillZone.jsx already had onAwaitingCase wired; no changes needed there
+---
+
