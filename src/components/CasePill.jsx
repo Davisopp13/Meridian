@@ -51,6 +51,14 @@ export default function CasePill({
           {formatElapsed(elapsed)}
         </span>
         <button
+          onClick={(e) => { e.stopPropagation(); onPause && onPause(); }}
+          style={{
+            background: 'none', border: 'none', color: C.textSec,
+            fontSize: 12, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
+          }}
+          title="Pause (agent stepped away)"
+        >⏸</button>
+        <button
           onClick={(e) => { e.stopPropagation(); onClose && onClose(); }}
           style={{
             background: 'none', border: 'none', color: C.textSec,
