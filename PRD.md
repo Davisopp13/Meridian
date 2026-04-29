@@ -231,12 +231,12 @@ If read sites exist, audit them for non-zero handling. If unclear, use a new col
 **Wave 1B — Multicase UX:**
 - [x] Bookmarklet on tab 2 with case A active adds case B as second active case. Focus shifts to B. A keeps ticking.
 - [x] Bookmarklet on tab 2 with case B already in the array refocuses B (no duplicate).
-- [ ] At 1 case: single-card layout (existing).
-- [ ] At 2 cases: both visible simultaneously, focus is clickable, action buttons only on focused.
-- [ ] At 3+ cases: tab/pill row, focused expanded, click pill to switch focus.
-- [ ] Both case timers tick simultaneously when both are active (verify with React DevTools).
-- [ ] Focus changes do not modify pause/awaiting state.
-- [ ] `focusedCaseId` persists across reload.
+- [x] At 1 case: single-card layout (existing).
+- [x] At 2 cases: both visible simultaneously, focus is clickable, action buttons only on focused.
+- [x] At 3+ cases: tab/pill row, focused expanded, click pill to switch focus.
+- [x] Both case timers tick simultaneously when both are active (verify with React DevTools).
+- [x] Focus changes do not modify pause/awaiting state.
+- [x] `focusedCaseId` persists across reload.
 
 **Wave 1C — Process-pause:**
 - [ ] Pause button appears on MPL bar active process pill.

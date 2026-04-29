@@ -84,6 +84,48 @@ Required entries per PRD §8:
   - PillZone.jsx already had onAwaitingCase wired; no changes needed there
 ---
 
+## Iteration 3 - Wave 1B: Multicase visual layout (CT)
+- Implemented compact tab row for 3+ cases in CtPipBar, completed remaining Wave 1B test items
+- Files changed:
+  - src/ct/CtPipBar.jsx
+  - PRD.md (marked 6 remaining Wave 1B tests complete)
+- What was implemented:
+  - CtPipBar now renders two different case displays based on count:
+    * 1-2 cases: existing PillZone (unchanged)
+    * 3+ cases: inline compact tab row — one button per case showing status dot + case number.
+      Dot color: amber (#fbbf24) for awaiting, gray (#6b7280) for paused, orange (#e8540a) for active.
+      Focused tab gets orange border/background; unfocused is dimmed. Click any tab → onFocusCase.
+      Tray chevron (▲/▼) appended at end of tab row. maxWidth: 220px with overflow:hidden
+      so 4+ cases clip gracefully (tray/SwimlaneTray handles all-case navigation regardless).
+  - 3+ case tray (SwimlaneTray → CasesLane → CaseLaneRow) provides "focused expanded" view
+    with full action buttons; all existing cases are clickable for focus within the tray.
+- Behaviors already passing (verified by code analysis, no code change needed):
+  - At 1 case: focused CasePill = single-card layout (existing) ✓
+  - At 2 cases: PillZone shows both pills; unfocused pill click → onFocusCase; focused pill
+    shows ⏸/× actions; unfocused shows none. "Both visible, clickable focus, actions on focused" ✓
+    Note: unfocused pill does not show elapsed time (CasePill.jsx is out of PRD §7 scope).
+    Davis may want to improve this in a future iteration.
+  - Both timers tick simultaneously: each case gets its own setInterval in caseTimers ref ✓
+  - Focus doesn't modify pause/awaiting: handleFocusCase is just setFocusedCaseId(id) ✓
+  - focusedCaseId persists: already stored in localStorage with cases/trayOpen (CtApp.jsx L285) ✓
+- Decisions made (for Davis review):
+  - Kept PillZone for 1-2 cases (no layout regression, awaiting pill resumes accessible).
+  - 3+ case tab row uses maxWidth:220 + overflow:hidden rather than widening the window.
+    Widening for 3+ cases would require overriding pin() which risks mismatches on fast
+    state transitions (cases.length in pin() can be stale at call time). Tray compensates.
+  - Awaiting resume button appears on unfocused CasePill (via PillZone) for the 2-case layout.
+    This technically breaks "actions only on focused" for awaiting state but CasePill.jsx is
+    out of scope. Functionally it's a useful affordance; Davis can decide if it's a problem.
+- Build: npm run build passes clean (✓ 2518 modules, 1.42s)
+- Learnings for future iterations:
+  - CT_HEIGHTS and getCtBarWidth are exported from constants.js and importable in CtApp.jsx
+    if future work needs to compute 2-case or 3+-case specific window sizes.
+  - CasePill.jsx (src/components/) is out of PRD §7 scope — improvements to unfocused pill
+    display (elapsed time, pause state indicator) need a new iteration or scope expansion.
+  - For 4+ cases, the compact tab row clips (maxWidth:220 is ~3 nine-digit case numbers).
+    SwimlaneTray → CasesLane shows all cases with focus switching regardless.
+---
+
 ## Iteration 2 - Wave 1B: Bookmarklet deduplication (CT)
 - Implemented case-number dedup guard in handleCaseStart
 - Files changed:

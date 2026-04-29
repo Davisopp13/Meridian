@@ -236,22 +236,61 @@ export default function CtPipBar({
           )}
         </div>
 
-        {/* Pill zone: case pills only (no processes) */}
-        <PillZone
-          cases={cases}
-          processes={[]}
-          focusedCaseId={focusedCaseId}
-          trayOpen={trayOpen}
-          onFocusCase={onFocusCase}
-          onPauseCase={onPauseCase}
-          onResumeCase={onResumeCase}
-          onCloseCase={onCloseCase}
-          onLogProcess={undefined}
-          onCloseProcess={undefined}
-          onToggleTray={onToggleTray}
-          onAwaitingCase={onAwaitingCase}
-          onNotACase={onNotACase}
-        />
+        {/* Pill zone: PillZone for 1-2 cases; compact tab row for 3+ (tray handles detail) */}
+        {cases.length >= 3 ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, overflow: 'hidden', maxWidth: 220 }}>
+            {cases.map(c => {
+              const isFocused = c.id === focusedCaseId
+              const dotColor = c.awaiting ? '#fbbf24' : c.paused ? '#6b7280' : '#e8540a'
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => onFocusCase && onFocusCase(c.id)}
+                  title={c.awaiting ? `#${c.caseNum} – awaiting` : c.paused ? `#${c.caseNum} – paused` : `#${c.caseNum}`}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    padding: '0 6px', height: 26, borderRadius: 5,
+                    border: `1px solid ${isFocused ? 'rgba(232,84,10,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                    background: isFocused ? 'rgba(232,84,10,0.12)' : 'rgba(255,255,255,0.05)',
+                    color: isFocused ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)',
+                    fontSize: 10, fontWeight: 500, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span style={{ fontSize: 6, color: dotColor, lineHeight: 1 }}>●</span>
+                  {c.caseNum}
+                </button>
+              )
+            })}
+            <button
+              onClick={() => onToggleTray && onToggleTray()}
+              style={{
+                background: 'none', border: 'none',
+                color: trayOpen ? C.process : C.textSec,
+                fontSize: 10, cursor: 'pointer', padding: '0 3px', lineHeight: 1,
+                transition: 'color 150ms', flexShrink: 0,
+              }}
+              title={trayOpen ? 'Close tray' : 'Open tray'}
+            >
+              {trayOpen ? '▲' : '▼'}
+            </button>
+          </div>
+        ) : (
+          <PillZone
+            cases={cases}
+            processes={[]}
+            focusedCaseId={focusedCaseId}
+            trayOpen={trayOpen}
+            onFocusCase={onFocusCase}
+            onPauseCase={onPauseCase}
+            onResumeCase={onResumeCase}
+            onCloseCase={onCloseCase}
+            onLogProcess={undefined}
+            onCloseProcess={undefined}
+            onToggleTray={onToggleTray}
+            onAwaitingCase={onAwaitingCase}
+            onNotACase={onNotACase}
+          />
+        )}
 
         <div style={{ flex: 1 }} />
 
