@@ -89,17 +89,17 @@ export default function MinimizedStrip({
         }}>
           {formatElapsed(focusedCase.elapsed)}
         </span>
+        <button
+          onClick={e => {
+            e.stopPropagation()
+            focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
+          }}
+          title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
+          style={{ ...iconBtnStyle, color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)', flexShrink: 0 }}
+        >
+          {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
+        </button>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, flexShrink: 0 }}>
-          <button
-            onClick={e => {
-              e.stopPropagation()
-              focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
-            }}
-            title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
-            style={{ ...iconBtnStyle, color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)' }}
-          >
-            {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
-          </button>
           <button
             onClick={e => {
               e.stopPropagation()
@@ -219,17 +219,17 @@ export default function MinimizedStrip({
         }}>
           {formatElapsed(focusedCase.elapsed)}
         </span>
+        <button
+          onClick={e => {
+            e.stopPropagation()
+            focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
+          }}
+          title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
+          style={{ ...iconBtnStyle, color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)', flexShrink: 0 }}
+        >
+          {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
+        </button>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, flexShrink: 0 }}>
-          <button
-            onClick={e => {
-              e.stopPropagation()
-              focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
-            }}
-            title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
-            style={{ ...iconBtnStyle, color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)' }}
-          >
-            {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
-          </button>
           <button
             onClick={e => {
               e.stopPropagation()

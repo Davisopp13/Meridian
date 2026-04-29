@@ -182,11 +182,11 @@ export default function MplPipBar({
                     onClick={(e) => { e.stopPropagation(); p.paused ? onProcessResume?.(p.id) : onProcessPause?.(p.id) }}
                     title={p.paused ? 'Resume process' : 'Pause process'}
                     style={{
-                      width: 22, height: 22,
+                      width: 26, height: 32,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: p.paused ? 'rgba(251,191,36,0.15)' : 'rgba(96,165,250,0.1)',
                       border: `1px solid ${p.paused ? 'rgba(251,191,36,0.3)' : 'rgba(96,165,250,0.2)'}`,
-                      borderRadius: 6, cursor: 'pointer',
+                      borderRadius: 8, cursor: 'pointer',
                       color: p.paused ? '#fbbf24' : 'rgba(96,165,250,0.8)',
                       fontSize: 10, flexShrink: 0,
                     }}
