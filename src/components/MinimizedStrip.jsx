@@ -1,5 +1,5 @@
 import { formatElapsed } from '../lib/constants.js'
-import { Check, Phone, FileText, Pause, Play, X } from 'lucide-react'
+import { Check, Phone, FileText, Pause, Play, X, Clock } from 'lucide-react'
 
 const iconBtnStyle = {
   background: 'transparent',
@@ -51,6 +51,8 @@ export default function MinimizedStrip({
   onStripSwap,
   onPauseCase,
   onResumeCase,
+  onAwaitingCase,
+  onResumeAwaitingCase,
   onProcessPause,
   onProcessResume,
   onProcessLog,
@@ -87,15 +89,28 @@ export default function MinimizedStrip({
         }}>
           {formatElapsed(focusedCase.elapsed)}
         </span>
-        <button
-          onClick={e => {
-            e.stopPropagation()
-            focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
-          }}
-          style={{ ...iconBtnStyle, marginLeft: 'auto', color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)' }}
-        >
-          {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, flexShrink: 0 }}>
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
+            }}
+            title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
+            style={{ ...iconBtnStyle, color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)' }}
+          >
+            {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
+          </button>
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              focusedCase.awaiting ? onResumeAwaitingCase?.(focusedCase.id) : onAwaitingCase?.(focusedCase.id)
+            }}
+            title={focusedCase.awaiting ? 'Resume from awaiting' : 'Awaiting customer reply'}
+            style={{ ...iconBtnStyle, color: focusedCase.awaiting ? '#fbbf24' : 'rgba(255,255,255,0.7)' }}
+          >
+            {focusedCase.awaiting ? <Play size={12} /> : <Clock size={12} />}
+          </button>
+        </div>
       </>
     )
   } else if (!focusedCase && activeProcess) {
@@ -204,15 +219,28 @@ export default function MinimizedStrip({
         }}>
           {formatElapsed(focusedCase.elapsed)}
         </span>
-        <button
-          onClick={e => {
-            e.stopPropagation()
-            focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
-          }}
-          style={{ ...iconBtnStyle, marginLeft: 'auto', color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)' }}
-        >
-          {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
-        </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, flexShrink: 0 }}>
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
+            }}
+            title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
+            style={{ ...iconBtnStyle, color: focusedCase.paused ? '#4ade80' : 'rgba(255,255,255,0.7)' }}
+          >
+            {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
+          </button>
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              focusedCase.awaiting ? onResumeAwaitingCase?.(focusedCase.id) : onAwaitingCase?.(focusedCase.id)
+            }}
+            title={focusedCase.awaiting ? 'Resume from awaiting' : 'Awaiting customer reply'}
+            style={{ ...iconBtnStyle, color: focusedCase.awaiting ? '#fbbf24' : 'rgba(255,255,255,0.7)' }}
+          >
+            {focusedCase.awaiting ? <Play size={12} /> : <Clock size={12} />}
+          </button>
+        </div>
       </>
     )
   }

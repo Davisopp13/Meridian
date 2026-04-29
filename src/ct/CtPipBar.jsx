@@ -81,6 +81,7 @@ export default function CtPipBar({
   onFocusCase,
   onPauseCase,
   onResumeCase,
+  onResumeAwaitingCase,
   onCloseCase,
   onResolve,
   onReclass,
@@ -119,6 +120,8 @@ export default function CtPipBar({
         onStripSwap={onStripSwap}
         onPauseCase={onPauseCase}
         onResumeCase={onResumeCase}
+        onAwaitingCase={onAwaitingCase}
+        onResumeAwaitingCase={onResumeAwaitingCase}
         onProcessPause={undefined}
         onProcessResume={undefined}
         onProcessLog={undefined}

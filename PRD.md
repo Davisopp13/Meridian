@@ -1,231 +1,285 @@
-# PRD — Pause Feature v2.1 (Ralph-ready)
-**Status:** Locked · 04/27 evening
-**Scope:** Wave 1A (case-pause as distinct state) + Wave 1B (process-pause on MPL bar)
-**Source of truth:** Lish conversation 04/26 + Davis code audit commit b2ac0fb (04/27)
-**Owner:** Ralph overnight · Davis review AM 04/28
+# PRD — Multicase + Pause v2.2 (Ralph-ready)
+**Status:** Draft · 04/28 evening
+**Scope:** Multicase support + Pause as switching primitive + Awaiting (long-term park) + Process-pause on MPL bar
+**Source of truth:**
+  - Lish conversation 04/26 (pause as multicase primitive; pause for processes)
+  - Wanda conversation 04/28 (pause for short-term switching; awaiting for long-term parks)
+  - Carlos signal 04/28 (focus is on case merging, separate PRD)
+  - Davis code audit commit b2ac0fb (state shape, existing primitives)
+**Owner:** Ralph overnight · Davis review AM following day
 
 ---
 
 ## 1 · Background
 
-**Pause is a partial regression.** Per Lish, a Pause concept existed in a previous version and was removed during edits. Per Davis's 04/27 code audit (commit b2ac0fb), the *functionality* still exists today — clicking the Awaiting button stops the timer correctly — but the **Pause label and any visual distinction from Awaiting were removed**. The button is now icon-only, no tooltip, and toggles a single conceptual state that the code labels `awaiting`.
+**Two testers gave the same model from different angles.**
 
-**The actual ask is to re-separate Pause from Awaiting** — both as distinct semantic states in the data model, and as distinct affordances in the UI.
+- **Lish:** "Pause is for interruptions; awaiting is parking until required information is received. Pause will also be used for when we add the multiple/concurrent cases."
+- **Wanda:** "I want to pause a case and then work on at least one other case or process at the same time, and would also like awaiting information for longer term pauses."
 
-**Pause and Awaiting are semantically distinct states:**
-- **Pause** — agent-side interruption. Agent stepped away, switched context, took a call, or is switching between concurrent cases.
-- **Awaiting Customer Reply** — customer-side block. Case is parked until the customer provides required information.
+The unified model:
 
-These are different states because they answer different questions in reporting:
-- "How much time was the agent actively working?" → exclude both
-- "How much time was the case blocked on the customer?" → include awaiting only
-- "How fragmented was the agent's attention?" → include pause only
+| State | Duration | Reason | UX |
+|---|---|---|---|
+| **Active** | — | Agent currently working this case | Timer ticks, full action set |
+| **Pause** | Short (minutes) | Agent switching focus / interruption | Timer stops, case stays in list, easy resume |
+| **Awaiting** | Long (hours/days) | Customer-blocked, parked until reply | Timer stops, status persisted to DB, less prominent in list |
 
-**Pause is also the primitive for multicase.** When concurrent-case support ships in a future wave, switching from case A to case B is implemented as a pause on A. Building pause now is groundwork for that work.
+**Pause and Awaiting are semantically distinct** and must both exist.
 
----
-
-## 2 · Audit findings (from commit b2ac0fb, 04/27)
-
-**CT side (case pause):**
-- `handlePauseCase` and `handleResumeCase` exist in `CtApp.jsx` lines 601–615 but write `status: 'awaiting'` AND set `{ paused: true, awaiting: true }` on local state. Misnamed and aliased — they implement Awaiting under a Pause name with both flags toggled together.
-- A functional duplicate `handleAwaitingCase` exists at line 868. Same DB write, same timer stop, same state update; only difference is an early `if (!user) return` guard. Vestigial.
-- The Awaiting button in `MinimizedStrip` is **icon-only with no text label and no tooltip**. Active state: gray pause icon (⏸). Paused state: green play icon (▶). Discoverability is a real problem — first-time users won't know it exists.
-- Each case object has `paused` AND `awaiting` boolean fields on local React state, but they are *always set together* — the distinction Lish wants does not exist in code today.
-- `syncTimers` (line 147) checks both: `if (!c.paused && !c.awaiting) startCaseTimer(c.id)`. Logic is OK but assumes the aliased pair.
-- Persistence: `ct_cases.status = 'awaiting'` is written to DB on pause, persists across tab close. ⚠ **Unverified:** the case-load mapper that reads `status` and rehydrates local state — it must set `paused:true` when `status==='awaiting'`. Ralph: confirm this mapper exists and works correctly before changing handler writes.
-
-**MPL side (process pause):**
-- `mpl_active_timers.total_paused_seconds` column exists from migration 009, never written.
-- `MplPipBar` has no pause UI on the active process pill.
-- `MinimizedStrip`'s process-pause buttons are unreachable from CT (CtApp passes `processes={[]}`, `activeProcess={null}`).
-
-**Architectural constraint:** CT and MPL are independent apps. This PRD does not bridge them. Process-pause ships on the MPL bar where MPL state lives.
+**Multicase:** Agents need to work multiple cases concurrently. The frontend already supports this — `cases` is an array, `caseTimers` is a map keyed by case id, multiple timers can already tick. What's missing is the UX for working with multiple cases and the bookmarklet behavior for adding new ones to an active session.
 
 ---
 
-## 3 · Wave 1A — Case-pause as distinct state (CT)
+## 2 · Audit findings (carried from earlier sessions)
 
-### 3.1 Database
+**State already in place:**
+- `cases` is an array in `CtApp.jsx` state. Multicase-capable today.
+- `caseTimers = useRef({})` is a map keyed by session id. Each case gets its own `setInterval`. Multiple timers can already tick simultaneously.
+- Each case object has `paused`, `awaiting`, and `elapsed` fields.
+- `focusedCaseId` exists and selects which case actions target.
+- `MinimizedStrip` renders multiple cases. The tray auto-opens at 3+ cases (existing behavior).
 
-Add a new value to `ct_cases.status`. Current values include `'active'` and `'awaiting'`; add `'paused'`.
+**State that needs work:**
+- `case.paused` and `case.awaiting` flags are toggled together today (lines 607, 614, 875). They must become independent.
+- Existing `handlePauseCase` / `handleResumeCase` (lines 601-615) write `status: 'awaiting'` — misnamed.
+- Vestigial `handleAwaitingCase` at line 868 is a functional duplicate. To be deleted.
+- The Awaiting button in MinimizedStrip is icon-only with no tooltip. Discoverability gap.
+- Per Davis observation: pause-for-cases is functionally working today (Wanda uses it), but is mislabeled. Rename + tooltip + flag separation is the cleanup.
 
-- **If `status` is a Postgres enum:** `ALTER TYPE ... ADD VALUE 'paused';` in a new migration (next available number after 027).
-- **If `status` is a plain text/varchar column:** no migration needed; just start writing the new value.
-- **Investigation step (Ralph):** check the column type before deciding migration shape. `\d ct_cases` or equivalent in the Supabase SQL editor.
+**Architecture constraint:**
+- CT and MPL are independent apps with independent state. This PRD does not bridge them. Process-pause ships on the MPL bar where MPL state lives.
+- Bookmarklet payload changes are in scope but minimal — only what's needed to add cases to an existing session.
 
-### 3.2 Handlers in `CtApp.jsx`
+---
 
-**Critical: existing state shape (audit finding).** Today, `case.paused` and `case.awaiting` are toggled together as an aliased pair. Every handler that currently sets one sets the other:
-- `handlePauseCase` (line 601) sets `{ paused: true, awaiting: true }`
-- `handleResumeCase` (line 612) sets `{ paused: false, awaiting: false }`
-- `handleAwaitingCase` (line 868, the duplicate) sets `{ paused: true, awaiting: true }`
+## 3 · Design decisions (locked)
 
-**This is the regression Lish reported.** A previous version distinguished the two; the current code does not. The work in this section is not just renaming — it's *separating two flags that today always move together* into two genuinely independent states.
+These are the load-bearing decisions. Ralph: do not deviate without writing a blocker in progress.txt.
 
-After the changes in this section:
-- `paused: true, awaiting: false` → agent-side pause only
-- `paused: false, awaiting: true` → customer-blocked only
+| # | Decision | Locked answer |
+|---|---|---|
+| 1 | Bookmarklet on a 2nd SF tab while case A is active | **Add B silently as a second active case. Focus B. A keeps ticking.** No prompt, no auto-pause, no toast. |
+| 2 | Multicase visual layout | **Adaptive.** 1 case = current single-card layout. 2 cases = side-by-side (or stacked if width-constrained — Ralph chooses based on available width). 3+ cases = tabs/pills with one expanded. |
+| 3 | Pause + focus relationship | **Independent and deliberate.** Pause is a separate explicit action. Focusing case B does NOT pause case A. Pausing case A does NOT auto-focus another case. Two clicks to switch (pause A, focus B) is intended. |
+| 4 | Pause vs. Awaiting | **Distinct states with mutual exclusion.** A case is exactly one of: active, paused, awaiting. Pausing while awaiting clears awaiting first; setting awaiting while paused clears paused first. |
+| 5 | Both cases ticking simultaneously | **Allowed and expected.** True multicase. Both cases accumulate elapsed time until pause is explicitly triggered. |
+| 6 | Process-pause scope | **MPL bar only.** `MinimizedStrip` ghost buttons remain ghosts (cross-app bridge is out of scope). |
+
+---
+
+## 4 · Wave 1A — Case-pause cleanup (CT)
+
+### 4.1 Database
+
+Check `ct_cases.status` column type before deciding migration shape.
+
+- **If text/varchar:** No migration. Just write the new value.
+- **If enum:** `ALTER TYPE ... ADD VALUE 'paused';` in next available migration number after 027.
+
+### 4.2 Handlers in `CtApp.jsx`
+
+**Critical: existing state shape.** Today `case.paused` and `case.awaiting` move together. Every handler that sets one sets the other. **This must be undone.**
+
+After §4.2 changes, valid case state shapes:
 - `paused: false, awaiting: false` → active
-- `paused: true, awaiting: true` → **invalid going forward.** Treat any case loaded from DB with both flags set as awaiting-only (legacy data migration, in-memory only — no DB rewrite).
-
-**Audit all read sites of either flag** before changing the writers. Specifically:
-- `syncTimers` (line 147): currently `if (!c.paused && !c.awaiting) startCaseTimer(c.id)` — this logic is correct for the new world *if* paused-only should also stop the timer. Verify intent.
-- Any UI rendering that branches on `paused` vs `awaiting`.
-- Stats / reporting code reading `ct_cases.status`.
+- `paused: true,  awaiting: false` → paused (agent-side)
+- `paused: false, awaiting: true`  → awaiting (customer-blocked)
+- `paused: true,  awaiting: true`  → **invalid going forward.** Treat legacy DB rows with both as awaiting-only on hydration.
 
 **Action:**
 
-1. **Rename** existing `handlePauseCase` / `handleResumeCase` → `handleAwaitingCase` / `handleResumeAwaitingCase`. Update the writes to set `{ paused: false, awaiting: true }` (separate the flags). (These currently write `status: 'awaiting'` — the new names match what they actually do.) Note: there is already a `handleAwaitingCase` at line 868 that's a functional duplicate; **delete the duplicate** and consolidate into the renamed function. Verify no other call sites broken by the consolidation.
+1. **Rename** existing `handlePauseCase` / `handleResumeCase` → `handleAwaitingCase` / `handleResumeAwaitingCase`. Update writes to set `{ paused: false, awaiting: true }` only. (These currently write `status: 'awaiting'` — the new names match what they actually do.) Delete the duplicate `handleAwaitingCase` at line 868. Verify no other call sites broken.
 
-2. **Create new** `handleTruePauseCase(id)` and `handleResumeFromPauseCase(id)`:
-   - On pause: write `status: 'paused'` to `ct_cases`, call `stopCaseTimer(id)`, set `{ paused: true, awaiting: false }` on local state.
-   - On resume: write `status: 'active'`, set `{ paused: false, awaiting: false }`, call `startCaseTimer(id)`.
+2. **Create new** `handleTruePauseCase(id)` / `handleResumeFromPauseCase(id)`:
+   - Pause: write `status: 'paused'`, call `stopCaseTimer(id)`, set `{ paused: true, awaiting: false }`.
+   - Resume: write `status: 'active'`, set `{ paused: false, awaiting: false }`, call `startCaseTimer(id)`.
 
-3. **Case-load mapper:** wherever cases are hydrated from `ct_cases` into local state (search for the function that reads `status`), ensure:
+3. **Mutual exclusion enforcement.** When `handleTruePauseCase` fires on a case where `awaiting === true`, clear `awaiting` first (write `status: 'paused'` overrides). Symmetric for awaiting-on-paused.
+
+4. **Case-load mapper.** Find where cases hydrate from `ct_cases` into local state (search for the function reading `status`):
    - `status === 'awaiting'` → `{ paused: false, awaiting: true }`
-   - `status === 'paused'` → `{ paused: true, awaiting: false }`
-   - `status === 'active'` → `{ paused: false, awaiting: false }`
+   - `status === 'paused'`   → `{ paused: true,  awaiting: false }`
+   - `status === 'active'`   → `{ paused: false, awaiting: false }`
+   - Legacy: any row with both flags from earlier writes — treat as awaiting (safest fallback).
 
-4. **Discoverability fix (per audit notes):** the existing Awaiting button is icon-only with no tooltip. Add `title` attributes (or aria-label) to both Pause and Awaiting buttons:
-   - Pause button: `title="Pause (agent stepped away)"`
-   - Awaiting button: `title="Awaiting customer reply"`
-   - Resume buttons: `title="Resume"` (or "Resume from Pause" / "Resume from Awaiting" if Ralph wants to be explicit)
+### 4.3 Buttons + tooltips in MinimizedStrip
 
-### 3.3 UI in `CtPipBar.jsx` and `MinimizedStrip.jsx`
+The focused case row needs **two distinct buttons**:
 
-The focused case row needs **two buttons**, both visible, clearly distinguished:
+- **Pause** (icon: ⏸) `title="Pause (agent stepped away)"` — calls `handleTruePauseCase`
+- **Awaiting** (icon: ⏳) `title="Awaiting customer reply"` — calls `handleAwaitingCase`
 
-- **Pause** (icon: ⏸ or pause-square) — agent-side interruption
-- **Awaiting** (icon: ⏳ or hourglass) — customer-blocked
+When a case is in either state, the corresponding button becomes Resume:
+- Paused → Pause button shows ▶ with `title="Resume from pause"`
+- Awaiting → Awaiting button shows ▶ with `title="Resume from awaiting"`
 
-When a case is in either state, the corresponding button becomes a **Resume** button. Only one of pause/awaiting can be active at a time (mutual exclusion in state).
-
-`MinimizedStrip` already has `onPauseCase` / `onResumeCase` props plumbed through. Wire them to the new `handleTruePauseCase` / `handleResumeFromPauseCase`. Add `onAwaitingCase` / `onResumeAwaitingCase` props for the Awaiting flow if not already plumbed.
-
-### 3.4 Timer correctness
-
-Both pause states must stop `caseTimers.current[id]` cleanly. Verify by:
-- Pause a case for 60 seconds, resume, confirm `elapsed` advanced by zero during the pause.
-- Same for Awaiting.
-- Mutual exclusion: setting Awaiting on a paused case clears Pause first; setting Pause on an Awaiting case clears Awaiting first.
-
-### 3.5 Persistence
-
-Local React state already persists to localStorage (lines ~270–290 in CtApp). Confirm the `paused` and `awaiting` fields survive a tab close + reopen with both states.
+`MinimizedStrip` already has `onPauseCase` / `onResumeCase` props plumbed. Add `onAwaitingCase` / `onResumeAwaitingCase` props for the awaiting flow. Wire in CtPipBar AND CtApp.
 
 ---
 
-## 4 · Wave 1B — Process-pause on MPL bar (MPL)
+## 5 · Wave 1B — Multicase UX (CT)
 
-### 4.1 Handlers in `MplApp.jsx`
+### 5.1 Bookmarklet behavior on second SF tab
+
+When the bookmarklet fires on a SF case page and the widget already has an active case A:
+
+1. Resolve the case from the page (existing logic).
+2. If the case id matches an existing case in the array → focus that case, no other change. (Refocus, not duplicate.)
+3. If the case id is new → append to `cases` array, set `focusedCaseId` to the new case, start a timer for it. **Do not** modify case A's state. **Do not** show a toast.
+4. Bookmarklet payload may need a new field indicating "add to existing session vs. start new session" — Ralph: investigate and add only if necessary. Existing `_meridianRefresh` path may already cover this.
+
+**Out of scope:** Cross-tab synchronization. If the agent has the widget open in two browser tabs, this PRD does not handle that. One widget instance, multiple cases inside it.
+
+### 5.2 Visual layout — adaptive
+
+| # cases | Layout |
+|---|---|
+| 0 | Idle state (existing) |
+| 1 | Single card layout (existing) |
+| 2 | Side-by-side OR stacked vertical, Ralph chooses based on `CtPipBar` width. Both cases visible simultaneously. Each shows case number, elapsed time, status pill. Click selects focus. Action buttons appear on focused case only. |
+| 3+ | Tab/pill row at top: one pill per case showing case number + small status indicator (active dot / pause icon / awaiting icon). Click pill to focus. Focused case expanded below with full action set. Existing tray-auto-open behavior at 3+ is preserved. |
+
+**Width constraints for Ralph:** `CtPipBar` is 380px base. At 2 cases side-by-side, each case gets ~180px after padding/margins. If that's too tight for required content (case number + elapsed + status pill), fall back to vertical stack. Ralph: build it side-by-side first, test visually, fall back to stacked if it doesn't read well.
+
+### 5.3 Focus model
+
+- `focusedCaseId` is a single value (existing).
+- Click a case anywhere in the layout to focus it.
+- Action buttons (Resolve, Reclass, Pause, Awaiting, etc.) only appear on the focused case.
+- Non-focused cases show their pill/card with status but no action buttons.
+- Focusing does NOT change pause/awaiting state on any case.
+
+### 5.4 Persistence
+
+- `focusedCaseId` persists to localStorage. On reload, the previously focused case is re-focused.
+- All cases' status (paused/awaiting/active) persists via DB writes (existing).
+- Local React state (`paused`, `awaiting`) hydrates correctly from `ct_cases.status` per §4.2.4.
+
+---
+
+## 6 · Wave 1C — Process-pause on MPL bar (MPL)
+
+### 6.1 Handlers in `MplApp.jsx`
 
 New functions:
 
 - `handleProcessPause(processId)`:
-  1. Stop the local timer interval for that process.
-  2. Calculate seconds elapsed since last resume (or since `started_at` if never paused).
-  3. Add to `mpl_active_timers.total_paused_seconds`. **Wait — re-read this.** `total_paused_seconds` should accumulate the time *spent paused*, not total time elapsed. The cleaner pattern: store `paused_at` when pause fires, and on resume compute `(now - paused_at)` seconds and add to `total_paused_seconds`. Then clear `paused_at`.
-  4. Set `paused: true` on local state.
+  1. Stop the local timer interval.
+  2. Write `paused_at = now()` to `mpl_active_timers` for that process.
+  3. Set `paused: true` on local state.
 
 - `handleProcessResume(processId)`:
-  1. Compute `(now - paused_at)` and add to `mpl_active_timers.total_paused_seconds`. Clear `paused_at`.
+  1. Compute `(now - paused_at)` seconds, add to `mpl_active_timers.total_paused_seconds`. Clear `paused_at`.
   2. Restart the timer interval.
   3. Clear `paused: true` on local state.
 
-**Schema requirement:** `mpl_active_timers` may need a `paused_at TIMESTAMPTZ NULL` column. Migration if absent. Check schema before adding.
+**Schema requirement:** `mpl_active_timers.paused_at TIMESTAMPTZ NULL`. Migration if absent.
 
-### 4.2 UI in `MplPipBar.jsx`
+### 6.2 UI in `MplPipBar.jsx`
 
-Add a Pause button to the active process pill. Mirror the MinimizedStrip pattern: ⏸ icon when running, ▶ icon when paused. Toggle on click.
+Add a Pause button to the active process pill. Mirror MinimizedStrip's icon swap (⏸ when running, ▶ when paused). Toggle on click.
 
-### 4.3 The dual-parent landmine — CRITICAL
+### 6.3 The dual-parent landmine — CRITICAL
 
-**`MplPipBar` is rendered by both `MplApp.jsx` AND `DashboardApp.jsx`.** Any new prop added to `MplPipBar` must be wired in *both* parents. If only one is wired, the feature silently no-ops on the other surface — no error, no warning, just nothing happens.
+`MplPipBar` is rendered by both `MplApp.jsx` AND `DashboardApp.jsx`. Any new prop must be wired in both. Required verification:
 
-**Required verification step:** after adding `onProcessPause` / `onProcessResume` props to `MplPipBar`, run:
 ```
 grep -n "MplPipBar" src/mpl/MplApp.jsx src/DashboardApp.jsx
 ```
-Both files must pass the new props. Both files must define the handlers (or import them). Test the pause feature on both `?mode=mpl-widget` URL and the default DashboardApp entry.
 
-### 4.4 Dormant column risk
+Both files must pass new props. Test process-pause on both `?mode=mpl-widget` and the default DashboardApp entry.
 
-`total_paused_seconds` has been dormant since migration 009 (Feb 2026). Before writing to it:
-- `grep -rn "total_paused_seconds" src/` to confirm no read sites exist.
-- If read sites exist, audit them to confirm they handle non-zero values correctly. (Stats panels may have been computing assuming this is always zero.)
-- If unclear, write to a *new* column instead — `pause_seconds_v2` — and leave the dormant one alone. Net effect identical, safer.
+### 6.4 Dormant column risk
 
-### 4.5 MinimizedStrip ghost buttons
+`mpl_active_timers.total_paused_seconds` has been dormant since migration 009. Before writing:
 
-`MinimizedStrip` has process-pause UI that is unreachable from CT (because CtApp passes `processes={[]}`). **Leave this alone.** Do not delete the buttons; do not bridge state. Add a comment in MinimizedStrip:
-
-```js
-// NOTE: process-pause buttons here are dormant until cross-app state bridge
-// between CT and MPL exists (separate PRD). Today they only render when
-// CtApp passes a non-null activeProcess, which it never does.
 ```
+grep -rn "total_paused_seconds" src/
+```
+
+If read sites exist, audit them for non-zero handling. If unclear, use a new column `pause_seconds_v2` instead.
 
 ---
 
-## 5 · Out of scope (do not touch)
+## 7 · Out of scope (do not touch)
 
-- Cross-app state bridge between CT and MPL.
-- Multicase / concurrent case support (separate PRD, future wave).
+- Cross-app state bridge between CT and MPL. MinimizedStrip ghost buttons stay ghosts.
+- Case merging (Carlos's separate PRD).
+- Quick Log timer-not-stopping bug (separate fix).
 - Pause logging in `case_events` (deferred to Insights Tier II).
 - `case_events` schema changes of any kind.
 - Renaming the `'awaiting'` database value.
 - Anything in `src/mpl/` other than `MplApp.jsx` and `MplPipBar.jsx`.
 - Migrations below 027.
-- The bookmarklet.
-- Any file outside `src/ct/`, `src/mpl/`, `src/components/MinimizedStrip.jsx`, and a single new migration file.
+- Cross-tab synchronization (multiple widget instances in different browser tabs).
+- Any file outside `src/ct/`, `src/mpl/`, `src/components/MinimizedStrip.jsx`, `public/ct-widget.js` (only if bookmarklet behavior requires it), and a single new migration file.
 
 ---
 
-## 6 · Testing requirements before declaring done
+## 8 · Testing requirements before declaring done
 
-- [ ] Case-pause button appears on focused case row, distinct from Awaiting button.
-- [ ] Both buttons have tooltips (title attribute) describing what they do.
-- [ ] Pause stops timer; Resume restarts it; elapsed time does not advance during pause.
-- [ ] Awaiting still works exactly as before — no regression.
-- [ ] **`paused` and `awaiting` flags are now independent.** A case with `{paused: true, awaiting: false}` is a valid state; verify by inspecting React DevTools after pausing.
-- [ ] Pause and Awaiting are mutually exclusive (cannot be both at once in UI; legacy DB rows with both flags treat as awaiting).
-- [ ] Case-load mapper correctly rehydrates `status: 'paused'` → `{paused: true, awaiting: false}` and `status: 'awaiting'` → `{paused: false, awaiting: true}`.
-- [ ] Both states persist across tab close/reopen.
-- [ ] Process-pause button appears on MPL bar active process pill.
-- [ ] Process-pause stops MPL timer; resume restarts; `total_paused_seconds` (or `pause_seconds_v2`) accumulates correctly across multiple cycles.
-- [ ] **MplPipBar dual-parent verified** — process-pause works on both `?mode=mpl-widget` and the default DashboardApp.
-- [ ] No regression in existing stats panels (verify dashboard renders, no NaN, no broken queries).
+**Wave 1A — Case-pause cleanup:**
+- [x] Pause and Awaiting are distinct buttons on the focused case row, both with tooltips.
+- [x] Pausing a case stops its timer; resuming restarts it; elapsed advances by zero during pause.
+- [x] Awaiting a case stops its timer; resuming restarts it.
+- [x] `paused` and `awaiting` flags are independent (verify via React DevTools: `{paused: true, awaiting: false}` is a valid state).
+- [x] Mutual exclusion: setting one clears the other.
+- [x] Case-load mapper correctly hydrates `status: 'paused'` → `{paused: true, awaiting: false}`.
+- [x] Both states persist across tab close/reopen.
+
+**Wave 1B — Multicase UX:**
+- [ ] Bookmarklet on tab 2 with case A active adds case B as second active case. Focus shifts to B. A keeps ticking.
+- [ ] Bookmarklet on tab 2 with case B already in the array refocuses B (no duplicate).
+- [ ] At 1 case: single-card layout (existing).
+- [ ] At 2 cases: both visible simultaneously, focus is clickable, action buttons only on focused.
+- [ ] At 3+ cases: tab/pill row, focused expanded, click pill to switch focus.
+- [ ] Both case timers tick simultaneously when both are active (verify with React DevTools).
+- [ ] Focus changes do not modify pause/awaiting state.
+- [ ] `focusedCaseId` persists across reload.
+
+**Wave 1C — Process-pause:**
+- [ ] Pause button appears on MPL bar active process pill.
+- [ ] Process-pause stops MPL timer; resume restarts.
+- [ ] `total_paused_seconds` (or `pause_seconds_v2`) accumulates correctly across multiple cycles.
+- [ ] **MplPipBar dual-parent verified** — works on `?mode=mpl-widget` AND default DashboardApp.
+
+**System-wide:**
+- [ ] No regression in existing stats panels (dashboard renders, no NaN, no broken queries).
+- [ ] No regression in Awaiting flow (pre-existing testers' behavior unchanged).
 - [ ] `npm run build` passes clean.
+- [ ] No untracked files at completion.
 
 ---
 
-## 7 · Failure modes to avoid
+## 9 · Failure modes to avoid
 
-- **Don't bridge CT and MPL state.** It's not in scope. The MinimizedStrip ghost buttons stay ghosts.
-- **Don't add multicase logic.** Pause is the primitive; multicase is a separate wave.
-- **Don't delete the `'awaiting'` status value or migrate it.** Awaiting must continue to work unchanged.
-- **Don't refactor unrelated code.** Stay strictly within the files listed in §5.
-- **Don't ship without verifying both MplPipBar parents.** This is the most likely silent-failure mode and Davis has hit it before.
+- **Don't bridge CT and MPL state.** MinimizedStrip ghost buttons remain ghosts.
+- **Don't auto-pause case A when bookmarklet adds case B.** Decision is locked: A keeps ticking.
+- **Don't add a prompt or toast on bookmarklet handoff.** Decision is locked: silent.
+- **Don't couple pause and focus.** They are independent; coupling them violates Decision 3.
+- **Don't ship without verifying both MplPipBar parents.** Most common silent-failure mode.
+- **Don't rename `'awaiting'` database value.** Awaiting must continue to work unchanged.
+- **Don't refactor unrelated code.** Strict file scope per §7.
 
 ---
 
-## 8 · Progress log requirements
+## 10 · Progress log requirements
 
-Maintain `progress.txt` with:
-- Each task started/completed
+Maintain `progress.txt` (current run section) with:
+- Each iteration started/completed (matching the project's existing iteration format)
 - Each migration number used
 - Each file edited (full path)
 - Any decisions Ralph made when the PRD was ambiguous (so Davis can review)
-- Any blockers — and STOP if blocked rather than guessing
+- Any blockers — STOP if blocked, do not guess
 
 ---
 
-## 9 · Definition of done
+## 11 · Definition of done
 
-- All §6 tests pass.
-- `progress.txt` is complete and committed.
-- Branch is `feat/pause-feature-v2` off green main.
+- All §8 tests pass.
+- progress.txt is complete and committed in matching iteration format.
+- Branch is `feat/multicase-pause-v2.2` off green main.
 - Build is green.
 - No untracked files.
 - PR description references this PRD.

@@ -39,16 +39,21 @@ function getElapsedFromTimestamps(startedAt, stoppedAt = null) {
 }
 
 function restoreCaseFromRow(row) {
-  const awaiting = row.status === 'awaiting'
+  const isPaused = row.status === 'paused'
+  const isAwaiting = row.status === 'awaiting'
+  // Paused: use stored duration_s (written at pause time). Awaiting/active: compute from timestamps.
+  const elapsed = isPaused
+    ? (Number(row.duration_s) || 0)
+    : Math.max(
+        Number(row.duration_s) || 0,
+        getElapsedFromTimestamps(row.created_at, isAwaiting ? row.awaiting_since : null)
+      )
   return {
     id: row.id,
     caseNum: row.case_number,
-    elapsed: Math.max(
-      Number(row.duration_s) || 0,
-      getElapsedFromTimestamps(row.created_at, awaiting ? row.awaiting_since : null)
-    ),
-    paused: awaiting,
-    awaiting,
+    elapsed,
+    paused: isPaused,
+    awaiting: isAwaiting,
     reopenCount: row.reopen_count ?? 0,
   }
 }
@@ -474,8 +479,9 @@ export default function CtApp() {
         onRestore={handleRestore}
         onToggleTray={handleToggleTray}
         onFocusCase={handleFocusCase}
-        onPauseCase={handlePauseCase}
+        onPauseCase={handleTruePauseCase}
         onResumeCase={handleResumeCase}
+        onResumeAwaitingCase={handleResumeAwaitingCase}
         onCloseCase={handleBarPillClose}
         onResolve={handleResolve}
         onReclass={handleReclass}
@@ -598,21 +604,48 @@ export default function CtApp() {
     setFocusedCaseId(id)
   }
 
-  async function handlePauseCase(id) {
+  async function handleAwaitingCase(id) {
     const ok = await safeWrite(supabase.from('ct_cases')
       .update({ status: 'awaiting', awaiting_since: new Date().toISOString() })
       .eq('id', id))
     if (!ok) return
     stopCaseTimer(id)
-    setCases(prev => prev.map(c => c.id === id ? { ...c, paused: true, awaiting: true } : c))
+    setCases(prev => prev.map(c => c.id === id ? { ...c, paused: false, awaiting: true } : c))
   }
 
-  async function handleResumeCase(id) {
+  async function handleResumeAwaitingCase(id) {
     await supabase.from('ct_cases')
       .update({ status: 'active', awaiting_since: null })
       .eq('id', id)
     setCases(prev => prev.map(c => c.id === id ? { ...c, paused: false, awaiting: false } : c))
     startCaseTimer(id)
+  }
+
+  async function handleTruePauseCase(id) {
+    const c = cases.find(x => x.id === id)
+    if (!c) return
+    const ok = await safeWrite(supabase.from('ct_cases')
+      .update({ status: 'paused', duration_s: c.elapsed })
+      .eq('id', id))
+    if (!ok) return
+    stopCaseTimer(id)
+    setCases(prev => prev.map(x => x.id === id ? { ...x, paused: true, awaiting: false } : x))
+  }
+
+  async function handleResumeFromPauseCase(id) {
+    await supabase.from('ct_cases')
+      .update({ status: 'active' })
+      .eq('id', id)
+    setCases(prev => prev.map(c => c.id === id ? { ...c, paused: false, awaiting: false } : c))
+    startCaseTimer(id)
+  }
+
+  // Smart router: routes to the right resume handler based on case state (used by SwimlaneTray)
+  async function handleResumeCase(id) {
+    const c = cases.find(x => x.id === id)
+    if (!c) return
+    if (c.awaiting) return handleResumeAwaitingCase(id)
+    return handleResumeFromPauseCase(id)
   }
 
   async function handleCloseCase(id) {
@@ -863,17 +896,6 @@ export default function CtApp() {
     if (!user) return
     await logCaseEvent({ userId: user.id, type: 'call', sessionId: id, excluded: false, rfc: false })
     refetch()
-  }
-
-  async function handleAwaitingCase(id) {
-    if (!user) return
-    await supabase.from('ct_cases')
-      .update({ status: 'awaiting', awaiting_since: new Date().toISOString() })
-      .eq('id', id)
-    stopCaseTimer(id)
-    setCases(prev => prev.map(c =>
-      c.id === id ? { ...c, awaiting: true, paused: true } : c
-    ))
   }
 
   async function handleNotACase(id) {
