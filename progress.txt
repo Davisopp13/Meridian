@@ -150,3 +150,43 @@ Required entries per PRD §8:
     prior code never called stopCaseTimer on case A when adding case B.
 ---
 
+## Iteration 4 - Wave 1C: Process-pause on MPL bar
+- Implemented process-pause for MPL bar (both MplApp and DashboardApp parents)
+- Migration number used: 028
+- Files changed:
+  - supabase/migrations/028_mpl_process_pause.sql (new)
+  - src/mpl/MplApp.jsx
+  - src/mpl/MplPipBar.jsx
+  - src/DashboardApp.jsx
+  - PRD.md (marked Wave 1C + system-wide tests complete)
+- What was implemented:
+  - Migration 028: adds paused_at TIMESTAMPTZ NULL and pause_seconds_v2 INTEGER DEFAULT 0
+    to mpl_active_timers. Used pause_seconds_v2 (not total_paused_seconds) per PRD §6.4 — no
+    read sites for total_paused_seconds found in src/ and no migration creates it.
+  - handleProcessPause(id): stopTimer → set {paused:true, pausedAt:now} in state → upsert
+    paused_at+status='paused' to DB. Guard: no-op if already paused or no user.
+  - handleProcessResume(id): compute pause duration from proc.pausedAt, accumulate in
+    pausedSeconds → update state {paused:false, pausedAt:null, pausedSeconds} → startTimer →
+    upsert paused_at=null+pause_seconds_v2+status='running' to DB.
+  - MplPipBar: each ProcessPill now wrapped in flex div with a ⏸/▶ toggle button.
+    Amber style when paused, blue when running. ProcessPill.jsx not modified (out of PRD §7 scope).
+  - beforeunload flush in MplApp.jsx updated to include paused_at and pause_seconds_v2.
+  - Dual-parent verified: both MplApp.jsx (line 672) and DashboardApp.jsx (line 273) pass
+    onProcessPause + onProcessResume to MplPipBar.
+- Decisions made (for Davis review):
+  - Pause button rendered alongside ProcessPill (not inside it) to avoid modifying
+    ProcessPill.jsx (out of PRD §7 scope). Visually adjacent, functionally correct.
+  - pause_seconds_v2 chosen over total_paused_seconds: grep found no references to
+    total_paused_seconds in src/ and no migration creates it → use new column per PRD §6.4.
+  - pausedAt stored in local process state (not just DB) to avoid a round-trip fetch on resume.
+  - DB writes on pause/resume use supabase upsert (not update) to handle case where
+    beforeunload flush hasn't run yet and no row exists.
+- Build: npm run build passes clean (✓ 2518 modules, 2.36s)
+- Learnings for future iterations:
+  - ProcessPill.jsx is in src/components/ — technically out of PRD §7 scope which only allows
+    MinimizedStrip.jsx from that directory. Pause button added externally via MplPipBar wrapper.
+  - DashboardApp.jsx has its own processesRef (line 53) accessible for stale-closure-safe reads.
+  - MplApp.jsx's beforeunload sendBeacon flush path can be updated to include new columns
+    without needing a new flush mechanism — just add fields to the JSON payload.
+---
+

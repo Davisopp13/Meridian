@@ -181,6 +181,53 @@ export default function DashboardApp() {
     delete processTimers.current[id]
   }
 
+  // ── Process pause/resume ────────────────────────────────────────────────
+  function handleProcessPause(id) {
+    if (!user?.id) return
+    const proc = processesRef.current.find(p => p.id === id)
+    if (!proc || proc.paused) return
+    const now = new Date().toISOString()
+    stopTimer(id)
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: true, pausedAt: now } : p))
+    supabase.from('mpl_active_timers').upsert({
+      process_id: id,
+      user_id: user.id,
+      accumulated_seconds: proc.elapsed,
+      paused_at: now,
+      status: 'paused',
+      updated_at: now,
+    }, { onConflict: 'process_id' }).then(({ error }) => {
+      if (error) console.error('[Meridian Dashboard] pause write failed', error)
+    })
+  }
+
+  function handleProcessResume(id) {
+    if (!user?.id) return
+    const proc = processesRef.current.find(p => p.id === id)
+    if (!proc || !proc.paused) return
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const pauseDur = proc.pausedAt
+      ? Math.round((now.getTime() - new Date(proc.pausedAt).getTime()) / 1000)
+      : 0
+    const newPausedSeconds = (proc.pausedSeconds || 0) + pauseDur
+    setProcesses(prev => prev.map(p => p.id === id
+      ? { ...p, paused: false, pausedAt: null, pausedSeconds: newPausedSeconds }
+      : p))
+    startTimer(id)
+    supabase.from('mpl_active_timers').upsert({
+      process_id: id,
+      user_id: user.id,
+      accumulated_seconds: proc.elapsed,
+      paused_at: null,
+      pause_seconds_v2: newPausedSeconds,
+      status: 'running',
+      updated_at: nowIso,
+    }, { onConflict: 'process_id' }).then(({ error }) => {
+      if (error) console.error('[Meridian Dashboard] resume write failed', error)
+    })
+  }
+
   // ── mountMplPipWindow ───────────────────────────────────────────────────
   function mountMplPipWindow(pw) {
     const existing = pw.document.getElementById('meridian-mpl-pip-root')
@@ -223,6 +270,8 @@ export default function DashboardApp() {
         pipToast={pipToast}
         callsCount={callsCount}
         onCallLog={handleCallLog}
+        onProcessPause={handleProcessPause}
+        onProcessResume={handleProcessResume}
       />
     )
   }

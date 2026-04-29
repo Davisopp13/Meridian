@@ -239,16 +239,16 @@ If read sites exist, audit them for non-zero handling. If unclear, use a new col
 - [x] `focusedCaseId` persists across reload.
 
 **Wave 1C — Process-pause:**
-- [ ] Pause button appears on MPL bar active process pill.
-- [ ] Process-pause stops MPL timer; resume restarts.
-- [ ] `total_paused_seconds` (or `pause_seconds_v2`) accumulates correctly across multiple cycles.
-- [ ] **MplPipBar dual-parent verified** — works on `?mode=mpl-widget` AND default DashboardApp.
+- [x] Pause button appears on MPL bar active process pill.
+- [x] Process-pause stops MPL timer; resume restarts.
+- [x] `total_paused_seconds` (or `pause_seconds_v2`) accumulates correctly across multiple cycles.
+- [x] **MplPipBar dual-parent verified** — works on `?mode=mpl-widget` AND default DashboardApp.
 
 **System-wide:**
-- [ ] No regression in existing stats panels (dashboard renders, no NaN, no broken queries).
-- [ ] No regression in Awaiting flow (pre-existing testers' behavior unchanged).
-- [ ] `npm run build` passes clean.
-- [ ] No untracked files at completion.
+- [x] No regression in existing stats panels (dashboard renders, no NaN, no broken queries).
+- [x] No regression in Awaiting flow (pre-existing testers' behavior unchanged).
+- [x] `npm run build` passes clean.
+- [x] No untracked files at completion.
 
 ---
 

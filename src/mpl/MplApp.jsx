@@ -88,6 +88,8 @@ export default function MplApp() {
           process_id: proc.id,
           user_id: userId,
           accumulated_seconds: proc.elapsed,
+          paused_at: proc.paused ? (proc.pausedAt ?? null) : null,
+          pause_seconds_v2: proc.pausedSeconds ?? 0,
           status: proc.paused ? 'paused' : 'running',
           updated_at: new Date().toISOString(),
         }])
@@ -164,6 +166,53 @@ export default function MplApp() {
   function stopTimer(id) {
     clearInterval(processTimers.current[id])
     delete processTimers.current[id]
+  }
+
+  // ── Process pause/resume ──────────────────────────────────────────────
+  async function handleProcessPause(id) {
+    if (!user?.id) return
+    const proc = processesRef.current.find(p => p.id === id)
+    if (!proc || proc.paused) return
+    const now = new Date().toISOString()
+    stopTimer(id)
+    setProcesses(prev => prev.map(p => p.id === id ? { ...p, paused: true, pausedAt: now } : p))
+    supabase.from('mpl_active_timers').upsert({
+      process_id: id,
+      user_id: user.id,
+      accumulated_seconds: proc.elapsed,
+      paused_at: now,
+      status: 'paused',
+      updated_at: now,
+    }, { onConflict: 'process_id' }).then(({ error }) => {
+      if (error) console.error('[Meridian MPL] pause write failed', error)
+    })
+  }
+
+  async function handleProcessResume(id) {
+    if (!user?.id) return
+    const proc = processesRef.current.find(p => p.id === id)
+    if (!proc || !proc.paused) return
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const pauseDur = proc.pausedAt
+      ? Math.round((now.getTime() - new Date(proc.pausedAt).getTime()) / 1000)
+      : 0
+    const newPausedSeconds = (proc.pausedSeconds || 0) + pauseDur
+    setProcesses(prev => prev.map(p => p.id === id
+      ? { ...p, paused: false, pausedAt: null, pausedSeconds: newPausedSeconds }
+      : p))
+    startTimer(id)
+    supabase.from('mpl_active_timers').upsert({
+      process_id: id,
+      user_id: user.id,
+      accumulated_seconds: proc.elapsed,
+      paused_at: null,
+      pause_seconds_v2: newPausedSeconds,
+      status: 'running',
+      updated_at: nowIso,
+    }, { onConflict: 'process_id' }).then(({ error }) => {
+      if (error) console.error('[Meridian MPL] resume write failed', error)
+    })
   }
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────
@@ -620,6 +669,8 @@ export default function MplApp() {
           onRecoveryResume={handleRecoveryResume}
           onRecoveryLogNow={handleRecoveryLogNow}
           onRecoveryDiscard={handleRecoveryDiscard}
+          onProcessPause={handleProcessPause}
+          onProcessResume={handleProcessResume}
         />
       </>
     )

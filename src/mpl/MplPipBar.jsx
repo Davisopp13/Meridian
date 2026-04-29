@@ -63,6 +63,8 @@ export default function MplPipBar({
   onRecoveryResume,
   onRecoveryLogNow,
   onRecoveryDiscard,
+  onProcessPause,
+  onProcessResume,
   children,
 }) {
   const hasProcesses = processes.length > 0
@@ -170,12 +172,28 @@ export default function MplPipBar({
             <>
               {/* Inline process pills (up to 2) */}
               {visibleProcesses.map(p => (
-                <ProcessPill
-                  key={p.id}
-                  elapsed={p.elapsed}
-                  onLog={() => onLogProcess && onLogProcess(p.id)}
-                  onClose={() => onCancelProcess && onCancelProcess(p.id)}
-                />
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  <ProcessPill
+                    elapsed={p.elapsed}
+                    onLog={() => onLogProcess && onLogProcess(p.id)}
+                    onClose={() => onCancelProcess && onCancelProcess(p.id)}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); p.paused ? onProcessResume?.(p.id) : onProcessPause?.(p.id) }}
+                    title={p.paused ? 'Resume process' : 'Pause process'}
+                    style={{
+                      width: 22, height: 22,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: p.paused ? 'rgba(251,191,36,0.15)' : 'rgba(96,165,250,0.1)',
+                      border: `1px solid ${p.paused ? 'rgba(251,191,36,0.3)' : 'rgba(96,165,250,0.2)'}`,
+                      borderRadius: 6, cursor: 'pointer',
+                      color: p.paused ? '#fbbf24' : 'rgba(96,165,250,0.8)',
+                      fontSize: 10, flexShrink: 0,
+                    }}
+                  >
+                    {p.paused ? '▶' : '⏸'}
+                  </button>
+                </div>
               ))}
 
               {/* If more than 2, show overflow count badge */}
