@@ -4,7 +4,7 @@ import PillZone from '../components/PillZone.jsx';
 import StatButton from '../components/StatButton.jsx';
 import MinimizeButton from '../components/MinimizeButton.jsx';
 import MinimizedStrip from '../components/MinimizedStrip.jsx';
-import { Check, Phone, CornerUpLeft } from 'lucide-react';
+import { Check, Phone, CornerUpLeft, Pause, Play } from 'lucide-react';
 
 const STAT_BUTTON_CONFIG = {
   resolved:  { icon: <Check size={14} strokeWidth={2.5} />, label: 'Resolved',  color: C.resolved,    key: 'resolved' },
@@ -132,6 +132,7 @@ export default function CtPipBar({
 
   // ── Stat button disabled: no focused case ────────────────────────────────
   const hasFocused = !!focusedCaseId;
+  const focusedCase = focusedCaseId ? (cases.find(c => c.id === focusedCaseId) ?? null) : null;
 
   // ── Full bar ─────────────────────────────────────────────────────────────
   const divider = (
@@ -290,6 +291,25 @@ export default function CtPipBar({
             onAwaitingCase={onAwaitingCase}
             onNotACase={onNotACase}
           />
+        )}
+
+        {/* Focused-case pause/resume — anchored to timer cluster, before stat pills */}
+        {focusedCase && (
+          <button
+            onClick={e => {
+              e.stopPropagation()
+              focusedCase.paused ? onResumeCase?.(focusedCase.id) : onPauseCase?.(focusedCase.id)
+            }}
+            title={focusedCase.paused ? 'Resume from pause' : 'Pause (agent stepped away)'}
+            style={{
+              background: 'none', border: 'none',
+              color: focusedCase.paused ? '#4ade80' : C.textSec,
+              fontSize: 12, cursor: 'pointer', padding: '0 2px', lineHeight: 1,
+              flexShrink: 0, display: 'flex', alignItems: 'center',
+            }}
+          >
+            {focusedCase.paused ? <Play size={12} /> : <Pause size={12} />}
+          </button>
         )}
 
         <div style={{ flex: 1 }} />
