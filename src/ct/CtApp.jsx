@@ -387,6 +387,13 @@ export default function CtApp() {
   async function handleCaseStart({ caseNumber, accountId, caseType, caseSubtype }) {
     if (!user) return
 
+    // Refocus without duplicating if this case number is already active
+    const existing = cases.find(c => c.caseNum === caseNumber)
+    if (existing) {
+      setFocusedCaseId(existing.id)
+      return
+    }
+
     const willOpenTray = cases.length + 1 > 2
     const targetMode = willOpenTray ? 'trayOpen' : 'caseActive'
 

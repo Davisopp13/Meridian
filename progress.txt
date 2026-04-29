@@ -84,3 +84,27 @@ Required entries per PRD §8:
   - PillZone.jsx already had onAwaitingCase wired; no changes needed there
 ---
 
+## Iteration 2 - Wave 1B: Bookmarklet deduplication (CT)
+- Implemented case-number dedup guard in handleCaseStart
+- Files changed:
+  - src/ct/CtApp.jsx
+  - PRD.md (marked 2 bookmarklet tests complete)
+- What was implemented:
+  - Added `cases.find(c => c.caseNum === caseNumber)` guard at top of handleCaseStart.
+    If caseNumber already active → setFocusedCaseId(existing.id) and return. No new DB row.
+  - "A keeps ticking" was already correct: handleCaseStart never stopped existing timers,
+    and startCaseTimer is a no-op if a timer already runs for that id.
+  - Bookmarklet deduplication was the only missing piece for both §5.1 tests.
+- Decisions made (for Davis review):
+  - Matched on caseNum (display number) not session id — two sessions with same case_number
+    but different IDs are treated as the same case for refocus purposes. This matches PRD §5.1:
+    "If the case id matches an existing case in the array → focus that case."
+  - No toast or log on refocus — PRD §9: "Do not add a prompt or toast on bookmarklet handoff."
+- Build: npm run build passes clean (✓ 2518 modules, 1.37s)
+- Learnings for future iterations:
+  - cases state IS accessible in handleCaseStart closure because usePendingTriggers stores
+    handlers in a ref (handlersRef.current = handlers) that updates every render cycle.
+  - The "A keeps ticking" requirement was already satisfied before this iteration — the
+    prior code never called stopCaseTimer on case A when adding case B.
+---
+

@@ -229,8 +229,8 @@ If read sites exist, audit them for non-zero handling. If unclear, use a new col
 - [x] Both states persist across tab close/reopen.
 
 **Wave 1B — Multicase UX:**
-- [ ] Bookmarklet on tab 2 with case A active adds case B as second active case. Focus shifts to B. A keeps ticking.
-- [ ] Bookmarklet on tab 2 with case B already in the array refocuses B (no duplicate).
+- [x] Bookmarklet on tab 2 with case A active adds case B as second active case. Focus shifts to B. A keeps ticking.
+- [x] Bookmarklet on tab 2 with case B already in the array refocuses B (no duplicate).
 - [ ] At 1 case: single-card layout (existing).
 - [ ] At 2 cases: both visible simultaneously, focus is clickable, action buttons only on focused.
 - [ ] At 3+ cases: tab/pill row, focused expanded, click pill to switch focus.
