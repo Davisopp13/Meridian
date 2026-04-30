@@ -641,12 +641,6 @@
   }
 
   // ── Mass-mode handlers ───────────────────────────────────────────────────
-  function handleAddCase() {
-    // The bookmarklet already fires through _meridianRefresh which routes a new
-    // payload.caseNumber to this widget. Just tell the user how to trigger it.
-    showWidgetToast('Open a new SF case tab and click the bookmarklet to load it here.');
-  }
-
   function handleStart() {
     var mode = detectModeAtStart();
     if (mode === 'single') {
@@ -850,10 +844,6 @@
           divider +
           statPills +
           spacer +
-          '<button data-action="addcase" style="' +
-            'height:26px;padding:0 8px;border-radius:6px;border:none;' +
-            'background:rgba(232,84,10,0.15);color:#E8540A;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
-          '">+ Case</button>' +
           minBtn + '\u25bc</button>' +
           closeBtn +
         '</div>' +
@@ -1219,8 +1209,6 @@
         state.note = '';
       }
       render();
-    } else if (action === 'addcase') {
-      handleAddCase();
     } else if (action === 'notacase') {
       handleNotACase();
     } else if (action === 'cancel-mass') {
