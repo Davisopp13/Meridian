@@ -641,6 +641,12 @@
   }
 
   // ── Mass-mode handlers ───────────────────────────────────────────────────
+  function handleAddCase() {
+    // The bookmarklet already fires through _meridianRefresh which routes a new
+    // payload.caseNumber to this widget. Just tell the user how to trigger it.
+    showWidgetToast('Open a new SF case tab and click the bookmarklet to load it here.');
+  }
+
   function handleStart() {
     var mode = detectModeAtStart();
     if (mode === 'single') {
@@ -747,19 +753,19 @@
     var statPills =
       '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
         '<button data-action="resolve" style="' +
-          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'height:26px;padding:0 8px;border-radius:6px;border:none;' +
           'background:#22c55e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
         '">' + state.stats.resolved + ' Resolved</button>' +
         '<button data-action="reclass" style="' +
-          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'height:26px;padding:0 8px;border-radius:6px;border:none;' +
           'background:#ef4444;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
         '">' + state.stats.reclass + ' Reclass</button>' +
         '<button data-action="call" style="' +
-          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'height:26px;padding:0 8px;border-radius:6px;border:none;' +
           'background:#3b82f6;color:#fff;font-size:11px;font-weight:700;cursor:pointer;' +
         '">' + state.stats.calls + ' Calls</button>' +
         '<button style="' +
-          'height:26px;padding:0 10px;border-radius:6px;border:none;' +
+          'height:26px;padding:0 8px;border-radius:6px;border:none;' +
           'background:#6b7280;color:#fff;font-size:11px;font-weight:700;cursor:default;' +
         '">' + total + ' Total</button>' +
       '</div>';
@@ -840,10 +846,14 @@
             '">\u00d7</button>' +
           '</div>' +
           '<span id="ct-timer" style="color:#fff;font-weight:600;font-size:12px;font-variant-numeric:tabular-nums;flex-shrink:0;">' + fmtTime(state.elapsed) + '</span>' +
+          awaitBtn +
           divider +
           statPills +
-          awaitBtn +
           spacer +
+          '<button data-action="addcase" style="' +
+            'height:26px;padding:0 8px;border-radius:6px;border:none;' +
+            'background:rgba(232,84,10,0.15);color:#E8540A;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;' +
+          '">+ Case</button>' +
           minBtn + '\u25bc</button>' +
           closeBtn +
         '</div>' +
@@ -1209,6 +1219,8 @@
         state.note = '';
       }
       render();
+    } else if (action === 'addcase') {
+      handleAddCase();
     } else if (action === 'notacase') {
       handleNotACase();
     } else if (action === 'cancel-mass') {
